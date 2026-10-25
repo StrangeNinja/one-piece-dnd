@@ -67,17 +67,19 @@ h1{font-family:var(--f-display);font-size:28px;line-height:1.05;margin:0;text-wr
 .stat b{font-size:20px;line-height:1.1}
 .stat small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 button.stat:active{transform:scale(.96)}
-.hp{display:flex;align-items:center;gap:8px}
-.hpbar{flex:1;min-width:0}
+.hp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hpbar{flex:1 1 140px;min-width:0}
+.hpctl{display:flex;gap:8px;margin-left:auto}
 .hptxt{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted)}
 .hptxt span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .hptxt b{font-size:22px;color:var(--ink)}
-.track{height:10px;border-radius:5px;background:var(--chip);overflow:hidden;margin-top:3px}
+.track{height:10px;border-radius:5px;background:var(--chip);overflow:hidden;margin-top:3px;display:flex}
+.fill.tp{background:var(--temp)} .hptxt .t{color:var(--temp);font-weight:700;font-size:15px}
 .fill{height:100%;background:var(--good);transition:width .25s}
 .fill.mid{background:var(--gold)} .fill.low{background:repeating-linear-gradient(135deg,var(--bad) 0 6px,transparent 6px 9px)}
 .hpin{width:60px;padding:8px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:18px;text-align:center}
 .hpbtn{padding:9px 10px;border-radius:8px;font-weight:700;font-size:14px}
-.hpbtn.dmg{background:var(--bad);color:var(--bg)} .hpbtn.heal{background:var(--good);color:var(--bg)}
+.hpbtn.dmg{background:var(--bad);color:var(--bg)} .hpbtn.heal{background:var(--good);color:var(--bg)} .hpbtn.tmp{background:var(--temp);color:var(--bg)}
 /* Símbolo además del color: en las paletas rojas el daño no depende solo del tono */
 .hpbtn.dmg::before{content:"− "} .hpbtn.heal::before{content:"+ "}
 
@@ -250,6 +252,10 @@ const CHARS = {
     hardening:{bonus:3,res:"haki",turns:10},
     execute:{dice:"2d6",type:"trueno",res:"ejecutar",note:"CD 16 de FUE o empujado 10 pies y derribado"},
     blackArmory:true,
+    role:{name:"Primer oficial",passive:"Presencia de comandante",
+      desc:"Tras unas palabras motivadoras (1 minuto hablando a la tripulación), hasta 3 criaturas ganan 7 PV temporales, que duran hasta el siguiente descanso largo. Puede incluirse a sí mismo. Los PV temporales no se acumulan.",
+      tools:"Intimidación y Persuasión (ya las tenía)",
+      out:"Del libro (no está en la hoja del DM): como acción, da ventaja en una prueba relacionada con el barco durante 1 hora."},
     weapons:{
       main:{name:"Katana principal",hit:8,dice:"1d8",mod:5,type:"cortante"},
       sc:{name:"Katana del Shogun Carmesí",hit:10,dice:"1d8",mod:7,type:"cortante"}
@@ -271,7 +277,10 @@ const CHARS = {
       {cost:"adicional",kind:"heal",name:"Tomar aliento",res:"aliento",heal:"1d10+7",note:"Recupera PV"},
       {cost:"reaccion",kind:"deflect",w:"sc",name:"Desvío",note:"Cuando te aciertan cuerpo a cuerpo: si tu ataque iguala o supera el del enemigo, desvías y le haces daño"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Ataque de oportunidad",note:"Cuando un enemigo sale de tu alcance"},
-      {cost:"gratis",kind:"surge",name:"Oleada de acción",res:"oleada",note:"Una acción extra este turno (2 golpes más)"}
+      {cost:"gratis",kind:"surge",name:"Oleada de acción",res:"oleada",note:"Una acción extra este turno (2 golpes más)"},
+      {cost:"fuera",role:true,kind:"group",name:"Presencia de comandante",temp:7,t:3,note:"1 minuto de palabras motivadoras: hasta 3 criaturas ganan 7 PV temporales hasta el siguiente descanso largo"},
+      {cost:"accion",role:true,kind:"group",name:"Grito de batalla",prest:1,once:"grito",heal:3,
+        msg:"Aliados a 60 pies: ventaja en su próxima tirada durante 1 minuto y recuperan 3 PV.",note:"Habilidad de prestigio: aliados a 60 pies tienen ventaja en su próxima tirada de ataque, salvación o prueba durante 1 minuto y recuperan 3 PV. Una vez por descanso corto o largo"}
     ]
   },
   codel:{
@@ -395,7 +404,7 @@ function newTurn(c){return{a:1,b:1,r:1,sr:2,atk:c.attacksPerAction,exec:false,at
 function fresh(c){return{hp:c.maxHp,res:Object.fromEntries(c.resources.map(r=>[r.id,r.max])),
   sr:Object.fromEntries(SPECIALS.map(s=>[s.id,c.prof])),dream:c.level,prestige:0,plog:[],
   conds:[],hard:0,turn:newTurn(c),ds:{ok:0,ko:0},dead:false,log:[],
-  slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],
+  slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
   fore:c.foretell?[{v:d(20),u:false},{v:d(20),u:false}]:[]}}
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
@@ -410,7 +419,7 @@ function merge(c,s){
     turn:obj(f.turn,s.turn),ds:obj(f.ds,s.ds),dead:pick(f.dead,s.dead),log:strs(s.log),
     slots:f.slots.map((x,i)=>pick(x,s.slots&&s.slots[i])),spells:{c:ids(sp.c,true,k?k.cantrips:0),p:ids(sp.p,false,k?k.prepared:0)},
     conc:typeof cc.id==="string"&&(typeof SPELLS!=="undefined"&&Object.hasOwn(SPELLS,cc.id)||c.fruit&&c.fruit.tech.some(t=>"f:"+t.id===cc.id))?{id:cc.id,lvl:pick(0,cc.lvl)}:{id:"",lvl:0},
-    sea:pick(false,s.sea),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
+    sea:pick(false,s.sea),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(1,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)}))};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===66&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
@@ -464,10 +473,10 @@ function render(){
       <button class="stat" data-do="init"><b>${sgn(c.init)}</b><small>Inic.</small></button>
       <button class="stat" data-do="look" aria-label="Apariencia"><b>${ICON}</b><small>Ajustes</small></button>
     </div></div>
-   <div class="hp"><div class="hpbar"><div class="hptxt"><span><b>${S.hp}</b> / ${c.maxHp} PV</span><span>${S.conds.join(", ")}</span></div>
-     <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div></div>
-     <input class="hpin" id="hpin" type="number" inputmode="numeric" min="0" placeholder="0" aria-label="Cantidad de PV">
-     <button class="hpbtn dmg" data-do="dmg">Daño</button><button class="hpbtn heal" data-do="heal">Curar</button></div>
+   <div class="hp"><div class="hpbar"><div class="hptxt"><span><b>${S.hp}</b>${S.temp?` <span class="t">+${S.temp}</span>`:""} / ${c.maxHp} PV</span><span>${S.conds.join(", ")}</span></div>
+     <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${Math.max(0,S.hp)/(c.maxHp+S.temp)*100}%"></div>${S.temp?`<div class="fill tp" style="width:${S.temp/(c.maxHp+S.temp)*100}%"></div>`:""}</div></div>
+     <div class="hpctl"><input class="hpin" id="hpin" type="number" inputmode="numeric" min="0" placeholder="0" aria-label="Cantidad de PV">
+     <button class="hpbtn dmg" data-do="dmg">Daño</button><button class="hpbtn heal" data-do="heal">Curar</button><button class="hpbtn tmp" data-do="temp" aria-label="PV temporales">Temp.</button></div></div>
    <div class="turn">
      <span class="econ${t.a<=0?" spent":""}"><i></i>Acción${t.a>0&&c.attacksPerAction>1?` · ${t.atk} golpes`:""}${t.a>1?` ×${t.a}`:""}</span>
      <span class="econ${t.b<=0?" spent":""}"><i></i>Adicional</span>
@@ -552,9 +561,10 @@ function actBtn(a,i){
   else if(a.kind==="steel")big=`${sgn(a.hit)}<small>${a.dmg} × ${a.targets}</small>`;
   else if(a.kind==="heal")big=`${a.heal}<small>PV</small>`;
   else if(a.kind==="haki")big=S.hard>0?`${S.hard}<small>turnos</small>`:`+${c.hardening.bonus}<small>atq. y daño</small>`;
+  else if(a.kind==="group")big=a.temp?`+${a.temp}<small>PV temp. · ${a.t} criaturas</small>`:a.heal?`+${a.heal}<small>PV a aliados</small>`:"";
   else if(a.kind==="firstaid")big=`${a.heal}+nivel<small>PV · ${a.prest} prestigio</small>`;
-  const out=a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0)||a.prest&&S.prestige<a.prest;
-  const left=a.res?` · quedan ${S.res[a.res]}`:a.prest?` · tienes ${S.prestige} de prestigio`:"";
+  const out=a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0)||a.prest&&S.prestige<a.prest||a.once&&S.used[a.once];
+  const left=a.res?` · quedan ${S.res[a.res]}`:a.prest?` · tienes ${S.prestige} de prestigio${a.once&&S.used[a.once]?" · ya usado desde el último descanso":""}`:"";
   return `<button class="act ${a.kind==="haki"&&S.hard>0?"on":""}" data-act="${i}" ${out?"disabled":""}><span class="n">${a.name}${tags}</span><span class="big">${big}</span><span class="d">${a.kind==="haki"&&S.hard>0?"Activo · toca para terminarlo":a.note}${left}</span></button>`;
 }
 
@@ -737,6 +747,9 @@ function doAct(i){
   } else if(a.kind==="use"){
     warn=spend(a.cost);if(a.res)S.res[a.res]--;
     show({title:a.name,warn,tip:a.note+(a.res?` · quedan ${S.res[a.res]}`:"")});log(`<b>${a.name}</b>`);
+  } else if(a.kind==="group"){
+    show({title:a.name,html:`<div class="trayact"><button class="btn primary" data-do="group" data-i="${i}" data-me="1">Sí, ${c.name} es uno de ellos</button><button class="btn" data-do="group" data-i="${i}" data-me="0">No, solo los demás</button></div>`,
+      tip:`¿${c.name} se incluye? ${a.note}.${a.prest?` Gasta ${a.prest} punto de prestigio (tienes ${S.prestige}).`:""}`});return;
   } else if(a.kind==="firstaid"){
     show({title:a.name,fa:i,html:`<div class="hp"><input class="hpin" id="faname" type="text" maxlength="40" placeholder="Nombre" aria-label="Nombre de la criatura" style="flex:1;width:auto;text-align:left">
       <input class="hpin" id="falvl" type="number" inputmode="numeric" min="1" max="30" value="${c.level}" aria-label="Nivel o dados de golpe"><button class="btn primary" data-do="firstaid">Curar</button></div><div class="warn" id="fawarn"></div>`,
@@ -862,7 +875,7 @@ function gate(){
   return`<section><h2>Mesa <small>en vivo</small></h2><div class="list">${Object.entries(CHARS).map(([k,c])=>{
     const s=merge(c,mesa.state[k]),pct=Math.max(0,s.hp/c.maxHp*100);
     return`<div class="box2"><div class="who"><b style="font-size:18px">${c.name}</b><button class="btn" data-pick="${k}">Abrir</button></div>
-      ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${c.maxHp} PV${s.hp<=0?" · inconsciente":""}</span><span>${s.conds.join(", ")||"Sin estados"}</span></div>
+      ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${c.maxHp} PV${s.temp?` (+${s.temp} temp.)`:""}${s.hp<=0?" · inconsciente":""}</span><span>${s.conds.join(", ")||"Sin estados"}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
       <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · Sueño ${s.dream}/${c.level} · Prestigio ${s.prestige}${s.hard>0?` · Haki activo (${s.hard} t.)`:""}${c.caster?` · Espacios ${s.slots.map((v,i)=>`N${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · Concentrado en ${concOf(c,s.conc.id).n}`:""}${s.sea?" · Kairoseki":""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
       ${s.log[0]?`<p class="note">Último: ${s.log[0]}</p>`:""}`:`<p class="note">Sin datos todavía: aparecerán cuando su jugador abra la app.</p>`}</div>`}).join("")}</div></section>
@@ -940,6 +953,13 @@ document.addEventListener("click",e=>{
       boxes:[{l:"CON contra CD "+ds.dc,v:tot,s:`d20 ${r.txt} ${sgn(v)}`,cls:ok?"":"fail"}],html:ok?"":`<div class="trayact"><button class="btn" data-do="endconc">Terminar la concentración</button></div>`});log(`Concentración: ${tot} contra CD ${ds.dc}`)}
   if(act==="forenext"){foreArm=+ds.i;$("tray").classList.add("hide");render();return}
   if(act==="foreother"){const f=S.fore[+ds.i];f.u=true;S.turn.fore=true;show({title:"Presagio usado",boxes:[{l:"Tirada",v:f.v,s:"para otra criatura"}]});log(`Presagio ${f.v} usado para otra criatura`)}
+  if(act==="group"){const a=c.actions[+ds.i],me=ds.me==="1";if(a.prest&&S.prestige<a.prest||a.once&&S.used[a.once])return;
+    const warn=spend(a.cost),boxes=[];if(a.prest){S.prestige-=a.prest;S.plog.unshift(`Gastó ${a.prest} en ${a.name}`)}if(a.once)S.used[a.once]=true;
+    if(a.temp){if(me)S.temp=Math.max(S.temp,a.temp);boxes.push({l:"PV temporales",v:"+"+a.temp,s:me?`${c.name} queda con ${S.temp} (no se acumulan)`:"a cada criatura"})}
+    if(a.heal){if(me){S.hp=Math.min(c.maxHp,S.hp+a.heal);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}}boxes.push({l:"Curación",v:"+"+a.heal,s:me?`${c.name} queda con ${S.hp} PV`:"a cada aliado"})}
+    const rest=a.t?(me?a.t-1:a.t):0;
+    show({title:a.name,warn,boxes,tip:(a.msg?a.msg+" ":"")+(a.t?`Recuerda dárselos ${rest?`a hasta ${rest} ${rest===1?"criatura más":"criaturas más"}`:"a nadie más: ya usaste las 3"}.`:"Avisa a tus aliados.")});
+    log(`<b>${a.name}</b>${me?` (incluye a ${c.name})`:""}`)}
   if(act==="firstaid"){const a=c.actions[T.fa],name=$("faname").value.trim().slice(0,40),lv=parseInt($("falvl").value,10),w=m=>{$("fawarn").textContent=m};
     if(!name||!(lv>0))return w("Escribe el nombre y el nivel de la criatura.");
     if(S.aided.some(x=>x.toLowerCase()===name.toLowerCase()))return w(`${name} ya recibió ${a.name}: necesita un descanso corto o largo.`);
@@ -953,8 +973,10 @@ document.addEventListener("click",e=>{
     b.v=(+b.v)-old+f.v;b.s+=` · presagio: ${old} → ${f.v}`;b.cls=f.v===20?"crit":f.v===1?"fail":"";T.raw=f.v;log(`Presagio ${f.v} reemplaza un ${old}`);drawTray();save();render();return}
   if(act==="init"){const r=d20();show({title:"Iniciativa",d20:0,boxes:[{l:"Iniciativa",v:r.v+c.init,s:`d20 ${r.txt} ${sgn(c.init)}`}]});log(`<b>Iniciativa</b>: ${r.v+c.init}`)}
   if(act==="turn"){S.turn=newTurn(c);if(S.hard>0){S.hard--;if(S.hard===0)log("Endurecimiento terminado")}$("tray").classList.add("hide");log("— Nuevo turno —")}
-  if(act==="dmg"||act==="heal"){const n=parseInt($("hpin").value,10);if(!(n>0))return;
-    if(act==="dmg"){S.hp=Math.max(0,S.hp-n);log(`Recibe <b>${n}</b> de daño`);
+  if(act==="dmg"||act==="heal"||act==="temp"){const n=parseInt($("hpin").value,10);if(!(n>0))return;
+    /* Los PV temporales no se acumulan: queda el valor más alto */
+    if(act==="temp"){log(n>S.temp?`PV temporales: <b>${n}</b>`:`PV temporales: se queda con ${S.temp} (no se acumulan)`);S.temp=Math.max(S.temp,n)}
+    if(act==="dmg"){const ab=Math.min(S.temp,n);S.temp-=ab;S.hp=Math.max(0,S.hp-(n-ab));log(`Recibe <b>${n}</b> de daño${ab?` (${ab} a PV temporales)`:""}`);
       if(S.conc.id&&S.hp<=0){log(`Pierde la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0}}
       else if(S.conc.id){const dc=Math.max(10,Math.floor(n/2));
         show({title:"Concentración",boxes:[{l:"CD salvación CON",v:dc,s:"10 o la mitad del daño, lo que sea mayor"}],tip:`Si fallas, pierdes la concentración en ${concOf(c,S.conc.id).n}.`,
@@ -978,7 +1000,7 @@ document.addEventListener("click",e=>{
         manual=c.resources.filter(r=>r.rest==="none").map(r=>[r.id,S.res[r.id]]);
       S=Object.assign(fresh(c),keep);manual.forEach(([k,v])=>S.res[k]=v);foreArm=null;log("<b>Descanso largo</b>: PV y usos recuperados");
       if(S.fore.length)log(`Nuevos presagios: <b>${S.fore.map(f=>f.v).join("</b> y <b>")}</b>`)}
-    else{c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);S.aided=[];log("<b>Descanso corto</b>: recursos y reacciones especiales recuperados")}
+    else{c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);S.aided=[];Object.keys(S.used).forEach(k=>S.used[k]=false);log("<b>Descanso corto</b>: recursos y reacciones especiales recuperados")}
   }
   save();render();
 });

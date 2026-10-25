@@ -194,7 +194,7 @@ const SEED={round:1,cur:null,list:[
 /* Personajes con fruta del diablo: icono y recordatorio en su tarjeta */
 const FRUITS={Codel:"Mochi Mochi no Mi"};
 /* Rol en la tripulación de cada personaje (etiqueta junto al nombre) */
-const ROLES={Codel:"Doctor"};
+const ROLES={Codel:"Doctor",Udon:"Primer oficial"};
 const FRUIT_ICON=`<svg class="fr-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="9.5" r="5.3"/><path d="M8 9.5c0-1.4 2.2-1.4 2.2 0s-1.5 2.6-3.3 2.2S4.6 9.6 5.8 7.8"/><path d="M8 4.2C8 2.6 9 1.6 10.8 1.4"/></svg>`;
 let S=store.get("dm:combat2")||JSON.parse(JSON.stringify(SEED));
 if(!S.cur&&S.list.length)S.cur=sorted()[0].id;
