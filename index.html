@@ -175,6 +175,30 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 select{flex:1;min-width:0;padding:8px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
 code{font-size:12px;word-break:break-all;user-select:all}
 .adv.two{grid-template-columns:1fr 1fr}
+/* Retratos: imagen sobre la inicial (si falta el archivo, queda la inicial). Papel de cartel derivado de los tokens de la paleta */
+.av{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--chip);color:var(--muted);font-weight:700;font-size:12px;line-height:1}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pick button{display:inline-flex;align-items:center;gap:6px}
+/* Encabezado del personaje: retrato en dos filas; nombre y recuadros arriba; descripción abajo a lo ancho */
+.hdr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:4px;align-items:center}
+.hdr .portrait{grid-row:1 / 3} .hdr h1{grid-column:2;min-width:0;font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .hdr .stats{grid-column:3} .hdr .sub{grid-column:2 / 4;margin-top:0}
+.hdr .stat{min-width:44px} .hdr .stat.ico-only{min-width:0;padding:4px 6px;justify-content:center}
+.portrait{flex-shrink:0;align-self:flex-start;display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px;border-radius:3px;
+  background:color-mix(in srgb,var(--gold) 16%,var(--surface));border:1.5px solid color-mix(in srgb,var(--gold) 45%,var(--line));box-shadow:0 1px 3px var(--shadow)}
+.portrait .av{border-radius:2px;font-family:var(--f-display);font-size:28px;background:color-mix(in srgb,var(--gold) 28%,var(--surface));color:var(--ink)}
+.bounty{font-family:var(--f-display);font-size:11px;color:var(--ink);white-space:nowrap}
+.poster{padding:0;border:0;background:transparent;max-width:min(92vw,520px);cursor:zoom-out}
+.poster img{display:block;width:100%;height:auto;max-height:88vh;object-fit:contain;border-radius:3px;box-shadow:0 12px 40px var(--shadow)}
+.poster::backdrop{background:var(--shadow)}
+.board{display:flex;gap:12px;overflow-x:auto;padding:8px 4px 12px}
+.wp{margin:0;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;transform:rotate(-1.5deg);
+  background:color-mix(in srgb,var(--gold) 16%,var(--surface));border:1.5px solid color-mix(in srgb,var(--gold) 45%,var(--line));box-shadow:0 2px 6px var(--shadow)}
+.wp:nth-child(even){transform:rotate(1.5deg)}
+.wp .av{border-radius:2px;font-family:var(--f-display);font-size:40px;background:color-mix(in srgb,var(--gold) 28%,var(--surface));color:var(--ink)}
+.wp figcaption{font-family:var(--f-display);font-size:13px;color:var(--ink)}
+.sico{width:16px;height:16px;flex-shrink:0;color:var(--muted);vertical-align:-2px;margin-right:6px}
+section h2 .h2t{display:inline-flex;align-items:center}
+@media (prefers-reduced-motion:reduce){.wp,.wp:nth-child(even){transform:none}}
 .skills summary{cursor:pointer;list-style:none}
 .skills summary::-webkit-details-marker{display:none}
 .skills summary h2{margin:0} .skills[open] summary h2{margin-bottom:8px} .skills summary h2 span{white-space:nowrap}
@@ -243,7 +267,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 /* Armas: hit y mod SIN Haki; el Endurecimiento suma su bono cuando está activo. */
 const CHARS = {
   udon:{
-    name:"Udon", sub:"Guerrero · Black Weapon · Nivel 7 · Humano · Samurái",
+    name:"Udon", bounty:"", sub:"Guerrero · Black Weapon · Nivel 7 · Humano · Samurái",
     level:7, prof:3, ac:15, maxHp:66, init:1, speed:"30 pies",
     critMin:18, attacksPerAction:2,
     saves:{FUE:[8,1],DES:[1,0],CON:[6,1],INT:[-1,0],SAB:[0,0],CAR:[0,0]},
@@ -284,7 +308,7 @@ const CHARS = {
     ]
   },
   codel:{
-    name:"Codel", sub:"Sacerdote · Sky Domain · Nivel 7 · Birkan · Mercenario",
+    name:"Codel", bounty:"", sub:"Sacerdote · Sky Domain · Nivel 7 · Birkan · Mercenario",
     level:7, prof:3, ac:18, maxHp:62, init:2, speed:"30 pies",
     critMin:20, attacksPerAction:1,
     saves:{FUE:[-1,0],DES:[2,0],CON:[3,0],INT:[-1,0],SAB:[7,1],CAR:[2,1]},
@@ -357,12 +381,12 @@ const CHARS = {
       {cost:"accion",kind:"attack",w:"pistol",name:"Pistola",note:"Alcance 30/120 pies · recarga · gasta 1 bala"},
       {cost:"accion",kind:"dash",name:"Voluntad de lo Divino",res:"canal",dc:15,save:"SAB",note:"Canalizar divinidad. Cada humanoide enemigo a 30 pies que te vea u oiga: si falla, queda expulsado 1 minuto (huye y no usa reacciones; repite la salvación al final de sus turnos; termina si recibe daño). Voluntad Abrumadora: si su VD es ½ o menos, queda inconsciente"},
       {cost:"accion",kind:"pool",name:"Voluntad de Kami",res:"kami",note:"Al tocar. 5 PV de la reserva curan una enfermedad o neutralizan un veneno"},
-      {cost:"accion",kind:"use",name:"Detección de aura",note:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies"},
+      {cost:"accion",kind:"use",haki:true,name:"Detección de aura",note:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies"},
       {cost:"reaccion",kind:"dash",name:"Golpe atronador de dial",res:"dial",dc:15,save:"DES",dmg:"2d8",type:"trueno o rayo",half:true,note:"Cuando una criatura a 5 pies que ves te golpea. Eliges trueno o rayo"},
       {cost:"accion",role:true,kind:"use",name:"Estabilizar con kit",res:"kits",note:"Kit de sanación: una criatura moribunda queda estable y con 1 PV · gasta 1 kit"},
       {cost:"accion",role:true,kind:"firstaid",name:"Primeros auxilios",prest:1,heal:"1d6+4",note:"Habilidad de prestigio: cura 1d6 + 4 + el nivel (dados de golpe) de una criatura herida. Una vez por criatura hasta un descanso corto o largo"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Disruptor de lanzadores",note:"Una criatura a 5 pies lanza un conjuro: la atacas con el sable. Si la dañas, tiene desventaja para mantener la concentración"},
-      {cost:"reaccion",kind:"use",name:"Predecir el resultado",res:"predecir",note:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado"},
+      {cost:"reaccion",kind:"use",haki:true,name:"Predecir el resultado",res:"predecir",note:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado"},
       {cost:"fuera",kind:"use",name:"Protección de las Nubes",res:"pluma",note:"Caída de pluma (reacción al caer): tú y hasta 5 criaturas a 60 pies caen despacio y sin daño"},
       {cost:"fuera",kind:"use",name:"Dial de tono: grabar",res:"tono",note:"Acción adicional, 1 carga: graba hasta 60 segundos. Grabación actual: «Esto va a destruir el mundo»"},
       {cost:"fuera",kind:"use",name:"Dial de tono: reproducir",note:"Acción: reproduce lo grabado"},
@@ -370,7 +394,7 @@ const CHARS = {
     ]
   },
   kalgo:{
-    name:"Kalgo", sub:"Bruiser · Black Fist · Nivel 7 · Mink · Arqueólogo",
+    name:"Kalgo", bounty:"", sub:"Bruiser · Black Fist · Nivel 7 · Mink · Arqueólogo",
     level:7, prof:3, ac:17, maxHp:75, init:3, speed:"40 pies · trepar 20",
     critMin:20, attacksPerAction:2,
     saves:{FUE:[7,1],DES:[3,0],CON:[7,1],INT:[1,0],SAB:[1,0],CAR:[1,0]},
@@ -434,7 +458,7 @@ const CHARS = {
       {cost:"adicional",kind:"temproll",name:"Prepárate para el impacto",res:"furia",temp:"1d6+7",note:"Furia: ganas PV temporales"},
       {cost:"adicional",kind:"use",name:"Redirigir la ira",res:"furia",note:"Furia: te mueves hasta la mitad de tu velocidad hacia un enemigo sin provocar ataques de oportunidad"},
       {cost:"adicional",kind:"use",name:"Hazlo caer",only:"frenzy",once:"caer",perFrenzy:true,note:"Black Fist: los enemigos a 15 pies tienen desventaja al atacar a otros que no seas tú, hasta que termine la Emoción del combate. 1 vez por Emoción"},
-      {cost:"adicional",kind:"muscle",name:"Músculos recubiertos de Haki",only:"frenzy",note:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−4 al daño de cada golpe, salvo fuerza y psíquico) o ataque (+2 al ataque y +2 al daño con Puños y golpes sin arma)"},
+      {cost:"adicional",kind:"muscle",haki:true,name:"Músculos recubiertos de Haki",only:"frenzy",note:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−4 al daño de cada golpe, salvo fuerza y psíquico) o ataque (+2 al ataque y +2 al daño con Puños y golpes sin arma)"},
       {cost:"reaccion",kind:"temproll",name:"Sangre por músculo",once:"sangre",trigger:"half",temp:"1d6+7",refill:"furia",note:"Al quedar con la mitad de tus PV o menos: ganas PV temporales y recuperas todos los puntos de furia. 1 vez por descanso corto o largo"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Ataque de oportunidad",note:"Cuando un enemigo sale de tu alcance"},
       {cost:"gratis",kind:"toggle",flag:"rampage",name:"Ataque temerario",note:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno"},
@@ -445,7 +469,7 @@ const CHARS = {
     ]
   },
   sungsopp:{
-    name:"Sungsopp", sub:"Rogue · Duelista Danzante · Nivel 7 · Humano · Ladrón",
+    name:"Sungsopp", bounty:"", sub:"Rogue · Duelista Danzante · Nivel 7 · Humano · Ladrón",
     level:7, prof:3, ac:15, acDex:true, maxHp:42, init:4, speed:"30 pies",
     critMin:20, attacksPerAction:1,
     saves:{FUE:[0,0],DES:[7,1],CON:[1,0],INT:[0,0],SAB:[0,0],CAR:[7,1]},
@@ -510,7 +534,7 @@ const CHARS = {
       {cost:"accion",kind:"attack",w:"ballesta",name:"Ballesta corta",note:"A distancia · gasta 1 virote"},
       {cost:"accion",kind:"attack",w:"main",vortex:true,perTurn:"vortex",name:"Vortex Strike",note:"Una vez por turno, en lugar de un ataque cuerpo a cuerpo: una tirada con desventaja contra todas las criaturas a 5 pies"},
       {cost:"accion",kind:"dash",name:"Paso del trueno",res:"paso",dc:15,save:"CON",dmg:"3d10",type:"trueno",half:true,note:"Riqueza: te teletransportas hasta 90 pies a un espacio libre que veas; cada criatura a 5 pies del lugar que dejaste hace la salvación. El estruendo se oye a 90 m"},
-      {cost:"accion",kind:"use",name:"Detección de aura",note:"Haki de Observación: detectas Haki y frutas a 120 pies"},
+      {cost:"accion",kind:"use",haki:true,name:"Detección de aura",note:"Haki de Observación: detectas Haki y frutas a 120 pies"},
       {cost:"accion",kind:"form",form:"beast",res:"bestia",fruitAct:true,name:"Forma bestia",note:"Acción, 2 por descanso largo, hasta 4 horas. PV propios 42, CA 12, multiataque de 2 puñetazos. Al volver recuperas tus PV de antes; si llegó a 0, el daño sobrante pasa a tu forma humana"},
       {cost:"accion",kind:"form",form:"hybrid",res:"hibrida",fruitAct:true,name:"Forma híbrida",note:"Acción, 3 por descanso largo, hasta 4 horas. FUE 14, DES 20, CON 15 y 2 opciones a elegir"},
       {cost:"accion",kind:"attack",w:"bpuno",form:"beast",name:"Puñetazo",note:"Multiataque: 2 puñetazos por acción"},
@@ -521,12 +545,12 @@ const CHARS = {
       {cost:"adicional",kind:"use",name:"Acción astuta: Destrabarse",note:"Tu movimiento no provoca ataques de oportunidad este turno"},
       {cost:"adicional",kind:"use",name:"Acción astuta: Esconderse",note:"Haces una prueba de Sigilo para esconderte"},
       {cost:"adicional",kind:"toggle",flag:"aim",needs:"still",advNext:true,name:"Puntería firme",note:"Ventaja en tu siguiente ataque de este turno; tu velocidad queda en 0. Requiere no haberte movido"},
-      {cost:"adicional",kind:"toggle",flag:"far",res:"vista",advNext:true,ranged:true,name:"Vista lejana",note:"Haki: ventaja en tu siguiente ataque a distancia, o el triple de alcance"},
+      {cost:"adicional",kind:"toggle",haki:true,flag:"far",res:"vista",advNext:true,ranged:true,name:"Vista lejana",note:"Haki: ventaja en tu siguiente ataque a distancia, o el triple de alcance"},
       {cost:"reaccion",kind:"halve",name:"Esquiva asombrosa",note:"Un atacante que ves te impacta: recibes la mitad del daño de ese ataque"},
-      {cost:"reaccion",kind:"use",name:"Predecir el resultado",res:"predecir",note:"Tú o un aliado a 30 pies vuelve a tirar un d20 ya visto el resultado"},
+      {cost:"reaccion",kind:"use",haki:true,name:"Predecir el resultado",res:"predecir",note:"Tú o un aliado a 30 pies vuelve a tirar un d20 ya visto el resultado"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Ataque de oportunidad",note:"Cuando un enemigo sale de tu alcance"},
       {cost:"gratis",kind:"toggle",flag:"still",name:"No me he movido",note:"Activa Puntería firme y el Impacto calculado del Ojo del Horizonte (+2 al ataque y +1d6 en el primer disparo). Se reinicia con Nuevo turno"},
-      {cost:"gratis",kind:"toggle",flag:"focus",perTurn:"focusUsed",name:"Golpe enfocado",note:"Haki, una vez por turno: los dados de daño de tu siguiente ataque con arma suben un tamaño (máximo d8)"},
+      {cost:"gratis",kind:"toggle",haki:true,flag:"focus",perTurn:"focusUsed",name:"Golpe enfocado",note:"Haki, una vez por turno: los dados de daño de tu siguiente ataque con arma suben un tamaño (máximo d8)"},
       {cost:"accion",role:true,kind:"group",name:"Orden del capitán",prest:1,once:"orden",temp:10,
         msg:"Aliados a 60 pies que te vean u oigan: pueden moverse la mitad de su velocidad como reacción sin provocar ataques de oportunidad, y eligen entre un ataque de oportunidad si un enemigo entra en su alcance o +2 al daño de su siguiente ataque exitoso en el próximo minuto. Todos ganan 10 PV temporales.",
         note:"Habilidad de prestigio: aliados a 60 pies se mueven, eligen un beneficio y ganan 10 PV temporales. Una vez por descanso corto o largo"}
@@ -563,6 +587,23 @@ const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){retu
 let cur=store.get("mc:cur"); if(!CHARS[cur]) cur=Object.keys(CHARS)[0];
 let mode="normal", armed=null, spendOpen=false, book=false, skillsOpen=false, S, T=null;
 const C=()=>CHARS[cur];
+/* Imágenes de personaje: imagenes/<id>-retrato.jpg (384 px), -mini.jpg (96 px) y -cartel.jpg (cartel completo).
+   Si falta una, onerror la quita (queda la inicial) y NOIMG la recuerda para no volver a pedirla */
+const NOIMG=new Set();
+function pic(k,kind,w,h=w,name){const n=name||(CHARS[k]&&CHARS[k].name)||k,src=`imagenes/${k}-${kind}.jpg`;
+  return`<span class="av" style="width:${w}px;height:${h}px">${esc(n[0])}${NOIMG.has(src)?"":`<img src="${src}" width="${w}" height="${h}" alt="" loading="lazy" onerror="NOIMG.add(this.getAttribute('src'));this.remove()">`}</span>`}
+function openPoster(k){let d=$("poster");
+  if(!d){d=document.createElement("dialog");d.id="poster";d.className="poster";d.setAttribute("aria-label","Cartel");d.addEventListener("click",()=>d.close());document.body.append(d)}
+  const src=`imagenes/${k}-cartel.jpg`,n=CHARS[k].name;
+  d.innerHTML=NOIMG.has(src)?`<p class="box2 note">${n} todavía no tiene cartel.</p>`:`<img src="${src}" width="756" height="1008" alt="Cartel de se busca de ${n}" onerror="NOIMG.add(this.getAttribute('src'));this.outerHTML='<p class=&quot;box2 note&quot;>Sin cartel todavía.</p>'">`;d.showModal()}
+/* Iconos de línea por tipo de sección o acción */
+const SICO={
+  weapon:`<path d="M13.5 2.5 6 10M11 2h3v3M4 9.5l2.5 2.5M2.5 13.5l2-2"/>`,
+  fruit:`<circle cx="8" cy="9.5" r="5"/><path d="M8 9.5c0-1.4 2.1-1.4 2.1 0s-1.4 2.5-3.1 2.1S4.7 9.6 5.8 7.9M8 4.5C8 3 9 2 10.6 1.8"/>`,
+  haki:`<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>`,
+  role:`<circle cx="8" cy="3" r="1.4"/><path d="M8 4.4V14M4.5 7h7M2.5 9.5a5.5 5 0 0 0 11 0"/>`,
+  companion:`<circle cx="4.5" cy="5.5" r="1.3"/><circle cx="8" cy="3.8" r="1.3"/><circle cx="11.5" cy="5.5" r="1.3"/><path d="M4.5 12.5c0-2.2 1.6-4 3.5-4s3.5 1.8 3.5 4c0 1-1.5 1.3-3.5 1.3s-3.5-.3-3.5-1.3z"/>`};
+const sico=t=>`<svg class="sico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SICO[t]}</svg>`;
 /* Valores que cambian con una forma de fruta Zoan (forms): PV máximos, ataques por acción, características, salvaciones, CA e iniciativa */
 const formOf=(c,s=S)=>s&&s.form&&c.forms&&c.forms[s.form];
 const mhp=(c,s=S)=>{const f=formOf(c,s);return f&&f.hp||c.maxHp};
@@ -644,16 +685,18 @@ function render(){
   const c=C(),t=S.turn,pct=Math.max(0,S.hp/mhp(c)*100);
   const keys=user&&!admin?[]:Object.keys(CHARS);
   $("pick").innerHTML=(admin?`<button data-pick="mesa" aria-pressed="${view==="mesa"}">Mesa</button>`:"")+
-    (keys.length>1||admin?keys.map(k=>`<button data-pick="${k}" aria-pressed="${k===cur&&view==="char"}">${CHARS[k].name}</button>`).join(""):"");
+    (keys.length>1||admin?keys.map(k=>`<button data-pick="${k}" aria-pressed="${k===cur&&view==="char"}">${pic(k,"mini",24)}${CHARS[k].name}</button>`).join(""):"");
   $("hero").hidden=view!=="char";
   if(view!=="char"){$("main").innerHTML=`<div style="display:flex;justify-content:flex-end;padding-top:12px"><button class="btn" data-do="look" aria-label="Apariencia">${ICON}</button></div>`+gate();return}
   $("hero").innerHTML=`
-   <div class="who"><div style="min-width:0"><h1>${c.name}</h1><div class="sub">${c.sub} · ${c.speed}</div></div>
+   <div class="hdr"><button class="portrait" data-do="poster" aria-label="Ver el cartel de ${c.name}">${pic(cur,"retrato",60)}${c.bounty?`<small class="bounty">฿ ${esc(c.bounty)}</small>`:""}</button>
+    <h1 title="${c.name}">${c.name}</h1>
     <div class="stats">
       <div class="stat"><b>${acOf(c)}</b><small>CA</small></div>
       <button class="stat" data-do="init"><b>${sgn(ini(c))}</b><small>Inic.</small></button>
-      <button class="stat" data-do="look" aria-label="Apariencia"><b>${ICON}</b><small>Ajustes</small></button>
-    </div></div>
+      <button class="stat ico-only" data-do="look" aria-label="Apariencia"><b>${ICON}</b></button>
+    </div>
+    <div class="sub">${c.sub} · ${c.speed}</div></div>
    <div class="hp"><div class="hpbar"><div class="hptxt"><span><b>${S.hp}</b>${S.temp?` <span class="t">+${S.temp}</span>`:""} / ${mhp(c)} PV</span><span>${S.conds.join(", ")}</span></div>
      <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${Math.max(0,S.hp)/(mhp(c)+S.temp)*100}%"></div>${S.temp?`<div class="fill tp" style="width:${S.temp/(mhp(c)+S.temp)*100}%"></div>`:""}</div></div>
      <div class="hpctl"><input class="hpin" id="hpin" type="number" inputmode="numeric" min="0" placeholder="0" aria-label="Cantidad de PV">
@@ -762,7 +805,8 @@ function actBtn(a,i){
   const left=a.res?` · quedan ${S.res[a.res]}`:a.prest?` · tienes ${S.prestige} de prestigio${a.once&&S.used[a.once]?" · ya usado desde el último descanso":""}`:"";
   const on=a.kind==="haki"&&S.hard>0||a.kind==="frenzy"&&S.frenzy||a.kind==="transform"&&S.trans||a.kind==="toggle"&&S.turn[a.flag]||a.kind==="form"&&S.form===a.form;
   const d=a.kind==="haki"&&S.hard>0?"Activo · toca para terminarlo":a.kind==="frenzy"&&S.frenzy?"Activa · toca para terminarla (acción adicional)":a.kind==="transform"&&S.trans?`Activo · toca para terminarlo (acción adicional; ganas ${c.transform.exh} de agotamiento)`:a.note;
-  return `<button class="act ${on?"on":""}" data-act="${i}" ${out&&!on?"disabled":""}><span class="n">${a.name}${tags}</span><span class="big">${big}</span><span class="d">${d}${left}</span></button>`;
+  const ico=a.companion?"companion":a.kind==="haki"||a.haki?"haki":a.kind==="attack"?"weapon":"";
+  return `<button class="act ${on?"on":""}" data-act="${i}" ${out&&!on?"disabled":""}><span class="n">${ico?sico(ico):""}${a.name}${tags}</span><span class="big">${big}</span><span class="d">${d}${left}</span></button>`;
 }
 
 /* ===================== FORMAS ZOAN ===================== */
@@ -782,7 +826,7 @@ function itemSec(c){
 /* role: name, passive (nombre del pasivo), desc, tools (competencias), out (nota fuera de combate). Sus acciones van en actions con role:true */
 function roleSec(c){
   const r=c.role,acts=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.role),fa=acts.find(([a])=>a.kind==="firstaid");
-  return`<section><h2>Rol en la tripulación <small>${r.name}</small></h2><div class="box2"><p class="note"><b>${r.passive}</b> (pasivo). ${r.desc}</p>${r.tools?`<p class="note">Competencias: ${r.tools}.</p>`:""}</div>
+  return`<section><h2><span class="h2t">${sico("role")}Rol en la tripulación</span> <small>${r.name}</small></h2><div class="box2"><p class="note"><b>${r.passive}</b> (pasivo). ${r.desc}</p>${r.tools?`<p class="note">Competencias: ${r.tools}.</p>`:""}</div>
     <div class="list" style="margin-top:8px">${acts.map(([a,i])=>actBtn(a,i)).join("")}</div>
     ${fa&&S.aided.length?`<p class="note" style="margin-top:8px">Ya recibieron ${fa[0].name}: ${S.aided.map(esc).join(", ")}. Se libera con un descanso corto o largo.</p>`:""}
     ${r.out?`<p class="note" style="margin-top:8px">${r.out}</p>`:""}</section>`;
@@ -791,7 +835,7 @@ function roleSec(c){
 /* ===================== FRUTA DEL DIABLO ===================== */
 function fruitSec(c){
   const f=c.fruit,sea=S.sea,ch=S.res.cargas,w=!sea&&S.mw&&f.weapons[S.mw];
-  let h=`<section><h2>Fruta del diablo <small>${f.name} · CD ${f.dc}${f.noCharges?"":` · ataque ${sgn(f.atk)} · cargas ${ch}/${c.level+c.prof}`}</small></h2><div class="list">
+  let h=`<section><h2><span class="h2t">${sico("fruit")}Fruta del diablo</span> <small>${f.name} · CD ${f.dc}${f.noCharges?"":` · ataque ${sgn(f.atk)} · cargas ${ch}/${c.level+c.prof}`}</small></h2><div class="list">
     <button class="act ${sea?"on":""}" data-do="sea" aria-pressed="${sea}"><span class="n">${f.seaLabel}</span><span class="big">${sea?"Activa":""}</span><span class="d">${sea?f.seaNote+" Toca para quitarla.":f.seaHint}</span></button>`;
   if(w)h+=`<button class="act" data-mwatk="1" ${sea?"disabled":""}><span class="n">${w.name}<span class="tag">Mágica</span></span><span class="big">${sgn(w.hit)}<small>${w.dice}${w.mod?sgn(w.mod):""} ${w.type}</small></span><span class="d">Acción de Atacar · alcance 15 pies en tu turno${w.note?" · "+w.note:""}</span></button>`;
   h+=f.free.map((a,i)=>`<button class="act" data-free="${i}" ${sea?"disabled":""}><span class="n">${a.name}</span><span class="big">${a.kind==="mweapon"&&w?`<small>Activa: ${w.name}</small>`:""}</span><span class="d">${COST[a.cost]} · sin cargas · ${a.note}</span></button>`).join("");
@@ -1132,6 +1176,7 @@ function push(){clearTimeout(pushT);pushT=null;if(!fb||!user)return;
 
 function gate(){
   if(view==="login")return`<section class="box2" style="margin-top:24px"><h1>Mesa de Combate</h1>
+    <div class="board" aria-label="Carteles de se busca">${Object.keys(CHARS).map(k=>`<figure class="wp">${pic(k,"cartel",108,144)}<figcaption>${CHARS[k].name}</figcaption></figure>`).join("")}</div>
     <p class="note">Entra con tu cuenta de Google para guardar tu personaje en la nube y usarlo en cualquier dispositivo.</p>
     <button class="btn primary" data-do="login">Entrar con Google</button><button class="btn" data-do="local">Usar sin cuenta (solo en este teléfono)</button></section>`;
   if(view==="load")return`<p class="note" style="margin-top:24px">Conectando…</p>`;
@@ -1141,7 +1186,7 @@ function gate(){
   const opts=sel=>`<option value="">Sin asignar</option>`+Object.entries(CHARS).map(([k,c])=>`<option value="${k}" ${k===sel?"selected":""}>${c.name}</option>`).join("");
   return`<section><h2>Mesa <small>en vivo</small></h2><div class="list">${Object.entries(CHARS).map(([k,c])=>{
     const s=merge(c,mesa.state[k]),pct=Math.max(0,s.hp/mhp(c,s)*100);
-    return`<div class="box2"><div class="who"><b style="font-size:18px">${c.name}</b><button class="btn" data-pick="${k}">Abrir</button></div>
+    return`<div class="box2"><div class="who"><b style="font-size:18px;display:inline-flex;align-items:center;gap:8px">${pic(k,"mini",32)}${c.name}</b><button class="btn" data-pick="${k}">Abrir</button></div>
       ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${mhp(c,s)} PV${s.temp?` (+${s.temp} temp.)`:""}${s.hp<=0?" · inconsciente":""}</span><span>${s.conds.join(", ")||"Sin estados"}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
       <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · Sueño ${s.dream}/${c.level} · Prestigio ${s.prestige}${s.hard>0?` · Haki activo (${s.hard} t.)`:""}${c.caster?` · Espacios ${s.slots.map((v,i)=>`N${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · Concentrado en ${concOf(c,s.conc.id).n}`:""}${s.sea?" · Sin fruta (agua o kairoseki)":""}${s.form&&c.forms?" · "+c.forms[s.form].name:""}${s.frenzy?" · En frenesí":""}${s.trans&&c.transform?" · "+c.transform.name:""}${s.exh?` · Agotamiento ${s.exh}`:""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
@@ -1217,6 +1262,7 @@ document.addEventListener("click",e=>{
   if(act!=="short"&&act!=="long")armed=null;
   if(act==="close"){$("tray").classList.add("hide");return}
   if(act==="look"){openLook();return}
+  if(act==="poster"){openPoster(cur);return}
   if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>show({title:"No se pudo entrar",warn:e.code||String(e)}));return}
   if(act==="logout"){if(pushT)push();fb.U.signOut(fb.auth);return}
   if(act==="local"){view="char";render();return}
