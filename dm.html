@@ -186,15 +186,15 @@ let uid=1;const nid=()=>"c"+(Date.now().toString(36))+(uid++);
 const SEED={round:1,cur:null,list:[
   {name:"Kalgo",type:"pc",init:null,ac:17,max:75},
   {name:"Udon",type:"pc",init:null,ac:15,max:66},
-  {name:"Sungsopp",type:"pc",init:null,ac:17,max:29},
+  {name:"Sungsopp",type:"pc",init:null,ac:15,max:42},
   {name:"Fate",type:"pc",init:null,ac:17,max:84},
   {name:"Kayn",type:"pc",init:null,ac:15,max:32},
   {name:"Codel",type:"pc",init:null,ac:18,max:62}
 ].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[]}))};
 /* Personajes con fruta del diablo: icono y recordatorio en su tarjeta */
-const FRUITS={Codel:["Mochi Mochi no Mi","el kairoseki anula sus poderes"],Kalgo:["Zushi Zushi no Mi","el agua y el kairoseki anulan sus poderes"]};
+const FRUITS={Codel:["Mochi Mochi no Mi","el kairoseki anula sus poderes"],Kalgo:["Zushi Zushi no Mi","el agua y el kairoseki anulan sus poderes"],Sungsopp:["Saru Saru no Mi (Ape)","el agua y el kairoseki lo devuelven a forma humana"]};
 /* Rol en la tripulación de cada personaje (etiqueta junto al nombre) */
-const ROLES={Codel:"Doctor",Udon:"Primer oficial",Kalgo:"Navegante"};
+const ROLES={Codel:"Doctor",Udon:"Primer oficial",Kalgo:"Navegante",Sungsopp:"Capitán"};
 const FRUIT_ICON=`<svg class="fr-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="9.5" r="5.3"/><path d="M8 9.5c0-1.4 2.2-1.4 2.2 0s-1.5 2.6-3.3 2.2S4.6 9.6 5.8 7.8"/><path d="M8 4.2C8 2.6 9 1.6 10.8 1.4"/></svg>`;
 let S=store.get("dm:combat2")||JSON.parse(JSON.stringify(SEED));
 if(!S.cur&&S.list.length)S.cur=sorted()[0].id;
@@ -204,6 +204,8 @@ const save=()=>store.set("dm:combat2",S);
 if((S.v||1)<2){for(const c of S.list)if(c.type==="pc"&&c.name==="Codel"){const full=c.hp>=c.max;c.ac=18;c.max=62;if(full)c.hp=62}S.v=2;save()}
 /* v3: Kalgo pasó a CA 17 y 75 PV (antes 57) */
 if(S.v<3){for(const c of S.list)if(c.type==="pc"&&c.name==="Kalgo"){const full=c.hp>=c.max;c.ac=17;c.max=75;if(full)c.hp=75}S.v=3;save()}
+/* v4: Sungsopp pasó a CA 15 y 42 PV (antes 17 y 29) */
+if(S.v<4){for(const c of S.list)if(c.type==="pc"&&c.name==="Sungsopp"){const full=c.hp>=c.max;c.ac=15;c.max=42;if(full)c.hp=42}S.v=4;save()}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function sorted(){return S.list.map((c,i)=>[c,i]).sort((a,b)=>(b[0].init??-99)-(a[0].init??-99)||a[1]-b[1]).map(x=>x[0])}
