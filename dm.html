@@ -80,6 +80,7 @@ h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
 .name span{font-size:12.5px;color:var(--muted)}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;background:var(--chip);color:var(--muted)}
 .tag.foe{background:var(--foe);color:var(--bg)}
+.name b .role{vertical-align:2px;margin-left:4px}
 .name .fr{display:flex;align-items:center;gap:4px;color:var(--foe);font-weight:700}
 .fr-ico{width:14px;height:14px;flex-shrink:0}
 .hpnum{text-align:right;flex-shrink:0}
@@ -192,6 +193,8 @@ const SEED={round:1,cur:null,list:[
 ].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[]}))};
 /* Personajes con fruta del diablo: icono y recordatorio en su tarjeta */
 const FRUITS={Codel:"Mochi Mochi no Mi"};
+/* Rol en la tripulación de cada personaje (etiqueta junto al nombre) */
+const ROLES={Codel:"Doctor"};
 const FRUIT_ICON=`<svg class="fr-ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="9.5" r="5.3"/><path d="M8 9.5c0-1.4 2.2-1.4 2.2 0s-1.5 2.6-3.3 2.2S4.6 9.6 5.8 7.8"/><path d="M8 4.2C8 2.6 9 1.6 10.8 1.4"/></svg>`;
 let S=store.get("dm:combat2")||JSON.parse(JSON.stringify(SEED));
 if(!S.cur&&S.list.length)S.cur=sorted()[0].id;
@@ -223,7 +226,7 @@ function card(c){
   return `<div class="card ${S.cur===c.id?"cur":""} ${b==="ko"?"ko":""}">
    <div class="head">
      <span class="init">${c.init??"–"}</span>
-     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${TYPE[c.type]}</span> · CA ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${BAND[b][1]}</span></span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name]} · el kairoseki anula sus poderes</span>`:""}</button>
+     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}${ROLES[c.name]?` <span class="tag role">${ROLES[c.name]}</span>`:""}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${TYPE[c.type]}</span> · CA ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${BAND[b][1]}</span></span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name]} · el kairoseki anula sus poderes</span>`:""}</button>
      <div class="hpnum">${b==="ko"?"<b>KO</b>":`<b>${c.hp}</b>${c.temp?` <span class="t">+${c.temp}</span>`:""}`}<small>de ${c.max} PV</small></div>
    </div>
    <div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>

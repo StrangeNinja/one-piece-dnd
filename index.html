@@ -282,6 +282,10 @@ const CHARS = {
     abil:{FUE:-1,DES:2,CON:3,INT:-1,SAB:4,CAR:-1},
     skills:{perspicacia:1,investigacion:1,medicina:1,persuasion:1,religion:1},
     reroll:{res:"predecir",name:"Predecir el resultado"},
+    role:{name:"Doctor",passive:"Tratamiento avanzado",
+      desc:"Al estabilizar con un kit de sanación, la criatura recupera 1 PV. Entiende y analiza toda forma de medicina y sabe usar y administrar antídotos, medicinas y herramientas médicas.",
+      tools:"Medicina, kit de herborista, útiles de cervecero y suministros de alquimista",
+      out:"Fuera de combate: si una criatura sufre una enfermedad, ceguera, sordera, parálisis o envenenamiento, puede gastar ฿400.000 en suministros para curarla en 1 hora."},
     passive:"Resistencia a trueno, rayo y veneno. Inmune a envenenado y a enfermedades. Ventaja en salvaciones contra conjuros lanzados a 5 pies (Disruptor de lanzadores).",
     storm:"1d8", wrath:{res:"canal"}, foretell:true,
     /* Fruta: Voluntad, CD, ataque y cargas se calculan con las reglas de la casa (ver FRUTAS más abajo) */
@@ -336,7 +340,8 @@ const CHARS = {
       {id:"pluma",name:"Protección de las Nubes",max:1,rest:"short"},
       {id:"kami",name:"Voluntad de Kami",max:35,rest:"long",counter:true},
       {id:"balas",name:"Balas de pistola",max:20,rest:"none",counter:true,fill:"Recargar"},
-      {id:"tono",name:"Dial de tono",max:5,rest:"none",counter:true,dawn:"1d4+1"}
+      {id:"tono",name:"Dial de tono",max:5,rest:"none",counter:true,dawn:"1d4+1"},
+      {id:"kits",name:"Kits de sanación",max:2,rest:"none",counter:true,fill:"Reponer"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:"Sable",note:"Cuerpo a cuerpo · arma sutil"},
@@ -345,6 +350,8 @@ const CHARS = {
       {cost:"accion",kind:"pool",name:"Voluntad de Kami",res:"kami",note:"Al tocar. 5 PV de la reserva curan una enfermedad o neutralizan un veneno"},
       {cost:"accion",kind:"use",name:"Detección de aura",note:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies"},
       {cost:"reaccion",kind:"dash",name:"Golpe atronador de dial",res:"dial",dc:15,save:"DES",dmg:"2d8",type:"trueno o rayo",half:true,note:"Cuando una criatura a 5 pies que ves te golpea. Eliges trueno o rayo"},
+      {cost:"accion",role:true,kind:"use",name:"Estabilizar con kit",res:"kits",note:"Kit de sanación: una criatura moribunda queda estable y con 1 PV · gasta 1 kit"},
+      {cost:"accion",role:true,kind:"firstaid",name:"Primeros auxilios",prest:1,heal:"1d6+4",note:"Habilidad de prestigio: cura 1d6 + 4 + el nivel (dados de golpe) de una criatura herida. Una vez por criatura hasta un descanso corto o largo"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Disruptor de lanzadores",note:"Una criatura a 5 pies lanza un conjuro: la atacas con el sable. Si la dañas, tiene desventaja para mantener la concentración"},
       {cost:"reaccion",kind:"use",name:"Predecir el resultado",res:"predecir",note:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado"},
       {cost:"fuera",kind:"use",name:"Protección de las Nubes",res:"pluma",note:"Caída de pluma (reacción al caer): tú y hasta 5 criaturas a 60 pies caen despacio y sin daño"},
@@ -388,7 +395,7 @@ function newTurn(c){return{a:1,b:1,r:1,sr:2,atk:c.attacksPerAction,exec:false,at
 function fresh(c){return{hp:c.maxHp,res:Object.fromEntries(c.resources.map(r=>[r.id,r.max])),
   sr:Object.fromEntries(SPECIALS.map(s=>[s.id,c.prof])),dream:c.level,prestige:0,plog:[],
   conds:[],hard:0,turn:newTurn(c),ds:{ok:0,ko:0},dead:false,log:[],
-  slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",
+  slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],
   fore:c.foretell?[{v:d(20),u:false},{v:d(20),u:false}]:[]}}
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
@@ -403,7 +410,7 @@ function merge(c,s){
     turn:obj(f.turn,s.turn),ds:obj(f.ds,s.ds),dead:pick(f.dead,s.dead),log:strs(s.log),
     slots:f.slots.map((x,i)=>pick(x,s.slots&&s.slots[i])),spells:{c:ids(sp.c,true,k?k.cantrips:0),p:ids(sp.p,false,k?k.prepared:0)},
     conc:typeof cc.id==="string"&&(typeof SPELLS!=="undefined"&&Object.hasOwn(SPELLS,cc.id)||c.fruit&&c.fruit.tech.some(t=>"f:"+t.id===cc.id))?{id:cc.id,lvl:pick(0,cc.lvl)}:{id:"",lvl:0},
-    sea:pick(false,s.sea),mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
+    sea:pick(false,s.sea),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(1,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)}))};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===66&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
@@ -488,11 +495,12 @@ function render(){
   h+=`<div class="adv" role="group" aria-label="Modo de tirada">${["normal","ventaja","desventaja"].map(m=>`<button data-mode="${m}" aria-pressed="${mode===m}">${m[0].toUpperCase()+m.slice(1)}</button>`).join("")}</div>`;
 
   for(const cost of ["accion","adicional","reaccion"]){
-    const list=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost); if(!list.length)continue;
+    const list=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!a.role); if(!list.length)continue;
     h+=`<section><h2>${COST[cost]}${cost==="accion"?` <small>Crítico con ${c.critMin}–20</small>`:""}</h2><div class="list">${list.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   }
   if(c.caster)h+=spellSec(c);
   if(c.fruit)h+=fruitSec(c);
+  if(c.role)h+=roleSec(c);
   h+=`<section><h2>Reacciones especiales <small>2 por ronda · ${c.prof} usos c/u por descanso corto</small></h2><div class="list">`;
   for(const s of SPECIALS){
     let big="";
@@ -502,9 +510,9 @@ function render(){
     h+=`<button class="act" data-sr="${s.id}" ${S.sr[s.id]<=0?"disabled":""}><span class="n">${s.name}</span><span class="big">${big}</span><span class="d">${s.note} · quedan ${S.sr[s.id]}</span></button>`;
   }
   h+=`</div></section>`;
-  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis");
+  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role);
   if(free.length)h+=`<section><h2>Sin coste</h2><div class="list">${free.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
-  const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera");
+  const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role);
   if(out.length)h+=`<section><h2>Fuera de combate</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
 
   h+=`<section><h2>Salvaciones</h2><div class="saves">${Object.entries(c.saves).map(([k,[v,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${k}<span>${sgn(v)}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
@@ -544,9 +552,20 @@ function actBtn(a,i){
   else if(a.kind==="steel")big=`${sgn(a.hit)}<small>${a.dmg} × ${a.targets}</small>`;
   else if(a.kind==="heal")big=`${a.heal}<small>PV</small>`;
   else if(a.kind==="haki")big=S.hard>0?`${S.hard}<small>turnos</small>`:`+${c.hardening.bonus}<small>atq. y daño</small>`;
-  const out=a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0);
-  const left=a.res?` · quedan ${S.res[a.res]}`:"";
+  else if(a.kind==="firstaid")big=`${a.heal}+nivel<small>PV · ${a.prest} prestigio</small>`;
+  const out=a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0)||a.prest&&S.prestige<a.prest;
+  const left=a.res?` · quedan ${S.res[a.res]}`:a.prest?` · tienes ${S.prestige} de prestigio`:"";
   return `<button class="act ${a.kind==="haki"&&S.hard>0?"on":""}" data-act="${i}" ${out?"disabled":""}><span class="n">${a.name}${tags}</span><span class="big">${big}</span><span class="d">${a.kind==="haki"&&S.hard>0?"Activo · toca para terminarlo":a.note}${left}</span></button>`;
+}
+
+/* ===================== ROL EN LA TRIPULACIÓN ===================== */
+/* role: name, passive (nombre del pasivo), desc, tools (competencias), out (nota fuera de combate). Sus acciones van en actions con role:true */
+function roleSec(c){
+  const r=c.role,acts=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.role),fa=acts.find(([a])=>a.kind==="firstaid");
+  return`<section><h2>Rol en la tripulación <small>${r.name}</small></h2><div class="box2"><p class="note"><b>${r.passive}</b> (pasivo). ${r.desc}</p>${r.tools?`<p class="note">Competencias: ${r.tools}.</p>`:""}</div>
+    <div class="list" style="margin-top:8px">${acts.map(([a,i])=>actBtn(a,i)).join("")}</div>
+    ${fa&&S.aided.length?`<p class="note" style="margin-top:8px">Ya recibieron ${fa[0].name}: ${S.aided.map(esc).join(", ")}. Se libera con un descanso corto o largo.</p>`:""}
+    ${r.out?`<p class="note" style="margin-top:8px">${r.out}</p>`:""}</section>`;
 }
 
 /* ===================== FRUTA DEL DIABLO ===================== */
@@ -718,6 +737,10 @@ function doAct(i){
   } else if(a.kind==="use"){
     warn=spend(a.cost);if(a.res)S.res[a.res]--;
     show({title:a.name,warn,tip:a.note+(a.res?` · quedan ${S.res[a.res]}`:"")});log(`<b>${a.name}</b>`);
+  } else if(a.kind==="firstaid"){
+    show({title:a.name,fa:i,html:`<div class="hp"><input class="hpin" id="faname" type="text" maxlength="40" placeholder="Nombre" aria-label="Nombre de la criatura" style="flex:1;width:auto;text-align:left">
+      <input class="hpin" id="falvl" type="number" inputmode="numeric" min="1" max="30" value="${c.level}" aria-label="Nivel o dados de golpe"><button class="btn primary" data-do="firstaid">Curar</button></div><div class="warn" id="fawarn"></div>`,
+      tip:`Nombre de la criatura y su nivel (dados de golpe). Tira ${a.heal} + nivel y gasta ${a.prest} punto de prestigio (tienes ${S.prestige}).${S.aided.length?" Ya la recibieron: "+S.aided.map(esc).join(", ")+".":""}`});return;
   } else if(a.kind==="pool"){
     show({title:a.name,pool:a,html:`<div class="hp"><input class="hpin" id="poolin" type="number" inputmode="numeric" min="1" max="${S.res[a.res]}" placeholder="PV" aria-label="PV de la reserva a gastar">
       <button class="btn primary" data-do="pool">Curar</button><button class="btn" data-do="pool" data-n="5">Enfermedad o veneno · 5</button></div>`,
@@ -917,6 +940,13 @@ document.addEventListener("click",e=>{
       boxes:[{l:"CON contra CD "+ds.dc,v:tot,s:`d20 ${r.txt} ${sgn(v)}`,cls:ok?"":"fail"}],html:ok?"":`<div class="trayact"><button class="btn" data-do="endconc">Terminar la concentración</button></div>`});log(`Concentración: ${tot} contra CD ${ds.dc}`)}
   if(act==="forenext"){foreArm=+ds.i;$("tray").classList.add("hide");render();return}
   if(act==="foreother"){const f=S.fore[+ds.i];f.u=true;S.turn.fore=true;show({title:"Presagio usado",boxes:[{l:"Tirada",v:f.v,s:"para otra criatura"}]});log(`Presagio ${f.v} usado para otra criatura`)}
+  if(act==="firstaid"){const a=c.actions[T.fa],name=$("faname").value.trim().slice(0,40),lv=parseInt($("falvl").value,10),w=m=>{$("fawarn").textContent=m};
+    if(!name||!(lv>0))return w("Escribe el nombre y el nivel de la criatura.");
+    if(S.aided.some(x=>x.toLowerCase()===name.toLowerCase()))return w(`${name} ya recibió ${a.name}: necesita un descanso corto o largo.`);
+    if(S.prestige<a.prest)return w("No tienes puntos de prestigio.");
+    const warn=spend(a.cost),r=roll(a.heal+"+"+lv);S.prestige-=a.prest;S.aided.push(name);S.plog.unshift(`Gastó ${a.prest} en ${a.name} (${esc(name)})`);
+    show({title:`${a.name}: ${esc(name)}`,warn,boxes:[{l:"Curación",v:"+"+r.tot,s:`${r.txt} · nivel ${lv}`},{l:"Prestigio",v:S.prestige,s:"puntos restantes"}],tip:"Si te curas a ti mismo, anótalo con Curar."});
+    log(`<b>${a.name}</b>: ${esc(name)} +${r.tot} PV`)}
   if(act==="reroll"){const x=c.reroll,b=T.boxes[T.d20],warn=spend("reaccion"),r=d20(),old=T.raw;S.res[x.res]--;T.rerolled=true;
     b.v=(+b.v)-old+r.v;b.s+=` · ${x.name}: ${old} → ${r.txt}`;b.cls=r.v===20?"crit":r.v===1?"fail":"";T.raw=r.v;if(warn)T.warn=warn;log(`${x.name}: ${old} → ${r.v}`);drawTray();save();render();return}
   if(act==="forerep"){const f=S.fore[+ds.i],b=T.boxes[T.d20],old=T.raw;f.u=true;S.turn.fore=true;T.foreUsed=true;
@@ -948,7 +978,7 @@ document.addEventListener("click",e=>{
         manual=c.resources.filter(r=>r.rest==="none").map(r=>[r.id,S.res[r.id]]);
       S=Object.assign(fresh(c),keep);manual.forEach(([k,v])=>S.res[k]=v);foreArm=null;log("<b>Descanso largo</b>: PV y usos recuperados");
       if(S.fore.length)log(`Nuevos presagios: <b>${S.fore.map(f=>f.v).join("</b> y <b>")}</b>`)}
-    else{c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);log("<b>Descanso corto</b>: recursos y reacciones especiales recuperados")}
+    else{c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);S.aided=[];log("<b>Descanso corto</b>: recursos y reacciones especiales recuperados")}
   }
   save();render();
 });
