@@ -39,6 +39,7 @@ body{margin:0}
 .lk-mode button{padding:8px 4px;border-radius:8px;font-size:14px;font-weight:700;color:var(--muted)}
 .lk-mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
 .lk-mode.lk-two{grid-template-columns:1fr 1fr}
+.lk-ver{margin:12px 0 0;font-size:11px;color:var(--muted);text-align:center}
 .ico{width:20px;height:20px;display:block}
 /* ===== fin de paletas ===== */
 :root{
@@ -132,6 +133,8 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 </style>
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
+/* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
+const APP_VERSION="2026-10-25 17:47";
 const PALS={grand:"Grand Line",bandera:"Bandera pirata",paja:"Sombrero de paja"},MODES={auto:"Automático",day:"Día",night:"Noche"},DICE={fis:"Físicos",dig:"Digitales"},LOOK_KEY="mc:look";
 const ICON=`<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2.2" fill="currentColor"/><circle cx="13" cy="10" r="2.2" fill="currentColor"/><circle cx="8" cy="15" r="2.2" fill="currentColor"/></svg>`;
 const darkQ=matchMedia("(prefers-color-scheme: dark)");
@@ -152,7 +155,8 @@ function drawLook(){const t=isDark()?"dark":"light";
   <h3>Paleta</h3><div class="lk-pal">${Object.entries(PALS).map(([k,n])=>`<button data-lkpal="${k}" aria-pressed="${look.pal===k}"><span class="sw" data-pal="${k}" data-theme="${t}"><i></i><i></i><i></i><i></i></span>${n}</button>`).join("")}</div>
   <h3>Modo</h3><div class="lk-mode">${Object.entries(MODES).map(([k,n])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n}</button>`).join("")}</div>
   <h3>Dados</h3><div class="lk-mode lk-two">${Object.entries(DICE).map(([k,n])=>`<button data-lkdice="${k}" aria-pressed="${look.dice===k}">${n}</button>`).join("")}</div>
-  <p class="note" style="margin-top:6px">${look.dice==="fis"?"Tiras tus dados y la app te dice qué tirar. Puedes anotar el resultado.":"La app tira los dados por ti."}</p></div>`}
+  <p class="note" style="margin-top:6px">${look.dice==="fis"?"Tiras tus dados y la app te dice qué tirar. Puedes anotar el resultado.":"La app tira los dados por ti."}</p>
+  <p class="lk-ver">Versión ${APP_VERSION}</p></div>`}
 function openLook(){let d=document.getElementById("lk");
   if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";d.setAttribute("aria-label","Apariencia");document.body.append(d);
     d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
