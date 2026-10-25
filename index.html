@@ -173,6 +173,15 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 select{flex:1;min-width:0;padding:8px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
 code{font-size:12px;word-break:break-all;user-select:all}
 .adv.two{grid-template-columns:1fr 1fr}
+.skills summary{cursor:pointer;list-style:none}
+.skills summary::-webkit-details-marker{display:none}
+.skills summary h2{margin:0} .skills[open] summary h2{margin-bottom:8px} .skills summary h2 span{white-space:nowrap}
+.skills summary h2 span::before{content:"▸ ";color:var(--muted)} .skills[open] summary h2 span::before{content:"▾ "}
+.sk{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sk button{display:flex;justify-content:space-between;align-items:center;gap:6px;text-align:left;padding:9px 11px;border-radius:10px;background:var(--surface);border:1.5px solid var(--line);font-weight:700;font-size:14px;min-width:0}
+.sk button span{min-width:0;line-height:1.2} .sk .en{display:block;font-size:11px;font-weight:400;color:var(--muted)}
+.sk b{white-space:nowrap} .sk .dot{font-style:normal;color:var(--accent);font-size:13px;letter-spacing:1px;margin-right:5px;vertical-align:1px}
+@media (max-width:340px){.sk{grid-template-columns:1fr}}
 .conc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-radius:10px;background:var(--haki);color:var(--bg);font-size:14px}
 .conc span{flex:1;min-width:0}
 .conc .btn{padding:6px 10px;font-size:13px;background:var(--bg);color:var(--ink)}
@@ -236,6 +245,8 @@ const CHARS = {
     level:7, prof:3, ac:15, maxHp:66, init:1, speed:"30 pies",
     critMin:18, attacksPerAction:2,
     saves:{FUE:[8,1],DES:[1,0],CON:[6,1],INT:[-1,0],SAB:[0,0],CAR:[0,0]},
+    abil:{FUE:5,DES:1,CON:3,INT:-1,SAB:0,CAR:0},
+    skills:{acrobacias:1,historia:1,perspicacia:1,intimidacion:1,persuasion:1},
     hardening:{bonus:3,res:"haki",turns:10},
     execute:{dice:"2d6",type:"trueno",res:"ejecutar",note:"CD 16 de FUE o empujado 10 pies y derribado"},
     blackArmory:true,
@@ -268,6 +279,9 @@ const CHARS = {
     level:7, prof:3, ac:18, maxHp:62, init:2, speed:"30 pies",
     critMin:20, attacksPerAction:1,
     saves:{FUE:[-1,0],DES:[2,0],CON:[3,0],INT:[-1,0],SAB:[7,1],CAR:[2,1]},
+    abil:{FUE:-1,DES:2,CON:3,INT:-1,SAB:4,CAR:-1},
+    skills:{perspicacia:1,investigacion:1,medicina:1,persuasion:1,religion:1},
+    reroll:{res:"predecir",name:"Predecir el resultado"},
     passive:"Resistencia a trueno, rayo y veneno. Inmune a envenenado y a enfermedades. Ventaja en salvaciones contra conjuros lanzados a 5 pies (Disruptor de lanzadores).",
     storm:"1d8", wrath:{res:"canal"}, foretell:true,
     /* Fruta: Voluntad, CD, ataque y cargas se calculan con las reglas de la casa (ver FRUTAS más abajo) */
@@ -356,12 +370,19 @@ const SPECIALS=[
 ];
 const RARITY=[["Poco común",1],["Raro",2],["Muy raro",3],["Legendario",4]];
 const CONDS=["Agarrado","Apresado","Asustado","Aturdido","Cegado","Derribado","Ensordecido","Envenenado","Hechizado","Incapacitado","Invisible","Paralizado"];
+/* Habilidades: [id, nombre, nombre en inglés, característica]. En CHARS, skills = {id: 1 competencia | 2 pericia} */
+const SKILLS=[["atletismo","Atletismo","Athletics","FUE"],
+  ["acrobacias","Acrobacias","Acrobatics","DES"],["juegoManos","Juego de manos","Sleight of Hand","DES"],["sigilo","Sigilo","Stealth","DES"],
+  ["arcano","Conocimiento arcano","Arcana","INT"],["historia","Historia","History","INT"],["investigacion","Investigación","Investigation","INT"],["naturaleza","Naturaleza","Nature","INT"],["religion","Religión","Religion","INT"],
+  ["animales","Trato con animales","Animal Handling","SAB"],["perspicacia","Perspicacia","Insight","SAB"],["medicina","Medicina","Medicine","SAB"],["percepcion","Percepción","Perception","SAB"],["supervivencia","Supervivencia","Survival","SAB"],
+  ["engano","Engaño","Deception","CAR"],["intimidacion","Intimidación","Intimidation","CAR"],["interpretacion","Interpretación","Performance","CAR"],["persuasion","Persuasión","Persuasion","CAR"]];
+const skillBonus=(c,id)=>c.abil[SKILLS.find(s=>s[0]===id)[3]]+c.prof*((c.skills||{})[id]||0);
 const COST={accion:"Acción",adicional:"Acción adicional",reaccion:"Reacción",gratis:"Sin coste",fuera:"Fuera de combate"};
 
 /* ===================== ESTADO ===================== */
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let cur=store.get("mc:cur"); if(!CHARS[cur]) cur=Object.keys(CHARS)[0];
-let mode="normal", armed=null, spendOpen=false, book=false, S, T=null;
+let mode="normal", armed=null, spendOpen=false, book=false, skillsOpen=false, S, T=null;
 const C=()=>CHARS[cur];
 function newTurn(c){return{a:1,b:1,r:1,sr:2,atk:c.attacksPerAction,exec:false,attacked:false,storm:false,fore:false}}
 function fresh(c){return{hp:c.maxHp,res:Object.fromEntries(c.resources.map(r=>[r.id,r.max])),
@@ -407,8 +428,9 @@ function spellDice(base,s,lvl,c){
   const a=base.match(/^(\d+)d(\d+)$/),b=per.match(/^(\d+)d(\d+)$/);
   return a&&b&&a[2]===b[2]?`${+a[1]+b[1]*n}d${a[2]}`:base+("+"+per).repeat(n);
 }
-let foreArm=null; // presagio que reemplaza la próxima tirada de d20
-function d20(){
+let foreArm=null,lastD20=null; // presagio que reemplaza la próxima tirada · último d20 natural (para volver a tirar o reemplazar)
+function d20(){const r=d20raw();lastD20=r.v;return r}
+function d20raw(){
   const f=foreArm!=null&&S.fore[foreArm];foreArm=null;
   if(f&&!f.u){f.u=true;S.turn.fore=true;return{v:f.v,txt:f.v+" (presagio)"}}
   const a=d(20),b=d(20);
@@ -486,6 +508,10 @@ function render(){
   if(out.length)h+=`<section><h2>Fuera de combate</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
 
   h+=`<section><h2>Salvaciones</h2><div class="saves">${Object.entries(c.saves).map(([k,[v,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${k}<span>${sgn(v)}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
+  if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>Habilidades</span><small>Percepción pasiva ${10+skillBonus(c,"percepcion")} · Perspicacia pasiva ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
+    ${["FUE","DES","INT","SAB","CAR"].map(ab=>`<div class="lvlhead"><b>${ab}</b><span class="tip">${sgn(c.abil[ab])}</span></div><div class="sk">${SKILLS.filter(s=>s[3]===ab).map(([id,n,en])=>{const p=(c.skills||{})[id]||0;
+      return`<button data-skill="${id}"><span>${n} <small class="en">${en}</small></span><b>${p?`<i class="dot" aria-label="${p>1?"pericia":"competente"}">${p>1?"●●":"●"}</i>`:""}${sgn(skillBonus(c,id))}</b></button>`}).join("")}</div>`).join("")}
+    <p class="note" style="margin-top:8px">● competente · ●● pericia (competencia doble)</p></details></section>`;
 
   h+=`<section><h2>Sueños y prestigio</h2><div class="box2">
     <div class="resrow"><span>Puntos de sueño</span><div class="pips">${Array.from({length:c.level},(_,j)=>`<button class="pip gold ${j<S.dream?"":"used"}" data-dreamp="${j}" aria-label="Punto de sueño"></button>`).join("")}</div></div>
@@ -635,11 +661,14 @@ function techOpen(id){
 }
 
 /* ===================== BANDEJA DE RESULTADO ===================== */
-function show(t){T=t;drawTray();$("tray").classList.remove("hide")}
+function show(t){T=t;if(t.d20!=null&&t.raw==null)t.raw=lastD20;drawTray();$("tray").classList.remove("hide")}
 function drawTray(){
   const c=C(),t=T;
   let acts="";
   if(t.d20!=null&&S.dream>0&&!t.dreamUsed)acts+=`<button class="btn gold" data-do="dreamadd">Punto de sueño (+1d6) · quedan ${S.dream}</button>`;
+  /* Tras cualquier d20: volver a tirar (Predecir el resultado, reacción) o reemplazarlo por un presagio (uno por turno) */
+  if(t.d20!=null&&c.reroll&&!t.rerolled){const n=S.res[c.reroll.res];acts+=`<button class="btn" data-do="reroll" ${n>0?"":"disabled"}>${c.reroll.name}: volver a tirar · quedan ${n}</button>`}
+  if(t.d20!=null&&!t.foreUsed&&!S.turn.fore)S.fore.forEach((f,i)=>{if(!f.u)acts+=`<button class="btn" data-do="forerep" data-i="${i}">Reemplazar por presagio ${f.v}</button>`});
   if(t.exec&&c.execute&&!t.execUsed){const ok=S.res[c.execute.res]>0&&!S.turn.exec;
     acts+=`<button class="btn primary" data-do="exec" ${ok?"":"disabled"}>Si impactó: Ejecutar +${c.execute.dice}${ok?` · quedan ${S.res[c.execute.res]}`:S.turn.exec?" · ya usado este turno":" · sin usos"}</button>`}
   /* Daño de trueno o rayo: Poder de tormenta (conjuro o arma, 1 por turno) e Ira Destructiva (cualquier tirada, gasta Canalizar divinidad) */
@@ -818,6 +847,7 @@ function gate(){
       <select data-assign="${esc(p.id)}" aria-label="Personaje de ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.</p>`}</div></section>
     <p class="note">Conectado como DM: ${esc(user.email)}</p>${outBtn}`;
 }
+document.addEventListener("toggle",e=>{if(e.target.classList&&e.target.classList.contains("skills"))skillsOpen=e.target.open},true);
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
   if(id!==undefined)fb.F.updateDoc(fb.F.doc(fb.db,"players",id),{char:e.target.value||null}).catch(err=>show({title:"No se pudo asignar",warn:err.code||String(err)}))});
 
@@ -830,6 +860,8 @@ document.addEventListener("click",e=>{
   if(ds.mode){mode=ds.mode;render();return}
   if(ds.act!==undefined){armed=null;doAct(+ds.act);return}
   if(ds.sr){armed=null;doSpecial(ds.sr);return}
+  if(ds.skill){const sk=SKILLS.find(s=>s[0]===ds.skill),v=skillBonus(c,sk[0]),r=d20();
+    show({title:`${sk[1]} (${sk[3]})`,d20:0,boxes:[{l:"Resultado",v:r.v+v,s:`d20 ${r.txt} ${sgn(v)}`,cls:r.v===20?"crit":r.v===1?"fail":""}]});log(`${sk[1]}: ${r.v+v}`);save();return}
   if(ds.save){const [v]=c.saves[ds.save],r=d20();show({title:"Salvación de "+ds.save,d20:0,boxes:[{l:"Resultado",v:r.v+v,s:`d20 ${r.txt} ${sgn(v)}`,cls:r.v===20?"crit":r.v===1?"fail":""}]});log(`Salvación ${ds.save}: ${r.v+v}`);save();return}
   if(ds.cond){S.conds=S.conds.includes(ds.cond)?S.conds.filter(x=>x!==ds.cond):[...S.conds,ds.cond];save();render();return}
   if(ds.res){const j=+ds.j;S.res[ds.res]=j<S.res[ds.res]?j:j+1;save();render();return}
@@ -885,6 +917,10 @@ document.addEventListener("click",e=>{
       boxes:[{l:"CON contra CD "+ds.dc,v:tot,s:`d20 ${r.txt} ${sgn(v)}`,cls:ok?"":"fail"}],html:ok?"":`<div class="trayact"><button class="btn" data-do="endconc">Terminar la concentración</button></div>`});log(`Concentración: ${tot} contra CD ${ds.dc}`)}
   if(act==="forenext"){foreArm=+ds.i;$("tray").classList.add("hide");render();return}
   if(act==="foreother"){const f=S.fore[+ds.i];f.u=true;S.turn.fore=true;show({title:"Presagio usado",boxes:[{l:"Tirada",v:f.v,s:"para otra criatura"}]});log(`Presagio ${f.v} usado para otra criatura`)}
+  if(act==="reroll"){const x=c.reroll,b=T.boxes[T.d20],warn=spend("reaccion"),r=d20(),old=T.raw;S.res[x.res]--;T.rerolled=true;
+    b.v=(+b.v)-old+r.v;b.s+=` · ${x.name}: ${old} → ${r.txt}`;b.cls=r.v===20?"crit":r.v===1?"fail":"";T.raw=r.v;if(warn)T.warn=warn;log(`${x.name}: ${old} → ${r.v}`);drawTray();save();render();return}
+  if(act==="forerep"){const f=S.fore[+ds.i],b=T.boxes[T.d20],old=T.raw;f.u=true;S.turn.fore=true;T.foreUsed=true;
+    b.v=(+b.v)-old+f.v;b.s+=` · presagio: ${old} → ${f.v}`;b.cls=f.v===20?"crit":f.v===1?"fail":"";T.raw=f.v;log(`Presagio ${f.v} reemplaza un ${old}`);drawTray();save();render();return}
   if(act==="init"){const r=d20();show({title:"Iniciativa",d20:0,boxes:[{l:"Iniciativa",v:r.v+c.init,s:`d20 ${r.txt} ${sgn(c.init)}`}]});log(`<b>Iniciativa</b>: ${r.v+c.init}`)}
   if(act==="turn"){S.turn=newTurn(c);if(S.hard>0){S.hard--;if(S.hard===0)log("Endurecimiento terminado")}$("tray").classList.add("hide");log("— Nuevo turno —")}
   if(act==="dmg"||act==="heal"){const n=parseInt($("hpin").value,10);if(!(n>0))return;
