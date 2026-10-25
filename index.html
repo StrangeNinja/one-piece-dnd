@@ -270,6 +270,40 @@ const CHARS = {
     saves:{FUE:[-1,0],DES:[2,0],CON:[3,0],INT:[-1,0],SAB:[7,1],CAR:[2,1]},
     passive:"Resistencia a trueno, rayo y veneno. Inmune a envenenado y a enfermedades. Ventaja en salvaciones contra conjuros lanzados a 5 pies (Disruptor de lanzadores).",
     storm:"1d8", wrath:{res:"canal"}, foretell:true,
+    /* Fruta: Voluntad, CD, ataque y cargas se calculan con las reglas de la casa (ver FRUTAS más abajo) */
+    fruit:{name:"Mochi Mochi no Mi",strengthen:0,seaAC:16,
+      seaLabel:"Piedra marina",waterNote:"El agua no le quita la fruta; solo no puede nadar.",
+      seaNote:"Piedra marina: sin nada de la fruta. Pierde el Escudo de Mochi (CA 16), la inmunidad del Cuerpo de mochi, las armas de mochi y las técnicas de concentración.",
+      passive:"Cuerpo de mochi: inmune a daño contundente, perforante y cortante de ataques no mágicos; terreno difícil de mochi o pegajoso sin coste extra. Alcance de mochi: 15 pies en tus ataques cuerpo a cuerpo durante tu turno. Escudo de Mochi: +2 CA (ya incluido en la CA 18), sin cargas.",
+      mwNote:"Arma mágica (supera resistencias), con competencia. Al golpear a una criatura a 5 pies o menos: salvación de FUE CD 14 o queda agarrada.",
+      weapons:{
+        maza:{name:"Maza de mochi",hit:2,dice:"2d6",mod:-1,type:"contundente"},
+        latigo:{name:"Látigo de mochi",hit:5,dice:"1d4",mod:2,type:"cortante",note:"sutil"},
+        lanza:{name:"Lanza de mochi",hit:2,dice:"1d6",mod:-1,type:"perforante",note:"1d8−1 a dos manos · arrojadiza 20/60 pies"}
+      },
+      free:[
+        {kind:"mweapon",cost:"adicional",name:"Arma de mochi",note:"Conviertes una parte del cuerpo en un arma de la lista. Solo una activa; se desactiva con otra acción adicional"},
+        {kind:"use",cost:"adicional",name:"Endurecer mochi",note:"Endureces el mochi en un bloque sólido de hasta 10×10 pies; las criaturas dentro pasan al espacio libre más cercano"},
+        {kind:"use",cost:"accion",name:"Moldear Mochi",note:"Truco, 20 pies: mueves el mochi 5 pies, le das una forma simple durante 1 hora o lo endureces. Máximo 2 efectos no instantáneos a la vez"}
+      ],
+      tech:[
+        {id:"crear",n:"Crear o destruir mochi",l:1,c:"accion",r:"20 pies",pw:1,sum:"Creas o destruyes 10 galones de mochi, o un cubo de 20 pies que apaga llamas. Cada carga extra: +10 galones o +5 pies de cubo."},
+        {id:"willow",n:"Willow Mochi",l:1,c:"accion",r:"Radio de 10 pies",sv:"DES",half:1,dmg:"2d6",ty:"contundente",up:"1d6",pw:1,sum:"Quien falla recibe el daño y no puede usar reacciones hasta tu siguiente turno; quien supera, la mitad. +1d6 por carga extra."},
+        {id:"burning",n:"Burning Mochi",l:1,c:"accion",r:"60 pies",hits:3,uh:1,dmg:"2d6",ty:"fuego",pw:1,sum:"Lanzas puños de mochi ardiente: un ataque a distancia por puño. +1 puño por carga extra."},
+        {id:"agarre",n:"Agarre de Mochi",l:3,c:"accion",r:"30 pies",d:"1 minuto",conc:1,sv:"FUE",dmg:"2d6",ty:"contundente",
+          rep:{c:"accion",l:"Aplastar",fx:{sv:"FUE",half:1,dmg:"2d6",ty:"contundente",sum:"Aprietas a la criatura atrapada; mitad si supera."}},
+          sum:"Una mano de mochi atrapa a una criatura: si falla, recibe el daño y queda apresada. Para escapar, prueba de FUE contra CD 14. Con una acción, la aplastas."},
+        {id:"zangiri",n:"Zan Giri Mochi",l:5,c:"adicional",r:"Personal",d:"1 minuto",conc:1,
+          rep:{c:"",l:"+1d8 de fuerza",fx:{dmg:"1d8",ty:"fuerza",sum:"Solo una vez: ventaja en un ataque con arma y, si impacta, suma este daño."}},
+          sum:"Ruedas como una dona gigante: tu movimiento no provoca ataques de oportunidad y ganas +30 pies de velocidad este turno. Una vez, ventaja en un ataque con arma y +1d8 de fuerza si impacta."},
+        {id:"mano",n:"Mano de Mochi",l:5,c:"accion",r:"20 pies",d:"1 minuto",conc:1,pw:1,rep:{c:"adicional",l:"Mover la mano"},
+          sum:"Una Mano Grande (CA 20, 62 PV, FUE 26) se mueve 20 pies y hace una de estas opciones. Con 6 o más cargas: Puño +2d8 y Atrapadora +2d6 por carga extra.",
+          opts:[
+            {n:"Puño cerrado",atk:1,dmg:"4d8",ty:"fuerza",up:"2d8",sum:"La mano golpea a una criatura."},
+            {n:"Mano impulsora",sum:"Empuja a una criatura 5 + 20 pies."},
+            {n:"Mano atrapadora",dmg:"2d6+4",ty:"contundente",up:"2d6",sum:"Agarra a una criatura; con una acción adicional la aplasta con este daño (usa SAB +4)."},
+            {n:"Mano interpuesta",sum:"Se interpone: cobertura media contra una criatura."}]}
+      ]},
     caster:{ability:"SAB",mod:4,dc:15,atk:7,slots:[4,3,3,1],cantrips:4,prepared:11,
       list:["guidance","light","mending","resistance","sacredFlame","spareTheDying","thaumaturgy","tollTheDead","wordOfRadiance",
         "bane","bless","ceremony","command","cureWounds","detectEvil","detectPoison","guidingBolt","healingWord","inflictWounds","purifyFood","sanctuary","shieldOfFaith",
@@ -287,7 +321,8 @@ const CHARS = {
       {id:"predecir",name:"Predecir el resultado",max:3,rest:"short"},
       {id:"pluma",name:"Protección de las Nubes",max:1,rest:"short"},
       {id:"kami",name:"Voluntad de Kami",max:35,rest:"long",counter:true},
-      {id:"balas",name:"Balas de pistola",max:20,rest:"none",counter:true,fill:"Recargar"}
+      {id:"balas",name:"Balas de pistola",max:20,rest:"none",counter:true,fill:"Recargar"},
+      {id:"tono",name:"Dial de tono",max:5,rest:"none",counter:true,dawn:"1d4+1"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:"Sable",note:"Cuerpo a cuerpo · arma sutil"},
@@ -298,11 +333,20 @@ const CHARS = {
       {cost:"reaccion",kind:"dash",name:"Golpe atronador de dial",res:"dial",dc:15,save:"DES",dmg:"2d8",type:"trueno o rayo",half:true,note:"Cuando una criatura a 5 pies que ves te golpea. Eliges trueno o rayo"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Disruptor de lanzadores",note:"Una criatura a 5 pies lanza un conjuro: la atacas con el sable. Si la dañas, tiene desventaja para mantener la concentración"},
       {cost:"reaccion",kind:"use",name:"Predecir el resultado",res:"predecir",note:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado"},
-      {cost:"reaccion",kind:"use",name:"Protección de las Nubes",res:"pluma",note:"Caída de pluma: tú y hasta 5 criaturas a 60 pies caen despacio y sin daño"},
+      {cost:"fuera",kind:"use",name:"Protección de las Nubes",res:"pluma",note:"Caída de pluma (reacción al caer): tú y hasta 5 criaturas a 60 pies caen despacio y sin daño"},
+      {cost:"fuera",kind:"use",name:"Dial de tono: grabar",res:"tono",note:"Acción adicional, 1 carga: graba hasta 60 segundos. Grabación actual: «Esto va a destruir el mundo»"},
+      {cost:"fuera",kind:"use",name:"Dial de tono: reproducir",note:"Acción: reproduce lo grabado"},
+      {cost:"fuera",kind:"use",name:"Ritual de dial",note:"Rasgo de nivel 6 del Sky Domain, fuera de combate"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Ataque de oportunidad",note:"Cuando un enemigo sale de tu alcance"}
     ]
   }
 };
+
+/* FRUTAS (reglas de la casa): Voluntad = nivel (máx. 20) + 2 por cada Fortalecerse; CD = 10 + Voluntad/2 y ataque = 2 + Voluntad/2, redondeando hacia arriba;
+   cargas = nivel + competencia, se recuperan con descanso largo. La Voluntad solo se usa para la fruta, nunca para el Haki. */
+for(const c of Object.values(CHARS))if(c.fruit){const f=c.fruit;
+  f.will=Math.min(20,c.level)+2*(f.strengthen||0);f.dc=10+Math.ceil(f.will/2);f.atk=2+Math.ceil(f.will/2);
+  c.resources.push({id:"cargas",name:"Cargas de fruta",max:c.level+c.prof,rest:"long",counter:true})}
 
 /* Reglas universales de Dungeons & Devil Fruits */
 const SPECIALS=[
@@ -313,7 +357,7 @@ const SPECIALS=[
 ];
 const RARITY=[["Poco común",1],["Raro",2],["Muy raro",3],["Legendario",4]];
 const CONDS=["Agarrado","Apresado","Asustado","Aturdido","Cegado","Derribado","Ensordecido","Envenenado","Hechizado","Incapacitado","Invisible","Paralizado"];
-const COST={accion:"Acción",adicional:"Acción adicional",reaccion:"Reacción",gratis:"Sin coste"};
+const COST={accion:"Acción",adicional:"Acción adicional",reaccion:"Reacción",gratis:"Sin coste",fuera:"Fuera de combate"};
 
 /* ===================== ESTADO ===================== */
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -324,7 +368,7 @@ function newTurn(c){return{a:1,b:1,r:1,sr:2,atk:c.attacksPerAction,exec:false,at
 function fresh(c){return{hp:c.maxHp,res:Object.fromEntries(c.resources.map(r=>[r.id,r.max])),
   sr:Object.fromEntries(SPECIALS.map(s=>[s.id,c.prof])),dream:c.level,prestige:0,plog:[],
   conds:[],hard:0,turn:newTurn(c),ds:{ok:0,ko:0},dead:false,log:[],
-  slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},
+  slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",
   fore:c.foretell?[{v:d(20),u:false},{v:d(20),u:false}]:[]}}
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
@@ -338,7 +382,8 @@ function merge(c,s){
     plog:strs(s.plog),conds:Array.isArray(s.conds)?s.conds.filter(x=>CONDS.includes(x)):[],hard:pick(f.hard,s.hard),
     turn:obj(f.turn,s.turn),ds:obj(f.ds,s.ds),dead:pick(f.dead,s.dead),log:strs(s.log),
     slots:f.slots.map((x,i)=>pick(x,s.slots&&s.slots[i])),spells:{c:ids(sp.c,true,k?k.cantrips:0),p:ids(sp.p,false,k?k.prepared:0)},
-    conc:typeof SPELLS!=="undefined"&&Object.hasOwn(SPELLS,cc.id)?{id:cc.id,lvl:pick(0,cc.lvl)}:{id:"",lvl:0},
+    conc:typeof cc.id==="string"&&(typeof SPELLS!=="undefined"&&Object.hasOwn(SPELLS,cc.id)||c.fruit&&c.fruit.tech.some(t=>"f:"+t.id===cc.id))?{id:cc.id,lvl:pick(0,cc.lvl)}:{id:"",lvl:0},
+    sea:pick(false,s.sea),mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(1,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)}))};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===66&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
@@ -387,7 +432,7 @@ function render(){
   $("hero").innerHTML=`
    <div class="who"><div style="min-width:0"><h1>${c.name}</h1><div class="sub">${c.sub} · ${c.speed}</div></div>
     <div class="stats">
-      <div class="stat"><b>${c.ac}</b><small>CA</small></div>
+      <div class="stat"><b>${S.sea&&c.fruit?c.fruit.seaAC:c.ac}</b><small>CA</small></div>
       <button class="stat" data-do="init"><b>${sgn(c.init)}</b><small>Inic.</small></button>
       <button class="stat" data-do="look" aria-label="Apariencia"><b>${ICON}</b><small>Ajustes</small></button>
     </div></div>
@@ -403,7 +448,7 @@ function render(){
      ${S.hard>0?`<span class="econ haki"><i></i>Haki +${c.hardening.bonus} · ${S.hard} t.</span>`:""}
      ${S.fore.map((f,i)=>`<button class="econ${f.u?" spent":""}" data-fore="${i}" ${f.u?"disabled":""} aria-label="Presagio ${f.v}"><i></i>Presagio ${f.v}${foreArm===i?" · próxima tirada":""}</button>`).join("")}
      <button class="newturn" data-do="turn">Nuevo turno</button></div>
-   ${S.conc.id?`<div class="conc"><span>Concentrado en <b>${SPELLS[S.conc.id].n}</b></span>${SPELLS[S.conc.id].rep?`<button class="btn" data-do="rep">${SPELLS[S.conc.id].rep.l}</button>`:""}<button class="btn" data-do="endconc">Terminar</button></div>`:""}`;
+   ${S.conc.id?`<div class="conc"><span>Concentrado en <b>${concOf(c,S.conc.id).n}</b></span>${concOf(c,S.conc.id).rep?`<button class="btn" data-do="rep">${concOf(c,S.conc.id).rep.l}</button>`:""}<button class="btn" data-do="endconc">Terminar</button></div>`:""}`;
 
   let h="";
   if(S.hp<=0){
@@ -426,6 +471,7 @@ function render(){
     h+=`<section><h2>${COST[cost]}${cost==="accion"?` <small>Crítico con ${c.critMin}–20</small>`:""}</h2><div class="list">${list.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   }
   if(c.caster)h+=spellSec(c);
+  if(c.fruit)h+=fruitSec(c);
   h+=`<section><h2>Reacciones especiales <small>2 por ronda · ${c.prof} usos c/u por descanso corto</small></h2><div class="list">`;
   for(const s of SPECIALS){
     let big="";
@@ -437,6 +483,8 @@ function render(){
   h+=`</div></section>`;
   const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis");
   if(free.length)h+=`<section><h2>Sin coste</h2><div class="list">${free.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
+  const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera");
+  if(out.length)h+=`<section><h2>Fuera de combate</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
 
   h+=`<section><h2>Salvaciones</h2><div class="saves">${Object.entries(c.saves).map(([k,[v,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${k}<span>${sgn(v)}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
 
@@ -450,7 +498,7 @@ function render(){
   </div></section>`;
 
   h+=`<section><h2>Recursos <small>toca para corregir</small></h2><div class="box2">${c.resources.map(r=>`<div class="resrow"><span>${r.name}<br><small style="font-weight:400">${{long:"desc. largo",short:"desc. corto",none:"manual"}[r.rest]}</small></span>${r.counter
-    ?`<div class="cnt"><b>${S.res[r.id]}<small>/${r.max}</small></b><button class="btn" data-cnt="${r.id}" data-n="-1" aria-label="Quitar 1">−1</button><button class="btn" data-cnt="${r.id}" data-n="1" aria-label="Sumar 1">+1</button><button class="btn" data-cnt="${r.id}" data-n="max">${r.fill||"Llenar"}</button></div>`
+    ?`<div class="cnt"><b>${S.res[r.id]}<small>/${r.max}</small></b><button class="btn" data-cnt="${r.id}" data-n="-1" aria-label="Quitar 1">−1</button><button class="btn" data-cnt="${r.id}" data-n="1" aria-label="Sumar 1">+1</button><button class="btn" data-cnt="${r.id}" data-n="max">${r.fill||"Llenar"}</button>${r.dawn?`<button class="btn" data-dawn="${r.id}">Amanecer +${r.dawn}</button>`:""}</div>`
     :`<div class="pips">${Array.from({length:r.max},(_,j)=>`<button class="pip ${j<S.res[r.id]?"":"used"}" data-res="${r.id}" data-j="${j}" aria-label="${r.name}"></button>`).join("")}</div>`}</div>`).join("")}</div></section>`;
 
   h+=`<section><h2>Estados</h2><div class="conds">${CONDS.map(x=>`<button data-cond="${x}" aria-pressed="${S.conds.includes(x)}">${x}</button>`).join("")}</div></section>`;
@@ -474,6 +522,17 @@ function actBtn(a,i){
   const out=a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0);
   const left=a.res?` · quedan ${S.res[a.res]}`:"";
   return `<button class="act ${a.kind==="haki"&&S.hard>0?"on":""}" data-act="${i}" ${out?"disabled":""}><span class="n">${a.name}${tags}</span><span class="big">${big}</span><span class="d">${a.kind==="haki"&&S.hard>0?"Activo · toca para terminarlo":a.note}${left}</span></button>`;
+}
+
+/* ===================== FRUTA DEL DIABLO ===================== */
+function fruitSec(c){
+  const f=c.fruit,sea=S.sea,ch=S.res.cargas,w=!sea&&S.mw&&f.weapons[S.mw];
+  let h=`<section><h2>Fruta del diablo <small>${f.name} · CD ${f.dc} · ataque ${sgn(f.atk)} · cargas ${ch}/${c.level+c.prof}</small></h2><div class="list">
+    <button class="act ${sea?"on":""}" data-do="sea" aria-pressed="${sea}"><span class="n">${f.seaLabel}</span><span class="big">${sea?"Activa":""}</span><span class="d">${sea?f.seaNote+" Toca para quitarla.":"Tócalo si estás en contacto con piedra marina. "+f.waterNote}</span></button>`;
+  if(w)h+=`<button class="act" data-mwatk="1" ${sea?"disabled":""}><span class="n">${w.name}<span class="tag">Mágica</span></span><span class="big">${sgn(w.hit)}<small>${w.dice}${w.mod?sgn(w.mod):""} ${w.type}</small></span><span class="d">Acción de Atacar · alcance 15 pies en tu turno${w.note?" · "+w.note:""}</span></button>`;
+  h+=f.free.map((a,i)=>`<button class="act" data-free="${i}" ${sea?"disabled":""}><span class="n">${a.name}</span><span class="big">${a.kind==="mweapon"&&w?`<small>Activa: ${w.name}</small>`:""}</span><span class="d">${COST[a.cost]} · sin cargas · ${a.note}</span></button>`).join("");
+  h+=f.tech.map(t=>`<button class="act" data-tech="${t.id}" ${sea||ch<t.l?"disabled":""}><span class="n">${t.n}<span class="tag">${t.l} ${t.l===1?"carga":"cargas"}</span>${t.conc?`<span class="tag">Conc.</span>`:""}</span><span class="big">${t.hits?`${sgn(f.atk)}<small>${t.dmg} × ${t.hits}</small>`:t.sv?`CD ${f.dc}<small>salv. ${t.sv}${t.dmg?" · "+t.dmg:""}</small>`:""}</span><span class="d">${spellLine(t)}${t.pw?" · se puede potenciar":""}</span></button>`).join("");
+  return h+`</div><p class="note" style="margin-top:8px">${sea?f.seaNote:f.passive}</p></section>`;
 }
 
 /* ===================== CONJUROS ===================== */
@@ -522,31 +581,58 @@ function castOpen(id){
     tip:`${spellLine(s)}${s.conc?" · concentración":""}. ${s.sum}`});
 }
 /* opt.rit: ritual sin espacio · opt.rep: repetir el efecto de la concentración activa (sin espacio) */
-function castSpell(id,lvl,opt={}){
-  const c=C(),k=c.caster,s=SPELLS[id],tips=[],boxes=[];
-  let warn=spend(opt.rep?s.rep.c:s.c),crit=false,dmgBox=-1,dexpr="";
+function castSpell(id,lvl,opt={}){const k=C().caster,s=SPELLS[id];
+  useFx(id,s,lvl,{dc:k.dc,atk:k.atk,mod:k.mod,atkL:"Ataque de conjuro",storm:true,unit:"nivel",upTxt:`Lanzado con espacio de nivel ${lvl}.`,
+    pay:()=>{if(s.l&&!opt.rit)S.slots[lvl-1]--}},opt)}
+/* Técnica de fruta: cuesta cargas = su nivel; n cargas > nivel la potencia. opt.pick: opción elegida de una técnica con opciones */
+function useTech(id,n,opt={}){const c=C(),f=c.fruit,t=f.tech.find(x=>x.id===id);
+  const src={dc:f.dc,atk:f.atk,mod:f.mod,atkL:"Ataque de fruta",storm:false,unit:"cargas",upTxt:`Potenciada con ${n} cargas.`,pay:()=>{S.res.cargas-=n}};
+  if(opt.pick!=null){const o=t.opts[opt.pick];return useFx("f:"+id,{...o,l:t.l},n,src,{rep:true,noEcon:true,title:`${t.n} · ${o.n}`})}
+  useFx("f:"+id,t,n,src,opt)}
+const concOf=(c,id)=>id.startsWith("f:")?c.fruit.tech.find(t=>"f:"+t.id===id):SPELLS[id];
+/* Resuelve un conjuro o técnica: paga (espacio o cargas), concentración compartida, ataque o CD, daño o curación con escalado */
+function useFx(id,s,lvl,src,opt={}){
+  const c=C(),e=opt.rep&&s.rep&&s.rep.fx?{l:s.l,...s.rep.fx}:s,tips=[],boxes=[];
+  let warn=opt.noEcon?"":spend(opt.rep?s.rep.c:s.c),crit=false,dmgBox=-1,dexpr="",html="";
   if(!opt.rep){
-    if(s.l&&!opt.rit)S.slots[lvl-1]--;
-    if(s.conc){if(S.conc.id)tips.push(`Dejas de concentrarte en ${SPELLS[S.conc.id].n}.`);S.conc={id,lvl}}
+    src.pay();
+    if(s.conc){if(S.conc.id)tips.push(`Dejas de concentrarte en ${concOf(c,S.conc.id).n}.`);S.conc={id,lvl}}
   }
-  const up=Math.max(0,lvl-s.l),roll1=!(s.onlyRep&&!opt.rep);
-  if(s.t)tips.unshift(`Hasta ${s.t+(s.ut||0)*up} objetivos.`);
-  if(s.atk){const r=d20(),tot=r.v+k.atk;crit=r.v===20;
-    boxes.push({l:"Ataque de conjuro",v:tot,s:`d20 ${r.txt} ${sgn(k.atk)}${crit?" · ¡CRÍTICO!":r.v===1?" · pifia":""}`,cls:crit?"crit":r.v===1?"fail":""})}
-  if(s.sv)boxes.push({l:"CD · salvación "+s.sv,v:k.dc,s:s.half?"Mitad del daño si la supera":s.dmg?"Sin daño si la supera":""});
-  if(s.dmg&&roll1){dexpr=spellDice(s.dmg,s,lvl,c);const dm=roll(dexpr,crit);dmgBox=boxes.length;
-    boxes.push({l:"Daño "+s.ty,v:dm.tot,s:/\d+d\d+/.test(dexpr)?dm.txt+(crit?" · dados dobles":""):"Daño fijo",cls:crit?"crit":""});
-    if(s.alt){const a=roll(spellDice(s.alt,s,lvl,c),crit);boxes.push({l:"Si ya estaba herido",v:a.tot,s:a.txt})}
-    if(s.dmg2){const b=roll(s.dmg2,crit);boxes.push({l:"Daño "+s.ty2,v:b.tot,s:b.txt})}}
-  if(s.heal&&roll1){const hr=roll(spellDice(s.heal,s,lvl,c)+(s.hm?"+"+k.mod:""));boxes.push({l:"Curación",v:"+"+hr.tot,s:hr.txt})}
-  if(s.fix)boxes.push({l:s.fixL,v:"+"+(s.fix+(s.ufix||0)*up),s:"a cada objetivo"});
-  if(s.self){const sd=roll(spellDice(s.self,s,lvl,c));boxes.push({l:"Daño que recibes",v:sd.tot,s:sd.txt+" necrótico"},{l:"Curación",v:"+"+sd.tot*2,s:"el doble"})}
-  if(s.l&&lvl>s.l)tips.push(`Lanzado con espacio de nivel ${lvl}.`);
+  if(s.opts&&!opt.noEcon){
+    show({title:opt.rep?`${s.n} · ${s.rep.l}`:s.n,warn,tech:{id:id.slice(2),lvl},html:`<div class="trayact">${s.opts.map((o,i)=>`<button class="btn ${i?"":"primary"}" data-fxopt="${i}">${o.n}</button>`).join("")}</div>`,tip:(tips.join(" ")+" Elige qué hace: "+s.sum).trim()});
+    log(`<b>${s.n}</b>${lvl>s.l?` (${lvl} cargas)`:""}`);save();render();return}
+  const up=Math.max(0,lvl-s.l),roll1=!(e.onlyRep&&!opt.rep);
+  if(e.t)tips.unshift(`Hasta ${e.t+(e.ut||0)*up} objetivos.`);
+  if(e.hits){const n=e.hits+(e.uh||0)*up;let rows="";
+    for(let k=1;k<=n;k++){const r=d20(),tot=r.v+src.atk,cr=r.v===20,dm=roll(e.dmg,cr);
+      rows+=`<div class="${cr?"crit":""}"><span>${k}: ataque <b>${tot}</b>${cr?" ¡crítico!":r.v===1?" pifia":""}</span><span><b>${dm.tot}</b> ${e.ty}</span></div>`}
+    html=`<div class="multi">${rows}</div>`;tips.push(`${n} ataques ${sgn(src.atk)}.`)}
+  else{
+    if(e.atk){const r=d20(),tot=r.v+src.atk;crit=r.v===20;
+      boxes.push({l:src.atkL,v:tot,s:`d20 ${r.txt} ${sgn(src.atk)}${crit?" · ¡CRÍTICO!":r.v===1?" · pifia":""}`,cls:crit?"crit":r.v===1?"fail":""})}
+    if(e.sv)boxes.push({l:"CD · salvación "+e.sv,v:src.dc,s:e.half?"Mitad del daño si la supera":e.dmg?"Sin daño si la supera":""});
+    if(e.dmg&&roll1){dexpr=spellDice(e.dmg,e,lvl,c);const dm=roll(dexpr,crit);dmgBox=boxes.length;
+      boxes.push({l:"Daño "+e.ty,v:dm.tot,s:/\d+d\d+/.test(dexpr)?dm.txt+(crit?" · dados dobles":""):"Daño fijo",cls:crit?"crit":""});
+      if(e.alt){const a=roll(spellDice(e.alt,e,lvl,c),crit);boxes.push({l:"Si ya estaba herido",v:a.tot,s:a.txt})}
+      if(e.dmg2){const b=roll(e.dmg2,crit);boxes.push({l:"Daño "+e.ty2,v:b.tot,s:b.txt})}}
+    if(e.heal&&roll1){const hr=roll(spellDice(e.heal,e,lvl,c)+(e.hm?"+"+src.mod:""));boxes.push({l:"Curación",v:"+"+hr.tot,s:hr.txt})}
+    if(e.fix)boxes.push({l:e.fixL,v:"+"+(e.fix+(e.ufix||0)*up),s:"a cada objetivo"});
+    if(e.self){const sd=roll(spellDice(e.self,e,lvl,c));boxes.push({l:"Daño que recibes",v:sd.tot,s:sd.txt+" necrótico"},{l:"Curación",v:"+"+sd.tot*2,s:"el doble"})}
+  }
+  if(!opt.rep&&s.l&&lvl>s.l)tips.push(src.upTxt);
   if(opt.rit)tips.push("Como ritual: no gasta espacio.");
-  tips.push(s.sum);
-  show({title:opt.rep?`${s.n} · ${s.rep.l}`:s.n,warn,boxes,d20:s.atk?0:null,crit,dmgBox,dexpr,storm:true,ts:/trueno|rayo/.test(s.ty||""),tip:tips.join(" ")});
-  log(`<b>${s.n}</b>${lvl>s.l?` (nivel ${lvl})`:""}${dmgBox>=0?` · ${boxes[dmgBox].v} ${s.ty}`:""}`);
+  tips.push(e.sum);
+  const title=opt.title||(opt.rep?`${s.n} · ${s.rep.l}`:s.n);
+  show({title,warn,boxes,html,d20:e.atk&&!e.hits?0:null,crit,dmgBox,dexpr,storm:src.storm,ts:/trueno|rayo/.test(e.ty||""),tip:tips.join(" ")});
+  log(`<b>${title}</b>${!opt.rep&&lvl>s.l?` (${src.unit} ${lvl})`:""}${dmgBox>=0?` · ${boxes[dmgBox].v} ${e.ty}`:""}`);
   save();render();
+}
+/* Selector de cargas: el nivel de la técnica, o más si se puede potenciar */
+function techOpen(id){
+  const c=C(),t=c.fruit.tech.find(x=>x.id===id),ch=S.res.cargas,top=t.pw?Math.max(t.l,ch):t.l;
+  const ns=Array.from({length:Math.min(top-t.l+1,10)},(_,i)=>t.l+i);
+  show({title:t.n,html:`<div class="trayact">${ns.map(n=>`<button class="btn ${n===t.l?"primary":""}" data-techn="${id}" data-n="${n}" ${n<=ch?"":"disabled"}>${n} ${n===1?"carga":"cargas"}${n>t.l?" (potenciada)":""}</button>`).join("")}</div>`,
+    tip:`${spellLine(t)}${t.conc?" · concentración":""} · quedan ${ch} cargas. ${t.sum}`});
 }
 
 /* ===================== BANDEJA DE RESULTADO ===================== */
@@ -727,7 +813,7 @@ function gate(){
     return`<div class="box2"><div class="who"><b style="font-size:18px">${c.name}</b><button class="btn" data-pick="${k}">Abrir</button></div>
       ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${c.maxHp} PV${s.hp<=0?" · inconsciente":""}</span><span>${s.conds.join(", ")||"Sin estados"}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
-      <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · Sueño ${s.dream}/${c.level} · Prestigio ${s.prestige}${s.hard>0?` · Haki activo (${s.hard} t.)`:""}${c.caster?` · Espacios ${s.slots.map((v,i)=>`N${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · Concentrado en ${SPELLS[s.conc.id].n}`:""}</p>
+      <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · Sueño ${s.dream}/${c.level} · Prestigio ${s.prestige}${s.hard>0?` · Haki activo (${s.hard} t.)`:""}${c.caster?` · Espacios ${s.slots.map((v,i)=>`N${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · Concentrado en ${concOf(c,s.conc.id).n}`:""}${s.sea?" · Piedra marina":""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
       ${s.log[0]?`<p class="note">Último: ${s.log[0]}</p>`:""}`:`<p class="note">Sin datos todavía: aparecerán cuando su jugador abra la app.</p>`}</div>`}).join("")}</div></section>
     <section><h2>Jugadores <small>un personaje por cuenta</small></h2><div class="box2">${mesa.players.some(p=>p.id!==user.uid)?mesa.players.filter(p=>p.id!==user.uid).map(p=>`<div class="resrow"><span>${esc(p.name||p.email)}<br><small style="font-weight:400">${esc(p.email)}</small></span>
       <select data-assign="${esc(p.id)}" aria-label="Personaje de ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.</p>`}</div></section>
@@ -750,6 +836,17 @@ document.addEventListener("click",e=>{
   if(ds.res){const j=+ds.j;S.res[ds.res]=j<S.res[ds.res]?j:j+1;save();render();return}
   if(ds.dreamp!==undefined){const j=+ds.dreamp;S.dream=j<S.dream?j:j+1;save();render();return}
   if(ds.book){book=ds.book==="prep";render();return}
+  if(ds.tech){armed=null;techOpen(ds.tech);return}
+  if(ds.techn){useTech(ds.techn,+ds.n);return}
+  if(ds.fxopt!==undefined){useTech(T.tech.id,T.tech.lvl,{pick:+ds.fxopt});return}
+  if(ds.free!==undefined){const a=c.fruit.free[+ds.free];armed=null;
+    if(a.kind==="mweapon"){const ws=c.fruit.weapons;show({title:a.name,html:`<div class="trayact">${Object.entries(ws).map(([k,w])=>`<button class="btn ${S.mw===k?"primary":""}" data-mw="${k}">${w.name} · ${sgn(w.hit)} · ${w.dice}${w.mod?sgn(w.mod):""}</button>`).join("")}${S.mw?`<button class="btn" data-mw="none">Desactivar</button>`:""}</div>`,tip:`${COST[a.cost]}. ${a.note}. ${c.fruit.mwNote}`});return}
+    const warn=spend(a.cost);show({title:a.name,warn,tip:a.note});log(`<b>${a.name}</b>`);save();render();return}
+  if(ds.mw){const warn=spend("adicional");S.mw=ds.mw==="none"?"":ds.mw;const w=S.mw&&c.fruit.weapons[S.mw];
+    show({title:w?w.name:"Arma de mochi desactivada",warn,tip:w?c.fruit.mwNote:""});log(w?`<b>${w.name}</b> activa`:"Arma de mochi desactivada");save();render();return}
+  if(ds.mwatk){const w=c.fruit.weapons[S.mw];weaponAttack(w,w.name,spendAttack(),c.fruit.mwNote);save();render();return}
+  if(ds.dawn){const r=c.resources.find(x=>x.id===ds.dawn),g=roll(r.dawn);S.res[r.id]=Math.min(r.max,S.res[r.id]+g.tot);
+    show({title:r.name+": amanecer",boxes:[{l:"Recupera",v:"+"+g.tot,s:g.txt},{l:"Cargas",v:S.res[r.id],s:"de "+r.max}]});log(`${r.name}: +${g.tot} al amanecer`);save();render();return}
   if(ds.spell){armed=null;castOpen(ds.spell);return}
   if(ds.cast){const s=SPELLS[ds.cast];ds.lvl==="r"?castSpell(ds.cast,s.l,{rit:true}):castSpell(ds.cast,+ds.lvl);return}
   if(ds.prep){const k=c.caster,id=ds.prep,l=SPELLS[id].l,key=l?"p":"c",max=l?k.prepared:k.cantrips;if(k.domain.includes(id))return;
@@ -780,8 +877,10 @@ document.addEventListener("click",e=>{
     const warn=spend(a.cost);S.res[a.res]-=n;
     show({title:a.name,warn,boxes:[{l:ds.n?"Enfermedad o veneno":"Curación",v:ds.n?"Curado":"+"+n,s:`gasta ${n} de la reserva`},{l:"Reserva",v:S.res[a.res],s:"PV restantes"}]});
     log(`<b>${a.name}</b>: ${ds.n?"cura enfermedad o veneno":"+"+n+" PV"}`)}
-  if(act==="rep")return castSpell(S.conc.id,S.conc.lvl,{rep:true});
-  if(act==="endconc"){log(`Termina la concentración en ${SPELLS[S.conc.id].n}`);S.conc={id:"",lvl:0};$("tray").classList.add("hide")}
+  if(act==="sea"){S.sea=!S.sea;if(S.sea){S.mw="";if(S.conc.id.startsWith("f:")){log(`Pierde la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0}}}
+    log(S.sea?"<b>Piedra marina</b>: sin poderes de la fruta":"Sin piedra marina: vuelve la fruta")}
+  if(act==="rep")return S.conc.id.startsWith("f:")?useTech(S.conc.id.slice(2),S.conc.lvl,{rep:true}):castSpell(S.conc.id,S.conc.lvl,{rep:true});
+  if(act==="endconc"){log(`Termina la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0};$("tray").classList.add("hide")}
   if(act==="concsave"){const v=c.saves.CON[0],r=d20(),tot=r.v+v,ok=tot>=+ds.dc;
     show({title:"Salvación de concentración",warn:ok?"":"Fallaste. Si un punto de sueño no te alcanza para llegar a la CD, termina la concentración.",d20:0,
       boxes:[{l:"CON contra CD "+ds.dc,v:tot,s:`d20 ${r.txt} ${sgn(v)}`,cls:ok?"":"fail"}],html:ok?"":`<div class="trayact"><button class="btn" data-do="endconc">Terminar la concentración</button></div>`});log(`Concentración: ${tot} contra CD ${ds.dc}`)}
@@ -791,9 +890,9 @@ document.addEventListener("click",e=>{
   if(act==="turn"){S.turn=newTurn(c);if(S.hard>0){S.hard--;if(S.hard===0)log("Endurecimiento terminado")}$("tray").classList.add("hide");log("— Nuevo turno —")}
   if(act==="dmg"||act==="heal"){const n=parseInt($("hpin").value,10);if(!(n>0))return;
     if(act==="dmg"){S.hp=Math.max(0,S.hp-n);log(`Recibe <b>${n}</b> de daño`);
-      if(S.conc.id&&S.hp<=0){log(`Pierde la concentración en ${SPELLS[S.conc.id].n}`);S.conc={id:"",lvl:0}}
+      if(S.conc.id&&S.hp<=0){log(`Pierde la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0}}
       else if(S.conc.id){const dc=Math.max(10,Math.floor(n/2));
-        show({title:"Concentración",boxes:[{l:"CD salvación CON",v:dc,s:"10 o la mitad del daño, lo que sea mayor"}],tip:`Si fallas, pierdes la concentración en ${SPELLS[S.conc.id].n}.`,
+        show({title:"Concentración",boxes:[{l:"CD salvación CON",v:dc,s:"10 o la mitad del daño, lo que sea mayor"}],tip:`Si fallas, pierdes la concentración en ${concOf(c,S.conc.id).n}.`,
           html:`<div class="trayact"><button class="btn primary" data-do="concsave" data-dc="${dc}">Tirar salvación de CON (${sgn(c.saves.CON[0])})</button></div>`})}}
     else{S.hp=Math.min(c.maxHp,S.hp+n);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}log(`Recupera <b>${n}</b> PV`)}}
   if(act==="death"){const r=d(20);
