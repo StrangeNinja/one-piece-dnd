@@ -186,7 +186,7 @@ const SEED={round:1,cur:null,list:[
   {name:"Sungsopp",type:"pc",init:null,ac:17,max:29},
   {name:"Fate",type:"pc",init:null,ac:17,max:84},
   {name:"Kayn",type:"pc",init:null,ac:15,max:32},
-  {name:"Codel",type:"pc",init:null,ac:18,max:36}
+  {name:"Codel",type:"pc",init:null,ac:18,max:62}
 ].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[]}))};
 let S=store.get("dm:combat2")||JSON.parse(JSON.stringify(SEED));
 if(!S.cur&&S.list.length)S.cur=sorted()[0].id;
