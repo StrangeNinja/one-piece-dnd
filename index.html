@@ -272,8 +272,8 @@ const CHARS = {
     storm:"1d8", wrath:{res:"canal"}, foretell:true,
     /* Fruta: Voluntad, CD, ataque y cargas se calculan con las reglas de la casa (ver FRUTAS más abajo) */
     fruit:{name:"Mochi Mochi no Mi",strengthen:0,seaAC:16,
-      seaLabel:"Piedra marina",waterNote:"El agua no le quita la fruta; solo no puede nadar.",
-      seaNote:"Piedra marina: sin nada de la fruta. Pierde el Escudo de Mochi (CA 16), la inmunidad del Cuerpo de mochi, las armas de mochi y las técnicas de concentración.",
+      seaLabel:"Kairoseki (piedra marina)",waterNote:"El agua no le quita el mochi ni el Escudo de Mochi; en el agua solo no puede nadar.",
+      seaNote:"Kairoseki: sin nada de la fruta. Pierde el Escudo de Mochi (CA 16), la inmunidad del Cuerpo de mochi, las armas de mochi y las técnicas de concentración.",
       passive:"Cuerpo de mochi: inmune a daño contundente, perforante y cortante de ataques no mágicos; terreno difícil de mochi o pegajoso sin coste extra. Alcance de mochi: 15 pies en tus ataques cuerpo a cuerpo durante tu turno. Escudo de Mochi: +2 CA (ya incluido en la CA 18), sin cargas.",
       mwNote:"Arma mágica (supera resistencias), con competencia. Al golpear a una criatura a 5 pies o menos: salvación de FUE CD 14 o queda agarrada.",
       weapons:{
@@ -336,7 +336,6 @@ const CHARS = {
       {cost:"fuera",kind:"use",name:"Protección de las Nubes",res:"pluma",note:"Caída de pluma (reacción al caer): tú y hasta 5 criaturas a 60 pies caen despacio y sin daño"},
       {cost:"fuera",kind:"use",name:"Dial de tono: grabar",res:"tono",note:"Acción adicional, 1 carga: graba hasta 60 segundos. Grabación actual: «Esto va a destruir el mundo»"},
       {cost:"fuera",kind:"use",name:"Dial de tono: reproducir",note:"Acción: reproduce lo grabado"},
-      {cost:"fuera",kind:"use",name:"Ritual de dial",note:"Rasgo de nivel 6 del Sky Domain, fuera de combate"},
       {cost:"reaccion",kind:"attack",w:"main",name:"Ataque de oportunidad",note:"Cuando un enemigo sale de tu alcance"}
     ]
   }
@@ -528,7 +527,7 @@ function actBtn(a,i){
 function fruitSec(c){
   const f=c.fruit,sea=S.sea,ch=S.res.cargas,w=!sea&&S.mw&&f.weapons[S.mw];
   let h=`<section><h2>Fruta del diablo <small>${f.name} · CD ${f.dc} · ataque ${sgn(f.atk)} · cargas ${ch}/${c.level+c.prof}</small></h2><div class="list">
-    <button class="act ${sea?"on":""}" data-do="sea" aria-pressed="${sea}"><span class="n">${f.seaLabel}</span><span class="big">${sea?"Activa":""}</span><span class="d">${sea?f.seaNote+" Toca para quitarla.":"Tócalo si estás en contacto con piedra marina. "+f.waterNote}</span></button>`;
+    <button class="act ${sea?"on":""}" data-do="sea" aria-pressed="${sea}"><span class="n">${f.seaLabel}</span><span class="big">${sea?"Activa":""}</span><span class="d">${sea?f.seaNote+" Toca para quitarla.":"Tócalo si estás en contacto con kairoseki. "+f.waterNote}</span></button>`;
   if(w)h+=`<button class="act" data-mwatk="1" ${sea?"disabled":""}><span class="n">${w.name}<span class="tag">Mágica</span></span><span class="big">${sgn(w.hit)}<small>${w.dice}${w.mod?sgn(w.mod):""} ${w.type}</small></span><span class="d">Acción de Atacar · alcance 15 pies en tu turno${w.note?" · "+w.note:""}</span></button>`;
   h+=f.free.map((a,i)=>`<button class="act" data-free="${i}" ${sea?"disabled":""}><span class="n">${a.name}</span><span class="big">${a.kind==="mweapon"&&w?`<small>Activa: ${w.name}</small>`:""}</span><span class="d">${COST[a.cost]} · sin cargas · ${a.note}</span></button>`).join("");
   h+=f.tech.map(t=>`<button class="act" data-tech="${t.id}" ${sea||ch<t.l?"disabled":""}><span class="n">${t.n}<span class="tag">${t.l} ${t.l===1?"carga":"cargas"}</span>${t.conc?`<span class="tag">Conc.</span>`:""}</span><span class="big">${t.hits?`${sgn(f.atk)}<small>${t.dmg} × ${t.hits}</small>`:t.sv?`CD ${f.dc}<small>salv. ${t.sv}${t.dmg?" · "+t.dmg:""}</small>`:""}</span><span class="d">${spellLine(t)}${t.pw?" · se puede potenciar":""}</span></button>`).join("");
@@ -813,7 +812,7 @@ function gate(){
     return`<div class="box2"><div class="who"><b style="font-size:18px">${c.name}</b><button class="btn" data-pick="${k}">Abrir</button></div>
       ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${c.maxHp} PV${s.hp<=0?" · inconsciente":""}</span><span>${s.conds.join(", ")||"Sin estados"}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
-      <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · Sueño ${s.dream}/${c.level} · Prestigio ${s.prestige}${s.hard>0?` · Haki activo (${s.hard} t.)`:""}${c.caster?` · Espacios ${s.slots.map((v,i)=>`N${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · Concentrado en ${concOf(c,s.conc.id).n}`:""}${s.sea?" · Piedra marina":""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
+      <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · Sueño ${s.dream}/${c.level} · Prestigio ${s.prestige}${s.hard>0?` · Haki activo (${s.hard} t.)`:""}${c.caster?` · Espacios ${s.slots.map((v,i)=>`N${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · Concentrado en ${concOf(c,s.conc.id).n}`:""}${s.sea?" · Kairoseki":""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
       ${s.log[0]?`<p class="note">Último: ${s.log[0]}</p>`:""}`:`<p class="note">Sin datos todavía: aparecerán cuando su jugador abra la app.</p>`}</div>`}).join("")}</div></section>
     <section><h2>Jugadores <small>un personaje por cuenta</small></h2><div class="box2">${mesa.players.some(p=>p.id!==user.uid)?mesa.players.filter(p=>p.id!==user.uid).map(p=>`<div class="resrow"><span>${esc(p.name||p.email)}<br><small style="font-weight:400">${esc(p.email)}</small></span>
       <select data-assign="${esc(p.id)}" aria-label="Personaje de ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.</p>`}</div></section>
@@ -878,7 +877,7 @@ document.addEventListener("click",e=>{
     show({title:a.name,warn,boxes:[{l:ds.n?"Enfermedad o veneno":"Curación",v:ds.n?"Curado":"+"+n,s:`gasta ${n} de la reserva`},{l:"Reserva",v:S.res[a.res],s:"PV restantes"}]});
     log(`<b>${a.name}</b>: ${ds.n?"cura enfermedad o veneno":"+"+n+" PV"}`)}
   if(act==="sea"){S.sea=!S.sea;if(S.sea){S.mw="";if(S.conc.id.startsWith("f:")){log(`Pierde la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0}}}
-    log(S.sea?"<b>Piedra marina</b>: sin poderes de la fruta":"Sin piedra marina: vuelve la fruta")}
+    log(S.sea?"<b>Kairoseki</b>: sin poderes de la fruta":"Sin kairoseki: vuelve la fruta")}
   if(act==="rep")return S.conc.id.startsWith("f:")?useTech(S.conc.id.slice(2),S.conc.lvl,{rep:true}):castSpell(S.conc.id,S.conc.lvl,{rep:true});
   if(act==="endconc"){log(`Termina la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0};$("tray").classList.add("hide")}
   if(act==="concsave"){const v=c.saves.CON[0],r=d20(),tot=r.v+v,ok=tot>=+ds.dc;
