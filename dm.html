@@ -38,6 +38,7 @@ body{margin:0}
 .lk-mode{display:grid;grid-template-columns:repeat(3,1fr);background:var(--chip);border-radius:10px;padding:3px}
 .lk-mode button{padding:8px 4px;border-radius:8px;font-size:14px;font-weight:700;color:var(--muted)}
 .lk-mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
+.lk-mode.lk-two{grid-template-columns:1fr 1fr}
 .ico{width:20px;height:20px;display:block}
 /* ===== fin de paletas ===== */
 :root{
@@ -81,6 +82,9 @@ h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;background:var(--chip);color:var(--muted)}
 .tag.foe{background:var(--foe);color:var(--bg)}
 .name b .role{vertical-align:2px;margin-left:4px}
+/* Iniciativa de jugadores: la tiran con sus dados y el DM escribe el número */
+.initin{width:40px;padding:0;text-align:center;font-weight:700;font-size:18px;border-radius:10px;border:1.5px solid var(--line);background:var(--chip);color:var(--ink)}
+.card.cur .initin{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .av{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;overflow:hidden;background:var(--chip);color:var(--muted);font-weight:700;font-size:14px;line-height:1}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .name .fr{display:flex;align-items:center;gap:4px;color:var(--foe);font-weight:700}
@@ -128,29 +132,32 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 </style>
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
-const PALS={grand:"Grand Line",bandera:"Bandera pirata",paja:"Sombrero de paja"},MODES={auto:"Automático",day:"Día",night:"Noche"},LOOK_KEY="mc:look";
+const PALS={grand:"Grand Line",bandera:"Bandera pirata",paja:"Sombrero de paja"},MODES={auto:"Automático",day:"Día",night:"Noche"},DICE={fis:"Físicos",dig:"Digitales"},LOOK_KEY="mc:look";
 const ICON=`<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2.2" fill="currentColor"/><circle cx="13" cy="10" r="2.2" fill="currentColor"/><circle cx="8" cy="15" r="2.2" fill="currentColor"/></svg>`;
 const darkQ=matchMedia("(prefers-color-scheme: dark)");
-const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode}:null;
+/* dice: "fis" (cada jugador tira sus dados y la app da la receta, predeterminado) o "dig" (la app tira) */
+const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode,dice:DICE[v.dice]?v.dice:"fis"}:null;
 function readLook(){try{return okLook(JSON.parse(localStorage.getItem(LOOK_KEY)))}catch(e){return null}}
-let look=readLook()||{pal:"grand",mode:"auto"};
+let look=readLook()||{pal:"grand",mode:"auto",dice:"fis"};
 const isDark=()=>look.mode==="night"||(look.mode==="auto"&&darkQ.matches);
 function applyLook(){const r=document.documentElement;r.dataset.pal=look.pal;r.dataset.theme=isDark()?"dark":"light";
   const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(r).getPropertyValue("--bg").trim();
   const d=document.getElementById("lk");if(d&&d.open)drawLook()}
 /* fromCloud: el valor viene de Firebase, no hay que volver a subirlo */
-function setLook(v,fromCloud){v=okLook(v);if(!v||(v.pal===look.pal&&v.mode===look.mode))return;look=v;
+function setLook(v,fromCloud){v=okLook(v);if(!v||(v.pal===look.pal&&v.mode===look.mode&&v.dice===look.dice))return;look=v;
   try{localStorage.setItem(LOOK_KEY,JSON.stringify(look))}catch(e){}
-  applyLook();if(!fromCloud&&typeof lookToCloud==="function")lookToCloud(look)}
+  applyLook();if(typeof onLook==="function")onLook();if(!fromCloud&&typeof lookToCloud==="function")lookToCloud(look)}
 function drawLook(){const t=isDark()?"dark":"light";
   document.getElementById("lk").innerHTML=`<div class="lk-in"><div class="lk-top"><b>Apariencia</b><button class="btn" data-lk="close">Cerrar</button></div>
   <h3>Paleta</h3><div class="lk-pal">${Object.entries(PALS).map(([k,n])=>`<button data-lkpal="${k}" aria-pressed="${look.pal===k}"><span class="sw" data-pal="${k}" data-theme="${t}"><i></i><i></i><i></i><i></i></span>${n}</button>`).join("")}</div>
-  <h3>Modo</h3><div class="lk-mode">${Object.entries(MODES).map(([k,n])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n}</button>`).join("")}</div></div>`}
+  <h3>Modo</h3><div class="lk-mode">${Object.entries(MODES).map(([k,n])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n}</button>`).join("")}</div>
+  <h3>Dados</h3><div class="lk-mode lk-two">${Object.entries(DICE).map(([k,n])=>`<button data-lkdice="${k}" aria-pressed="${look.dice===k}">${n}</button>`).join("")}</div>
+  <p class="note" style="margin-top:6px">${look.dice==="fis"?"Tiras tus dados y la app te dice qué tirar. Puedes anotar el resultado.":"La app tira los dados por ti."}</p></div>`}
 function openLook(){let d=document.getElementById("lk");
   if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";d.setAttribute("aria-label","Apariencia");document.body.append(d);
     d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
-      const sel=b.dataset.lkpal?`[data-lkpal="${b.dataset.lkpal}"]`:`[data-lkmode="${b.dataset.lkmode}"]`;
-      setLook(b.dataset.lkpal?{...look,pal:b.dataset.lkpal}:{...look,mode:b.dataset.lkmode});d.querySelector(sel)?.focus()})}
+      const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":"dice",val=b.dataset["lk"+k];
+      setLook({...look,[k]:val});d.querySelector(`[data-lk${k}="${val}"]`)?.focus()})}
   drawLook();d.showModal()}
 applyLook();darkQ.addEventListener("change",applyLook);
 addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook()}}});
@@ -239,7 +246,7 @@ function card(c){
   const b=band(c),pend=b==="pend",tot=c.max+c.temp,hpW=c.hp/tot*100,tW=c.temp/tot*100,isOpen=open===c.id;
   return `<div class="card ${S.cur===c.id?"cur":""} ${b==="ko"?"ko":""}">
    <div class="head">
-     <span class="init">${c.init??"–"}</span>${c.type==="pc"?pic(c.name):""}
+     ${c.type==="pc"?`<input class="init initin" type="number" inputmode="numeric" value="${c.init??""}" placeholder="–" data-initfor="${c.id}" aria-label="Iniciativa de ${esc(c.name)} (la tira el jugador)">`:`<span class="init">${c.init??"–"}</span>`}${c.type==="pc"?pic(c.name):""}
      <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}${ROLES[c.name]?` <span class="tag role">${ROLES[c.name]}</span>`:""}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${TYPE[c.type]}</span> · CA ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${BAND[b][1]}</span></span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name][0]} · ${FRUITS[c.name][1]}</span>`:""}${c.owner?`<span class="fr">Mascota de ${esc(c.owner)}</span>`:""}</button>
      <div class="hpnum">${pend?"<b>—</b><small>sin PV todavía</small>":b==="ko"?`<b>KO</b><small>de ${c.max} PV</small>`:`<b>${c.hp}</b>${c.temp?` <span class="t">+${c.temp}</span>`:""}<small>de ${c.max} PV</small>`}</div>
    </div>
@@ -289,6 +296,8 @@ document.addEventListener("click",e=>{
     if(act==="reset"){S={round:1,cur:null,list:[]}}
     save();render();return}
 });
+document.addEventListener("change",e=>{const id=e.target.dataset&&e.target.dataset.initfor;if(!id)return;
+  const c=S.list.find(x=>x.id===id),v=parseInt(e.target.value,10);if(!c)return;c.init=isNaN(v)?null:v;save();render()});
 $("f-roll").addEventListener("click",()=>{const m=parseInt($("f-mod").value,10)||0;$("f-init").value=1+Math.floor(Math.random()*20)+m});
 $("addf").addEventListener("submit",e=>{e.preventDefault();
   const name=$("f-name").value.trim(),max=num("f-max");if(!name||!(max>0))return;

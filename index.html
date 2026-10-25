@@ -39,6 +39,7 @@ body{margin:0}
 .lk-mode{display:grid;grid-template-columns:repeat(3,1fr);background:var(--chip);border-radius:10px;padding:3px}
 .lk-mode button{padding:8px 4px;border-radius:8px;font-size:14px;font-weight:700;color:var(--muted)}
 .lk-mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
+.lk-mode.lk-two{grid-template-columns:1fr 1fr}
 .ico{width:20px;height:20px;display:block}
 /* ===== fin de paletas ===== */
 :root{
@@ -175,6 +176,8 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 select{flex:1;min-width:0;padding:8px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
 code{font-size:12px;word-break:break-all;user-select:all}
 .adv.two{grid-template-columns:1fr 1fr}
+.d20in label{flex:1;font-size:13px;color:var(--muted)}
+.res .box b.rc{font-size:22px} /* recetas largas del modo físico */
 /* Retratos: imagen sobre la inicial (si falta el archivo, queda la inicial). Papel de cartel derivado de los tokens de la paleta */
 .av{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--chip);color:var(--muted);font-weight:700;font-size:12px;line-height:1}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -224,29 +227,32 @@ section h2 .h2t{display:inline-flex;align-items:center}
 </style>
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
-const PALS={grand:"Grand Line",bandera:"Bandera pirata",paja:"Sombrero de paja"},MODES={auto:"Automático",day:"Día",night:"Noche"},LOOK_KEY="mc:look";
+const PALS={grand:"Grand Line",bandera:"Bandera pirata",paja:"Sombrero de paja"},MODES={auto:"Automático",day:"Día",night:"Noche"},DICE={fis:"Físicos",dig:"Digitales"},LOOK_KEY="mc:look";
 const ICON=`<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2.2" fill="currentColor"/><circle cx="13" cy="10" r="2.2" fill="currentColor"/><circle cx="8" cy="15" r="2.2" fill="currentColor"/></svg>`;
 const darkQ=matchMedia("(prefers-color-scheme: dark)");
-const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode}:null;
+/* dice: "fis" (cada jugador tira sus dados y la app da la receta, predeterminado) o "dig" (la app tira) */
+const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode,dice:DICE[v.dice]?v.dice:"fis"}:null;
 function readLook(){try{return okLook(JSON.parse(localStorage.getItem(LOOK_KEY)))}catch(e){return null}}
-let look=readLook()||{pal:"grand",mode:"auto"};
+let look=readLook()||{pal:"grand",mode:"auto",dice:"fis"};
 const isDark=()=>look.mode==="night"||(look.mode==="auto"&&darkQ.matches);
 function applyLook(){const r=document.documentElement;r.dataset.pal=look.pal;r.dataset.theme=isDark()?"dark":"light";
   const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(r).getPropertyValue("--bg").trim();
   const d=document.getElementById("lk");if(d&&d.open)drawLook()}
 /* fromCloud: el valor viene de Firebase, no hay que volver a subirlo */
-function setLook(v,fromCloud){v=okLook(v);if(!v||(v.pal===look.pal&&v.mode===look.mode))return;look=v;
+function setLook(v,fromCloud){v=okLook(v);if(!v||(v.pal===look.pal&&v.mode===look.mode&&v.dice===look.dice))return;look=v;
   try{localStorage.setItem(LOOK_KEY,JSON.stringify(look))}catch(e){}
-  applyLook();if(!fromCloud&&typeof lookToCloud==="function")lookToCloud(look)}
+  applyLook();if(typeof onLook==="function")onLook();if(!fromCloud&&typeof lookToCloud==="function")lookToCloud(look)}
 function drawLook(){const t=isDark()?"dark":"light";
   document.getElementById("lk").innerHTML=`<div class="lk-in"><div class="lk-top"><b>Apariencia</b><button class="btn" data-lk="close">Cerrar</button></div>
   <h3>Paleta</h3><div class="lk-pal">${Object.entries(PALS).map(([k,n])=>`<button data-lkpal="${k}" aria-pressed="${look.pal===k}"><span class="sw" data-pal="${k}" data-theme="${t}"><i></i><i></i><i></i><i></i></span>${n}</button>`).join("")}</div>
-  <h3>Modo</h3><div class="lk-mode">${Object.entries(MODES).map(([k,n])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n}</button>`).join("")}</div></div>`}
+  <h3>Modo</h3><div class="lk-mode">${Object.entries(MODES).map(([k,n])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n}</button>`).join("")}</div>
+  <h3>Dados</h3><div class="lk-mode lk-two">${Object.entries(DICE).map(([k,n])=>`<button data-lkdice="${k}" aria-pressed="${look.dice===k}">${n}</button>`).join("")}</div>
+  <p class="note" style="margin-top:6px">${look.dice==="fis"?"Tiras tus dados y la app te dice qué tirar. Puedes anotar el resultado.":"La app tira los dados por ti."}</p></div>`}
 function openLook(){let d=document.getElementById("lk");
   if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";d.setAttribute("aria-label","Apariencia");document.body.append(d);
     d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
-      const sel=b.dataset.lkpal?`[data-lkpal="${b.dataset.lkpal}"]`:`[data-lkmode="${b.dataset.lkmode}"]`;
-      setLook(b.dataset.lkpal?{...look,pal:b.dataset.lkpal}:{...look,mode:b.dataset.lkmode});d.querySelector(sel)?.focus()})}
+      const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":"dice",val=b.dataset["lk"+k];
+      setLook({...look,[k]:val});d.querySelector(`[data-lk${k}="${val}"]`)?.focus()})}
   drawLook();d.showModal()}
 applyLook();darkQ.addEventListener("change",applyLook);
 addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook()}}});
@@ -630,7 +636,7 @@ function fresh(c){return{hp:c.maxHp,res:Object.fromEntries(c.resources.map(r=>[r
   conds:[],hard:0,turn:newTurn(c),ds:{ok:0,ko:0},dead:false,log:[],
   slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,comp:c.companion?{hp:c.companion.hp,temp:0,heads:c.companion.heads||0,tf:false,turnDmg:0}:{},frenzy:false,muscle:"",trans:false,exh:0,form:"",formOpts:[],humanHp:c.maxHp,stageAC:false,
   items:Object.fromEntries((c.items||[]).map(x=>[x.id,x.start])),used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
-  fore:c.foretell?[{v:d(20),u:false},{v:d(20),u:false}]:[]}}
+  fore:c.foretell?[{v:phys()?0:d(20),u:false},{v:phys()?0:d(20),u:false}]:[]}} // en modo físico el jugador anota los presagios
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
   const f=fresh(c);if(!s||typeof s!=="object")return f;
@@ -648,7 +654,7 @@ function merge(c,s){
     humanHp:pick(f.humanHp,s.humanHp),stageAC:pick(false,s.stageAC),items:obj(f.items,s.items),
     comp:obj(f.comp,s.comp),
     sea:pick(false,s.sea),frenzy:pick(false,s.frenzy),muscle:["def","atk"].includes(s.muscle)?s.muscle:"",trans:pick(false,s.trans),exh:Math.min(6,Math.max(0,pick(0,s.exh))),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
-    fore:fo.map(x=>({v:Math.min(20,Math.max(1,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)}))};
+    fore:fo.map(x=>({v:Math.min(20,Math.max(0,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)}))};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===66&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
 function load(){S=merge(C(),store.get("mc2:"+cur))}
@@ -682,6 +688,36 @@ function d20raw(){
   if(mode==="desventaja")return{v:Math.min(a,b),txt:a+" / "+b+" (desventaja)"};
   return{v:a,txt:""+a};}
 const sgn=n=>(n>=0?"+":"−")+Math.abs(n);
+/* ===================== DADOS FÍSICOS ===================== */
+/* Modo físico (predeterminado): la app no tira; muestra la receta y, si el jugador lo anota, usa su resultado */
+const phys=()=>look.dice!=="dig";
+const sgnS=n=>(n>=0?"+ ":"− ")+Math.abs(n);
+/* Receta para tirar a mano: "2d8 + 1d6 + 5"; con crit los dados se duplican */
+function recipe(expr,crit=false){
+  const dice=new Map();let mod=0;
+  for(const p of String(expr).replace(/\s/g,"").replace(/-/g,"+-").split("+")){const m=p.match(/^(\d+)d(\d+)$/);
+    if(m)dice.set(+m[2],(dice.get(+m[2])||0)+(+m[1])*(crit?2:1));else if(p)mod+=+p}
+  const s=[...dice].sort((a,b)=>b[0]-a[0]).map(([f,n])=>`${n}d${f}`).join(" + ");
+  return s?s+(mod?" "+sgnS(mod):""):String(mod)}
+const advTxt=m=>m==="ventaja"?"Tira 2d20 y quédate con el mayor":m==="desventaja"?"Tira 2d20 y quédate con el menor":"Tira 1d20";
+const critTxt=n=>n>=20?"crítico con 20":`crítico con ${n}–20`;
+/* Caja de d20 con receta; se completa con el d20 natural que anote el jugador (setD20) */
+const d20Box=(l,mod,m,cmin)=>({l,v:`1d20 ${sgnS(mod)}`,s:advTxt(m)+(cmin?" · "+critTxt(cmin):"")});
+/* Entrada de daño que cambia a la receta de crítico cuando el d20 anotado es crítico */
+const dmgE=(i,expr,cls,extra="")=>({i,cls,norm:recipe(expr),crit:recipe(expr,true)+extra,normS:"Crítico: "+recipe(expr,true)+extra,critS:"dados dobles por crítico"});
+function setD20(n){const t=T,p=t&&t.p;if(!p||t.d20==null||!(n>=1&&n<=20))return;
+  const crit=p.cmin?n>=p.cmin:false,fail=n===1,tot=n+p.mod+(t.bonus||0),b=t.boxes[t.d20];
+  t.nat=n;t.raw=n;t.crit=crit;
+  b.v=tot;b.s=`d20 ${n} ${sgn(p.mod)}${t.bonus?` + ${t.bonus}`:""}${crit?" · ¡CRÍTICO!":fail?" · pifia":n===20?" · 20 natural":""}`;b.cls=crit?"crit":fail?"fail":"";
+  for(const e of p.dmg){const x=t.boxes[e.i];if(!x||x.fixed)continue;x.v=(e.plus?"+":"")+(crit?e.crit:e.norm);x.s=crit?e.critS:e.normS;x.cls=crit?"crit":(e.cls||"")}
+  if(p.onSet)p.onSet(b,n,tot);
+  if(p.fmt){const line=p.fmt(tot,n,crit),i=S.log.indexOf(t.logLine);if(i>=0)S.log[i]=line;else log(line);t.logLine=line}
+  const r=$("trayres");if(r)r.innerHTML=boxesHtml(t);save();render()}
+/* Caja extra de daño (Ejecutar, Poder de tormenta, Ataque furtivo…): tirada en digital, receta en físico */
+function trayDice(l,expr,cls){const t=T;
+  if(!phys()){const r=roll(expr,t.crit);t.boxes.push({l,v:"+"+r.tot,s:r.txt+(t.crit?" · dados dobles":""),cls});return r.tot}
+  const i=t.boxes.length,e={...dmgE(i,expr,cls),plus:true};t.boxes.push({l,v:"+"+(t.crit?e.crit:e.norm),s:t.crit?e.critS:e.normS,cls});
+  (t.p=t.p||{mod:0,dmg:[]}).dmg.push(e);return null}
 /* Bonos de arma: Endurecimiento (Haki), frenesí (+daño en armas de Bruiser) y Músculos de Haki en modo ataque */
 function wStats(w){const c=C(),h=S.hard>0?c.hardening.bonus:0,fr=S.frenzy&&w.bruiser?c.frenzy.dmg:0,mu=S.muscle==="atk"&&w.bruiser?c.frenzy.muscle:0,
   fa=w.abil?fdelta(c)[w.abil]||0:0; // forma híbrida: cambia el modificador de la característica del arma
@@ -717,7 +753,7 @@ function render(){
      <span class="econ${t.sr<=0?" spent":""}"><i></i>Especial ${t.sr}/2</span>
      ${S.hard>0?`<span class="econ haki"><i></i>Haki +${c.hardening.bonus} · ${S.hard} t.</span>`:""}
      ${S.exh?`<span class="econ"><i></i>Agotamiento ${S.exh}</span>`:""}
-     ${S.fore.map((f,i)=>`<button class="econ${f.u?" spent":""}" data-fore="${i}" ${f.u?"disabled":""} aria-label="Presagio ${f.v}"><i></i>Presagio ${f.v}${foreArm===i?" · próxima tirada":""}</button>`).join("")}
+     ${S.fore.map((f,i)=>`<button class="econ${f.u?" spent":""}" data-fore="${i}" ${f.u?"disabled":""} aria-label="Presagio ${f.v||"sin anotar"}"><i></i>Presagio ${f.v||"?"}${foreArm===i?" · próxima tirada":""}</button>`).join("")}
      <button class="newturn" data-do="turn">Nuevo turno</button></div>
    ${S.form?`<div class="conc"><span><b>${formOf(c).name}</b> · ${formOf(c).bar}${S.formOpts.length?" · "+S.formOpts.map(o=>formOf(c).opts.find(x=>x.id===o).n).join(" · "):""}${formOf(c).hp?` · PV humanos guardados: ${S.humanHp}`:""}</span><button class="btn" data-act="${c.actions.findIndex(x=>x.kind==="form"&&x.form===S.form)}">Terminar</button></div>`:""}
    ${S.turn.still?`<div class="conc"><span><b>No me he movido</b> · Puntería firme disponible · Impacto calculado en el primer disparo con la resortera</span></div>`:""}
@@ -915,7 +951,7 @@ function prepView(c){
 function castOpen(id){
   const c=C(),s=SPELLS[id];if(!s.l)return castSpell(id,0);
   const lv=c.caster.slots.map((_,i)=>i+1).filter(l=>l>=s.l);
-  show({title:s.n,html:`<div class="trayact">${lv.map(l=>`<button class="btn ${l===s.l?"primary":""}" data-cast="${id}" data-lvl="${l}" ${S.slots[l-1]>0?"":"disabled"}>Espacio de nivel ${l} · quedan ${S.slots[l-1]}</button>`).join("")}${s.rit?`<button class="btn" data-cast="${id}" data-lvl="r">Como ritual (sin espacio, +10 minutos)</button>`:""}</div>`,
+  show({title:s.n,html:`<div class="trayact">${lv.map(l=>`<button class="btn ${l===s.l?"primary":""}" data-cast="${id}" data-lvl="${l}" ${S.slots[l-1]>0?"":"disabled"}>Espacio de nivel ${l} · quedan ${S.slots[l-1]}${techRecipe(c,s,l)}</button>`).join("")}${s.rit?`<button class="btn" data-cast="${id}" data-lvl="r">Como ritual (sin espacio, +10 minutos)</button>`:""}</div>`,
     tip:`${spellLine(s)}${s.conc?" · concentración":""}. ${s.sum}`});
 }
 /* opt.rit: ritual sin espacio · opt.rep: repetir el efecto de la concentración activa (sin espacio) */
@@ -942,10 +978,27 @@ function useFx(id,s,lvl,src,opt={}){
     log(`<b>${s.n}</b>${lvl>s.l?` (${lvl} cargas)`:""}`);save();render();return}
   const up=Math.max(0,lvl-s.l),roll1=!(e.onlyRep&&!opt.rep);
   if(e.t)tips.unshift(`Hasta ${e.t+(e.ut||0)*up} objetivos.`);
-  if(e.hits){const n=e.hits+(e.uh||0)*up;let rows="";
+  if(e.hits&&phys()){const n=e.hits+(e.uh||0)*up;
+    html=`<div class="multi"><div><span>${n} ataques: cada uno 1d20 ${sgnS(src.atk)}${mode!=="normal"?` (${advTxt(mode).toLowerCase()})`:""}</span><span>${recipe(e.dmg)} ${e.ty}${e.dmg2?` + ${recipe(e.dmg2)} ${e.ty2}`:""}</span></div>
+      <div class="crit"><span>Con 20 natural (crítico)</span><span>${recipe(e.dmg,true)}${e.dmg2?` + ${recipe(e.dmg2,true)}`:""}</span></div></div>`;tips.push(`${n} ataques ${sgn(src.atk)}.`)}
+  else if(e.hits){const n=e.hits+(e.uh||0)*up;let rows="";
     for(let k=1;k<=n;k++){const r=d20(),tot=r.v+src.atk,cr=r.v===20,dm=roll(e.dmg,cr),d2=e.dmg2&&roll(e.dmg2,cr);
       rows+=`<div class="${cr?"crit":""}"><span>${k}: ataque <b>${tot}</b>${cr?" ¡crítico!":r.v===1?" pifia":""}</span><span><b>${dm.tot}</b> ${e.ty}${d2?` + <b>${d2.tot}</b> ${e.ty2}`:""}</span></div>`}
     html=`<div class="multi">${rows}</div>`;tips.push(`${n} ataques ${sgn(src.atk)}.`)}
+  else if(phys()){let pd=null;
+    if(e.atk){boxes.push(d20Box(src.atkL,src.atk,mode,20));pd={mod:src.atk,cmin:20,dmg:[],fmt:(tot,n,cr)=>`<b>${opt.title||s.n}</b>: ${tot} para impactar${cr?" (crítico)":""}`}}
+    if(e.sv)boxes.push({l:"CD · salvación "+e.sv,v:src.dc,s:e.svTxt||(e.half?"Mitad del daño si la supera":e.dmg?"Sin daño si la supera":"")});
+    if(e.dmg&&roll1){dexpr=spellDice(e.dmg,e,lvl,c);dmgBox=boxes.length;
+      boxes.push({l:(e.sv?"Si fallan · ":e.atk?"Si impacta · ":"Daño ")+e.ty,v:recipe(dexpr),s:e.sv?(e.half?"Si la superan: la mitad":"Si la superan: nada"):e.atk?"Crítico: "+recipe(dexpr,true):""});
+      if(pd)pd.dmg.push(dmgE(dmgBox,dexpr));
+      if(e.alt){const ax=spellDice(e.alt,e,lvl,c);if(pd)pd.dmg.push(dmgE(boxes.length,ax));boxes.push({l:"Si ya estaba herido",v:recipe(ax),s:""})}
+      if(e.dmg2){if(pd)pd.dmg.push(dmgE(boxes.length,e.dmg2));boxes.push({l:(e.sv?"Si fallan · ":"Daño ")+e.ty2,v:recipe(e.dmg2),s:e.sv&&e.half?"Si la superan: la mitad":""})}
+      if(e.sv)tips.unshift(`Los enemigos tiran salvación de ${e.sv} CD ${src.dc}. Si fallan: ${recipe(dexpr)} ${e.ty}${e.dmg2?` + ${recipe(e.dmg2)} ${e.ty2}`:""}; si la superan, ${e.half?"la mitad":"nada"}.`)}
+    if(e.heal&&roll1){const hx=spellDice(e.heal,e,lvl,c)+(e.hm?"+"+src.mod:"");boxes.push({l:"Curación",v:recipe(hx),s:"tira y suma"});
+      opt.apply={heal:{label:"Si te curas a ti: aplicar",fn:n=>{S.hp=Math.min(mhp(c),S.hp+n);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}log(`${s.n}: +${n} PV`)}}}}
+    if(e.fix)boxes.push({l:e.fixL,v:"+"+(e.fix+(e.ufix||0)*up),s:"a cada objetivo"});
+    if(e.self){const sx=spellDice(e.self,e,lvl,c);boxes.push({l:"Daño que recibes",v:recipe(sx),s:"necrótico, no se puede reducir"},{l:"Curación",v:"el doble",s:"de lo que recibas"})}
+    opt.p=pd}
   else{
     if(e.atk){const r=d20(),tot=r.v+src.atk;crit=r.v===20;
       boxes.push({l:src.atkL,v:tot,s:`d20 ${r.txt} ${sgn(src.atk)}${crit?" · ¡CRÍTICO!":r.v===1?" · pifia":""}`,cls:crit?"crit":r.v===1?"fail":""})}
@@ -962,20 +1015,24 @@ function useFx(id,s,lvl,src,opt={}){
   if(opt.rit)tips.push("Como ritual: no gasta espacio.");
   tips.push(e.sum);
   const title=opt.title||(opt.rep?`${s.n} · ${s.rep.l}`:s.n);
-  show({title,warn,boxes,html,d20:e.atk&&!e.hits?0:null,crit,dmgBox,dexpr,storm:src.storm,ally:src.ally,ts:/trueno|rayo/.test(e.ty||""),tip:tips.join(" ")});
-  log(`<b>${title}</b>${!opt.rep&&lvl>s.l?` (${src.unit} ${lvl})`:""}${dmgBox>=0?` · ${boxes[dmgBox].v} ${e.ty}`:""}`);
+  show({title,warn,boxes,html,d20:e.atk&&!e.hits?0:null,crit,dmgBox,dexpr,storm:src.storm,ally:src.ally,ts:/trueno|rayo/.test(e.ty||""),tip:tips.join(" "),p:opt.p,apply:opt.apply});
+  log(`<b>${title}</b>${!opt.rep&&lvl>s.l?` (${src.unit} ${lvl})`:""}${dmgBox>=0&&!phys()?` · ${boxes[dmgBox].v} ${e.ty}`:""}`);T.logLine=S.log[0];
   save();render();
 }
+/* Receta de cada opción del selector (cambia con las cargas o el espacio): ataques y dados */
+function techRecipe(c,t,n){const up=Math.max(0,n-t.l),h=t.hits?t.hits+(t.uh||0)*up:0,d=t.dmg?recipe(spellDice(t.dmg,t,n,c)):t.heal?recipe(spellDice(t.heal,t,n,c)+(t.hm?"+"+c.caster.mod:"")):"";
+  return h?` · ${h} ataques de ${d}`:d?` · ${d}`:""}
 /* Selector de cargas: el nivel de la técnica, o más si se puede potenciar */
 function techOpen(id){
   const c=C(),t=c.fruit.tech.find(x=>x.id===id),ch=S.res.cargas,top=t.pw?Math.min(t.maxN??99,Math.max(t.l,ch)):t.l;
   const ns=Array.from({length:Math.min(top-t.l+1,10)},(_,i)=>t.l+i);
-  show({title:t.n,html:`<div class="trayact">${ns.map(n=>`<button class="btn ${n===t.l?"primary":""}" data-techn="${id}" data-n="${n}" ${n<=ch?"":"disabled"}>${n?`${n} ${n===1?"carga":"cargas"}`:"Gratis"}${n>t.l?" (potenciada)":""}</button>`).join("")}</div>`,
+  show({title:t.n,html:`<div class="trayact">${ns.map(n=>`<button class="btn ${n===t.l?"primary":""}" data-techn="${id}" data-n="${n}" ${n<=ch?"":"disabled"}>${n?`${n} ${n===1?"carga":"cargas"}`:"Gratis"}${n>t.l?" (potenciada)":""}${techRecipe(c,t,n)}</button>`).join("")}</div>`,
     tip:`${spellLine(t)}${t.conc?" · concentración":""} · quedan ${ch} cargas. ${t.sum}`});
 }
 
 /* ===================== BANDEJA DE RESULTADO ===================== */
-function show(t){T=t;if(t.d20!=null&&t.raw==null)t.raw=lastD20;drawTray();$("tray").classList.remove("hide")}
+function show(t){T=t;if(t.d20!=null&&t.raw==null&&!t.p)t.raw=lastD20;drawTray();$("tray").classList.remove("hide")}
+const boxesHtml=t=>(t.boxes||[]).map(b=>`<div class="box ${b.cls||""}"><small>${b.l}</small><b${typeof b.v==="string"&&b.v.length>8?' class="rc"':""}>${b.v}</b><span>${b.s||""}</span></div>`).join("");
 function drawTray(){
   const c=C(),t=T;
   let acts="";
@@ -988,7 +1045,7 @@ function drawTray(){
   if(t.flow&&c.flow&&S.turn.b>0&&!t.flowUsed)c.flow.forEach((f,i)=>{acts+=`<button class="btn" data-do="flow" data-i="${i}">${f.name} · acción adicional</button>`});
   /* Técnica de fruta gratis al impactar con un arma que la permite (Puños del Cosmos), hasta max por turno */
   if(t.pulse&&c.pulse&&!S.sea&&!t.pulseUsed){const left=c.pulse.max-S.turn.pulse;acts+=`<button class="btn primary" data-do="pulse" ${left>0?"":"disabled"}>Si impactó: ${c.pulse.name} gratis · quedan ${left} este turno</button>`}
-  if(t.d20!=null&&!t.foreUsed&&!S.turn.fore)S.fore.forEach((f,i)=>{if(!f.u)acts+=`<button class="btn" data-do="forerep" data-i="${i}">Reemplazar por presagio ${f.v}</button>`});
+  if(t.d20!=null&&!t.foreUsed&&!S.turn.fore)S.fore.forEach((f,i)=>{if(!f.u&&f.v)acts+=`<button class="btn" data-do="forerep" data-i="${i}">Reemplazar por presagio ${f.v}</button>`});
   if(t.exec&&c.execute&&!t.execUsed){const ok=S.res[c.execute.res]>0&&!S.turn.exec;
     acts+=`<button class="btn primary" data-do="exec" ${ok?"":"disabled"}>Si impactó: Ejecutar +${c.execute.dice}${ok?` · quedan ${S.res[c.execute.res]}`:S.turn.exec?" · ya usado este turno":" · sin usos"}</button>`}
   /* Daño de trueno o rayo: Poder de tormenta (conjuro o arma, 1 por turno) e Ira Destructiva (cualquier tirada, gasta Canalizar divinidad) */
@@ -998,7 +1055,9 @@ function drawTray(){
     acts+=`<button class="btn gold" data-do="wrath" ${ok?"":"disabled"}>Ira Destructiva: daño máximo · ${ok?`quedan ${S.res[c.wrath.res]}`:"sin usos"}</button>`}
   $("trayin").innerHTML=`<div class="top"><div class="title">${t.title}</div><button class="x" data-do="close">Cerrar</button></div>
    ${t.warn?`<div class="warn">${t.warn}</div>`:""}
-   ${t.boxes&&t.boxes.length?`<div class="res">${t.boxes.map(b=>`<div class="box ${b.cls||""}"><small>${b.l}</small><b>${b.v}</b><span>${b.s||""}</span></div>`).join("")}</div>`:""}
+   ${t.boxes&&t.boxes.length?`<div class="res" id="trayres">${boxesHtml(t)}</div>`:""}
+   ${t.p&&t.d20!=null?`<div class="hp d20in"><label for="in-d20">Si quieres, anota el d20 natural</label><input class="hpin" id="in-d20" type="number" inputmode="numeric" min="1" max="20" value="${t.nat??""}" placeholder="d20"></div>`:""}
+   ${Object.entries(t.apply||{}).map(([k,a])=>`<div class="hp"><input class="hpin" id="in-${k}" type="number" inputmode="numeric" placeholder="total" aria-label="${a.label}"><button class="btn primary" data-do="apply" data-k="${k}">${a.label}</button></div>`).join("")}
    ${t.html||""}${t.tip?`<div class="tip">${t.tip}</div>`:""}${acts?`<div class="trayact">${acts}</div>`:""}`;
 }
 
@@ -1024,9 +1083,23 @@ function weaponAttack(w,title,warn,tip,o={}){
   const A=mode==="ventaja"||adv,D=mode==="desventaja"||o.dis;mode=A&&D?"normal":A?"ventaja":D?"desventaja":"normal";
   /* Impacto calculado: primer ataque con esa arma en un turno sin moverse */
   const sb=w.still&&S.turn.still&&!S.turn.stillUsed?w.still:null;if(sb)S.turn.stillUsed=true;
-  const r=d20(),tot=r.v+st.hit+(sb?sb.hit:0),crit=r.v>=c.critMin,fail=r.v===1;mode=m0;
+  const em=mode;
   /* Golpe enfocado (Haki): una vez por turno, los dados del arma suben un tamaño (hasta focusHit.max) */
   let dice=w.dice;if(S.turn.focus&&c.focusHit){dice=dice.replace(/d(\d+)/,(m,n)=>"d"+Math.min(c.focusHit.max,Math.max(+n,{4:6,6:8,8:10,10:12}[n]||+n)));S.turn.focus=false;S.turn.focusUsed=true}
+  if(phys()){mode=m0;
+    const hit=st.hit+(sb?sb.hit:0),base=dice+"+"+st.mod,ba=c.blackArmory?" + 2d6":"",baS=c.blackArmory?" de fuerza (Armería negra)":"";
+    const boxes=[d20Box("Ataque",hit,em,c.critMin),{l:"Si impacta · "+w.type+(dice!==w.dice?" · Golpe enfocado":""),v:recipe(base),s:"Crítico: "+recipe(base,true)+ba+baS}],
+      dmg=[{...dmgE(1,base,"",ba),normS:"Crítico: "+recipe(base,true)+ba+baS,critS:c.blackArmory?"Crítico: todo el daño es de fuerza (Armería negra)":"dados dobles por crítico"}];
+    if(tr&&tr.hitDmg)boxes.push({l:tr.name+" · "+tr.hitType,v:"+"+tr.hitDmg,s:"si impacta",cls:"ex",fixed:true});
+    if(w.extra){dmg.push({...dmgE(boxes.length,w.extra,"ex"),plus:true});boxes.push({l:"Daño "+w.extraType,v:"+"+recipe(w.extra),s:"Crítico: +"+recipe(w.extra,true),cls:"ex"})}
+    if(sb){dmg.push({...dmgE(boxes.length,sb.dmg,"ex"),plus:true});boxes.push({l:sb.name,v:"+"+recipe(sb.dmg),s:`Crítico: +${recipe(sb.dmg,true)} · +${sb.hit} al ataque (incluido)`,cls:"ex"})}
+    const sn=w.sneak&&c.sneak&&!o.dis&&!S.turn.sneak;
+    show({title,warn,boxes,d20:0,exec:true,crit:false,dmgBox:1,dexpr:base,storm:true,ts:/trueno|rayo/.test(w.type),atkRoll:true,pulse:!!w.pulse,
+      sneak:!!(w.sneak&&!o.dis),stage:!!w.finesse,flow:!!w.melee,
+      p:{mod:hit,cmin:c.critMin,dmg,fmt:(tot,n,cr)=>`<b>${title}</b>: ${tot} para impactar${cr?" (crítico)":n===1?" (pifia)":""}`},
+      tip:(c.blackArmory?"Con crítico (Black Weapon): +2d6 y todo el daño pasa a fuerza; el objetivo recibe la mitad de curación durante 1 minuto. ":"")+(tip||"")+(sn?` ${c.sneak.name}: ${c.sneak.cond}`:"")});
+    log(`<b>${title}</b>`);T.logLine=S.log[0];return}
+  const r=d20(),tot=r.v+st.hit+(sb?sb.hit:0),crit=r.v>=c.critMin,fail=r.v===1;mode=m0;
   const dm=roll(dice+"+"+st.mod,crit);let dmg=dm.tot,dtxt=dm.txt+(dice!==w.dice?` (Golpe enfocado: ${dice})`:""),type=w.type;
   if(crit&&c.blackArmory){const ex=roll("2d6");dmg+=ex.tot;dtxt+=" + Armería negra "+ex.txt;type="fuerza"}
   const boxes=[{l:"Ataque",v:tot,s:`d20 ${r.txt} ${sgn(st.hit)}${crit?" · ¡CRÍTICO!":fail?" · pifia":""}`,cls:crit?"crit":fail?"fail":""},
@@ -1068,7 +1141,10 @@ function doAct(i){
       show({title:f.label,warn,boxes:[{l:"Daño extra",v:"+"+f.dmg,s:f.dmgNote},{l:"Usos",v:S.res[f.res],s:"quedan"}],tip});log(`<b>${f.name}</b>`)}
   } else if(a.kind==="temproll"){
     warn=spend(a.cost);if(a.res)S.res[a.res]--;if(a.perTurn)S.turn[a.perTurn]=true;if(a.once)S.used[a.once]=true;
-    const r=roll(a.temp),old=S.temp;S.temp=Math.max(S.temp,r.tot);const rr=a.refill&&c.resources.find(x=>x.id===a.refill);if(rr)S.res[rr.id]=rr.max;
+    const rr=a.refill&&c.resources.find(x=>x.id===a.refill);if(rr)S.res[rr.id]=rr.max;
+    if(phys()){show({title:a.name,warn,boxes:[{l:"PV temporales",v:recipe(a.temp),s:"tira y anota el total"}],tip:a.note+(rr?`. Recuperas todos los puntos de ${rr.name.toLowerCase()}.`:""),
+      apply:{tmp:{label:"Aplicar PV temporales",fn:n=>{const old=S.temp;S.temp=Math.max(S.temp,n);log(`<b>${a.name}</b>: ${n} PV temporales${n<=old?` (se queda con ${old})`:""}`)}}}});log(`<b>${a.name}</b>`);save();render();return}
+    const r=roll(a.temp),old=S.temp;S.temp=Math.max(S.temp,r.tot);
     show({title:a.name,warn,boxes:[{l:"PV temporales",v:"+"+r.tot,s:r.txt+(r.tot<=old?` · te quedas con ${old} (no se acumulan)`:"")}],tip:a.note+(rr?`. Recuperas todos los puntos de ${rr.name.toLowerCase()}.`:"")});
     log(`<b>${a.name}</b>: ${r.tot} PV temporales`);
   } else if(a.kind==="muscle"){const f=c.frenzy;
@@ -1099,18 +1175,27 @@ function doAct(i){
       <button class="btn primary" data-do="pool">Curar</button><button class="btn" data-do="pool" data-n="5">Enfermedad o veneno · 5</button></div>`,
       tip:`Quedan ${S.res[a.res]} PV en la reserva. ${a.note}. Si te curas a ti, anótalo con Curar.`});return;
   } else if(a.kind==="deflect"){
-    warn=spend(a.cost);const w=c.weapons[a.w],st=wStats(w),r=d20(),tot=r.v+st.hit,crit=r.v>=c.critMin;
+    warn=spend(a.cost);const w=c.weapons[a.w],st=wStats(w);
+    if(phys()){const base=w.dice+"+"+st.mod;show({title:a.name,warn,d20:0,exec:true,boxes:[d20Box("Tu tirada",st.hit,mode,c.critMin),{l:"Daño si desvías · "+w.type,v:recipe(base),s:"Crítico: "+recipe(base,true)}],
+      p:{mod:st.hit,cmin:c.critMin,dmg:[dmgE(1,base)],fmt:tot=>`<b>Desvío</b>: ${tot}`},tip:"Si tu tirada es igual o mayor que el ataque del enemigo, no recibes el golpe y le haces este daño."});log("<b>Desvío</b>");T.logLine=S.log[0];save();render();return}
+    const r=d20(),tot=r.v+st.hit,crit=r.v>=c.critMin;
     const dm=roll(w.dice+"+"+st.mod,crit);let dmg=dm.tot,type=w.type;if(crit&&c.blackArmory){dmg+=roll("2d6").tot;type="fuerza"}
     show({title:a.name,warn,d20:0,exec:true,boxes:[{l:"Tu tirada",v:tot,s:`d20 ${r.txt} ${sgn(st.hit)}`,cls:crit?"crit":""},{l:"Daño si desvías",v:dmg,s:dm.txt+" "+type,cls:crit?"crit":""}],
       tip:"Si tu tirada es igual o mayor que el ataque del enemigo, no recibes el golpe y le haces este daño."});
     log(`<b>Desvío</b>: ${tot} · ${dmg} ${type}`);
   } else if(a.kind==="dash"){
-    warn=spend(a.cost);S.res[a.res]--;const dm=a.dmg&&roll(a.dmg),boxes=[{l:"CD salvación",v:a.dc,s:"Salvación de "+a.save}];
+    warn=spend(a.cost);S.res[a.res]--;
+    if(phys()){const boxes=[{l:"CD salvación",v:a.dc,s:"Salvación de "+a.save}];if(a.dmg)boxes.push({l:"Si fallan · "+a.type,v:recipe(a.dmg),s:a.half?"Si la superan: la mitad":"Si la superan: nada"});
+      show({title:a.name,warn,boxes,dmgBox:a.dmg?1:-1,dexpr:a.dmg,ts:/trueno|rayo/.test(a.type||""),tip:`Los enemigos tiran salvación de ${a.save} CD ${a.dc}.${a.dmg?` Si fallan: ${recipe(a.dmg)} ${a.type}; si la superan, ${a.half?"la mitad":"nada"}.`:""} ${a.note}`});
+      log(`<b>${a.name}</b>: CD ${a.dc}`);save();render();return}
+    const dm=a.dmg&&roll(a.dmg),boxes=[{l:"CD salvación",v:a.dc,s:"Salvación de "+a.save}];
     if(dm)boxes.push({l:"Daño "+a.type,v:dm.tot,s:dm.txt+(a.half?" · mitad si la supera":" · si fallan")});
     show({title:a.name,warn,boxes,dmgBox:dm?1:-1,dexpr:a.dmg,ts:/trueno|rayo/.test(a.type||""),tip:a.note});
     log(`<b>${a.name}</b>: CD ${a.dc}${dm?` · ${dm.tot} ${a.type}`:""}`);
   } else if(a.kind==="steel"){
     warn=spend(a.cost);S.res[a.res]--;let rows="",sum=0;
+    if(phys()){show({title:a.name,warn,html:`<div class="multi"><div><span>Hasta ${a.targets} objetivos: cada uno 1d20 ${sgnS(a.hit)}${mode!=="normal"?` (${advTxt(mode).toLowerCase()})`:""}</span><span>${recipe(a.dmg)} ${a.type}</span></div><div class="crit"><span>Con 20 natural (crítico)</span><span>${recipe(a.dmg,true)}</span></div></div>`,
+      tip:"Tira por cada objetivo que tengas. Después te teletransportas a 5 pies de uno de ellos."});log(`<b>${a.name}</b> lanzado`);save();render();return}
     for(let k=1;k<=a.targets;k++){const r=d20(),tot=r.v+a.hit,crit=r.v===20,dm=roll(a.dmg,crit);
       rows+=`<div class="${crit?"crit":""}"><span>Objetivo ${k}: ataque <b>${tot}</b>${crit?" ¡crítico!":r.v===1?" pifia":""}</span><span><b>${dm.tot}</b> ${a.type}</span></div>`}
     show({title:a.name,warn,html:`<div class="multi">${rows}</div>`,tip:"Usa solo las filas de los objetivos que tengas. Después te teletransportas a 5 pies de uno de ellos."});
@@ -1120,7 +1205,9 @@ function doAct(i){
     show({title:a.name,warn,boxes:[{l:"Bono",v:"+"+c.hardening.bonus,s:"al ataque y daño de las katanas"},{l:"Duración",v:c.hardening.turns,s:"turnos (1 minuto)"}]});
     log(`<b>Endurecimiento</b> activado`);
   } else if(a.kind==="heal"){
-    warn=spend(a.cost);S.res[a.res]--;const hr=roll(a.heal);S.hp=Math.min(mhp(c),S.hp+hr.tot);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}
+    warn=spend(a.cost);S.res[a.res]--;
+    if(phys()){show({title:a.name,warn,boxes:[{l:"Curación",v:recipe(a.heal),s:"tira y anota el total"}],apply:{heal:{label:"Aplicar curación",fn:n=>{S.hp=Math.min(mhp(c),S.hp+n);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}log(`<b>${a.name}</b>: +${n} PV`)}}}});log(`<b>${a.name}</b>`);save();render();return}
+    const hr=roll(a.heal);S.hp=Math.min(mhp(c),S.hp+hr.tot);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}
     show({title:a.name,warn,boxes:[{l:"Curación",v:"+"+hr.tot,s:hr.txt},{l:"PV ahora",v:S.hp,s:"de "+mhp(c)}]});
     log(`<b>${a.name}</b>: +${hr.tot} PV`);
   } else if(a.kind==="surge"){
@@ -1134,6 +1221,8 @@ function doSpecial(id){
   if(S.turn.sr<=0)warn="Ya usaste tus 2 reacciones especiales esta ronda.";else S.turn.sr--;
   S.sr[id]--;
   if(s.kind==="attack"){weaponAttack(c.weapons[s.w],s.name,warn)}
+  else if(s.kind==="reduce"&&phys()){show({title:s.name,warn,boxes:[{l:"Reduce el daño en",v:recipe("1d10+"+c.level),s:"tira y réstalo"}],tip:"Réstalo del daño del golpe antes de anotarlo."});log(`<b>${s.name}</b>`)}
+  else if(s.kind==="flash"&&phys()){show({title:s.name,warn,d20:0,boxes:[d20Box("Salvación DES",sv(c,"DES"),mode)],p:{mod:sv(c,"DES"),dmg:[],fmt:tot=>`<b>${s.name}</b>: ${tot}`},tip:"Si iguala o supera su ataque: 0 daño. Siempre te mueves 10 pies sin provocar ataques."});log(`<b>${s.name}</b>`);T.logLine=S.log[0]}
   else if(s.kind==="reduce"){const r=roll("1d10+"+c.level);show({title:s.name,warn,boxes:[{l:"Daño reducido",v:"−"+r.tot,s:r.txt}],tip:"Réstalo del daño del golpe antes de anotarlo."});log(`<b>${s.name}</b>: −${r.tot}`)}
   else if(s.kind==="flash"){const r=d20(),tot=r.v+sv(c,"DES");show({title:s.name,warn,d20:0,boxes:[{l:"Salvación DES",v:tot,s:`d20 ${r.txt} ${sgn(sv(c,"DES"))}`}],tip:"Si iguala o supera su ataque: 0 daño. Siempre te mueves 10 pies sin provocar ataques."});log(`<b>${s.name}</b>: ${tot}`)}
   save();render();
@@ -1224,9 +1313,23 @@ function gate(){
       <select data-assign="${esc(p.id)}" aria-label="Personaje de ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.</p>`}</div></section>
     <p class="note">Conectado como DM: ${esc(user.email)}</p>${outBtn}`;
 }
+document.addEventListener("input",e=>{if(e.target.id==="in-d20")setD20(parseInt(e.target.value,10))});
+function onLook(){if(S)render()} // cambiar Dados (o la paleta) vuelve a dibujar la ficha
 document.addEventListener("toggle",e=>{if(e.target.classList&&e.target.classList.contains("skills"))skillsOpen=e.target.open},true);
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
   if(id!==undefined)fb.F.updateDoc(fb.F.doc(fb.db,"players",id),{char:e.target.value||null}).catch(err=>show({title:"No se pudo asignar",warn:err.code||String(err)}))});
+
+/* ===================== SALVACIONES DE MUERTE ===================== */
+/* r: d20 natural (tirado por la app o anotado por el jugador) */
+function deathSave(r){
+  if(r===20){S.hp=1;S.ds={ok:0,ko:0};show({title:"¡Recuperas la consciencia!",boxes:[{l:"d20",v:20,s:"Vuelves con 1 PV",cls:"crit"}]})}
+  else{const ok=r>=10;if(ok)S.ds.ok++;else S.ds.ko+=(r===1?2:1);
+    show({title:"Salvación de muerte",warn:S.ds.ok>=3?"Estable":"",boxes:[{l:"d20",v:r,s:ok?"Éxito":r===1?"Dos fallos":"Fallo",cls:ok?"":"fail"}],
+      html:!ok&&S.dream>0?`<div class="trayact"><button class="btn gold" data-do="dreamsave" data-n="${r===1?2:1}">Gastar punto de sueño: convertir en éxito</button></div>`:""})}
+  log(`Salvación de muerte: ${r}`)}
+function dreamsRoll(r){
+  if(r>=12){S.hp=1;S.ds={ok:0,ko:0};show({title:"¡No abandono mis sueños!",boxes:[{l:"d20",v:r,s:"Te levantas con 1 PV",cls:"crit"}]})}
+  else{S.dead=true;show({title:"No abandonaré mis sueños",boxes:[{l:"d20",v:r,s:"Necesitabas 12 o más",cls:"fail"}]})}log(`No abandonaré mis sueños: ${r}`)}
 
 /* ===================== DAÑO RECIBIDO ===================== */
 /* PV temporales primero; una forma con PV propios absorbe el daño y, si llega a 0, vuelve a forma humana con el daño sobrante.
@@ -1256,6 +1359,10 @@ document.addEventListener("click",e=>{
   if(ds.mode){mode=ds.mode;render();return}
   if(ds.act!==undefined){armed=null;doAct(+ds.act);return}
   if(ds.sr){armed=null;doSpecial(ds.sr);return}
+  if(ds.skill&&phys()){const sk=SKILLS.find(s=>s[0]===ds.skill),v=skillBonus(c,sk[0]);
+    show({title:`${sk[1]} (${sk[3]})`,d20:0,boxes:[d20Box("Prueba",v,mode)],p:{mod:v,dmg:[],fmt:tot=>`${sk[1]}: ${tot}`}});log(sk[1]);T.logLine=S.log[0];save();return}
+  if(ds.save&&phys()){const v=sv(c,ds.save);
+    show({title:"Salvación de "+ds.save,d20:0,boxes:[d20Box("Salvación",v,mode)],p:{mod:v,dmg:[],fmt:tot=>`Salvación ${ds.save}: ${tot}`}});log(`Salvación ${ds.save}`);T.logLine=S.log[0];save();return}
   if(ds.skill){const sk=SKILLS.find(s=>s[0]===ds.skill),v=skillBonus(c,sk[0]),r=d20();
     show({title:`${sk[1]} (${sk[3]})`,d20:0,boxes:[{l:"Resultado",v:r.v+v,s:`d20 ${r.txt} ${sgn(v)}`,cls:r.v===20?"crit":r.v===1?"fail":""}]});log(`${sk[1]}: ${r.v+v}`);save();return}
   if(ds.save){const v=sv(c,ds.save),r=d20();show({title:"Salvación de "+ds.save,d20:0,boxes:[{l:"Resultado",v:r.v+v,s:`d20 ${r.txt} ${sgn(v)}`,cls:r.v===20?"crit":r.v===1?"fail":""}]});log(`Salvación ${ds.save}: ${r.v+v}`);save();return}
@@ -1286,6 +1393,8 @@ document.addEventListener("click",e=>{
   if(ds.mw){const warn=spend("adicional");S.mw=ds.mw==="none"?"":ds.mw;const w=S.mw&&c.fruit.weapons[S.mw];
     show({title:w?w.name:"Arma de mochi desactivada",warn,tip:w?c.fruit.mwNote:""});log(w?`<b>${w.name}</b> activa`:"Arma de mochi desactivada");save();render();return}
   if(ds.mwatk){const w=c.fruit.weapons[S.mw];weaponAttack(w,w.name,spendAttack(),c.fruit.mwNote);save();render();return}
+  if(ds.dawn&&phys()){const r=c.resources.find(x=>x.id===ds.dawn);
+    show({title:r.name+": amanecer",boxes:[{l:"Recupera",v:recipe(r.dawn),s:"tira y anota el total"}],apply:{dawn:{label:"Sumar cargas",fn:n=>{S.res[r.id]=Math.min(r.max,S.res[r.id]+n);log(`${r.name}: +${n} al amanecer`)}}}});return}
   if(ds.dawn){const r=c.resources.find(x=>x.id===ds.dawn),g=roll(r.dawn);S.res[r.id]=Math.min(r.max,S.res[r.id]+g.tot);
     show({title:r.name+": amanecer",boxes:[{l:"Recupera",v:"+"+g.tot,s:g.txt},{l:"Cargas",v:S.res[r.id],s:"de "+r.max}]});log(`${r.name}: +${g.tot} al amanecer`);save();render();return}
   if(ds.spell){armed=null;castOpen(ds.spell);return}
@@ -1294,6 +1403,8 @@ document.addEventListener("click",e=>{
     if(S.spells[key].includes(id))S.spells[key]=S.spells[key].filter(x=>x!==id);else if(S.spells[key].length<max)S.spells[key].push(id);save();render();return}
   if(ds.slot!==undefined){const i=+ds.slot,j=+ds.j;S.slots[i]=j<S.slots[i]?j:j+1;save();render();return}
   if(ds.cnt){const r=c.resources.find(x=>x.id===ds.cnt);S.res[r.id]=ds.n==="max"?r.max:Math.min(r.max,Math.max(0,S.res[r.id]+(+ds.n)));save();render();return}
+  if(ds.fore!==undefined&&!S.fore[+ds.fore].v){const i=+ds.fore;
+    show({title:"Presagio",tip:"Vistazo al futuro: tira 1d20 y anótalo.",apply:{["f"+i]:{label:"Anotar presagio",fn:n=>{S.fore[i].v=Math.min(20,Math.max(1,n));log(`Presagio: <b>${S.fore[i].v}</b>`)}}}});return}
   if(ds.fore!==undefined){const i=+ds.fore,f=S.fore[i],busy=S.turn.fore;
     show({title:"Presagio: "+f.v,warn:busy?"Ya usaste un presagio este turno.":"",html:`<div class="trayact"><button class="btn primary" data-do="forenext" data-i="${i}" ${busy?"disabled":""}>Usarlo en mi próxima tirada</button><button class="btn" data-do="foreother" data-i="${i}" ${busy?"disabled":""}>Para otra criatura</button></div>`,
       tip:"Reemplaza, antes de tirar, un ataque, salvación o prueba tuya o de una criatura que veas. Uno por turno. Se pierden en el siguiente descanso largo."});return}
@@ -1308,14 +1419,16 @@ document.addEventListener("click",e=>{
   if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>show({title:"No se pudo entrar",warn:e.code||String(e)}));return}
   if(act==="logout"){if(pushT)push();fb.U.signOut(fb.auth);return}
   if(act==="local"){view="char";render();return}
+  if(act==="apply"){const t=T,a=t.apply&&t.apply[ds.k],n=parseInt($("in-"+ds.k).value,10);if(!a||!Number.isFinite(n))return;
+    a.fn(n);if(T===t){delete t.apply[ds.k];t.tip=(t.tip?t.tip+" ":"")+`Anotado: ${n}.`;drawTray()}save();render();return}
+  if(act==="dreamadd"&&phys()){const t=T;S.dream--;t.dreamUsed=true;t.tip=(t.tip?t.tip+" ":"")+"Punto de sueño: tira 1d6 y súmalo a esta tirada.";
+    t.apply={...(t.apply||{}),dream:{label:"Sumar el d6",fn:n=>{t.bonus=(t.bonus||0)+n;log(`Punto de sueño: +${n}`);if(t.nat)setD20(t.nat)}}};log("Punto de sueño");drawTray();save();render();return}
   if(act==="dreamadd"){const k=d(6);S.dream--;const b=T.boxes[T.d20];b.v=(+b.v)+k;b.s+=` + sueño ${k}`;T.dreamUsed=true;log(`Punto de sueño: +${k}`);drawTray();save();render();return}
-  if(act==="exec"){const x=c.execute;S.res[x.res]--;S.turn.exec=true;T.execUsed=true;const r=roll(x.dice,T.crit);
-    T.boxes.push({l:"Ejecutar · "+x.type,v:"+"+r.tot,s:r.txt+(T.crit?" · dobles":""),cls:"ex"});T.tip=(T.tip||"")+" Ejecutar: "+x.note+".";
-    log(`Ejecutar: +${r.tot} ${x.type}`);drawTray();save();render();return}
-  if(act==="storm"){const r=roll(c.storm,T.crit);S.turn.storm=true;T.stormUsed=true;
-    T.boxes.push({l:"Poder de tormenta",v:"+"+r.tot,s:r.txt+" · trueno o rayo, a un objetivo",cls:"ex"});log(`Poder de tormenta: +${r.tot}`);drawTray();save();render();return}
+  if(act==="exec"){const x=c.execute;S.res[x.res]--;S.turn.exec=true;T.execUsed=true;const v=trayDice("Ejecutar · "+x.type,x.dice,"ex");T.tip=(T.tip||"")+" Ejecutar: "+x.note+".";
+    log(v==null?`Ejecutar (${x.dice} ${x.type})`:`Ejecutar: +${v} ${x.type}`);drawTray();save();render();return}
+  if(act==="storm"){S.turn.storm=true;T.stormUsed=true;const v=trayDice("Poder de tormenta · trueno o rayo",c.storm,"ex");log(v==null?`Poder de tormenta (${c.storm})`:`Poder de tormenta: +${v}`);drawTray();save();render();return}
   if(act==="wrath"){S.res[c.wrath.res]--;T.wrathUsed=true;const b=T.boxes[T.dmgBox],m=roll(T.dexpr,T.crit,true);
-    b.v=m.tot;b.s="Ira Destructiva: daño máximo "+m.txt;b.cls="ex";log(`Ira Destructiva: ${m.tot}`);drawTray();save();render();return}
+    b.v=m.tot;b.s="Ira Destructiva: daño máximo "+m.txt;b.cls="ex";b.fixed=true;log(`Ira Destructiva: ${m.tot}`);drawTray();save();render();return}
   if(act==="pool"){const a=T.pool,n=ds.n?+ds.n:parseInt($("poolin").value,10);if(!(n>0))return;
     if(n>S.res[a.res]){T.warn=`Solo quedan ${S.res[a.res]} PV en la reserva.`;drawTray();return}
     const warn=spend(a.cost);S.res[a.res]-=n;
@@ -1325,6 +1438,9 @@ document.addEventListener("click",e=>{
     log(S.sea?"<b>Kairoseki</b>: sin poderes de la fruta":"Sin kairoseki: vuelve la fruta")}
   if(act==="rep")return S.conc.id.startsWith("f:")?useTech(S.conc.id.slice(2),S.conc.lvl,{rep:true}):castSpell(S.conc.id,S.conc.lvl,{rep:true});
   if(act==="endconc"){log(`Termina la concentración en ${concOf(c,S.conc.id).n}`);S.conc={id:"",lvl:0};$("tray").classList.add("hide")}
+  if(act==="concsave"&&phys()){const v=sv(c,"CON"),dc=+ds.dc;
+    show({title:"Salvación de concentración",d20:0,boxes:[d20Box("CON contra CD "+dc,v,mode)],html:`<div class="trayact"><button class="btn" data-do="endconc">Terminar la concentración</button></div>`,
+      p:{mod:v,dmg:[],onSet:(b,n,tot)=>{b.s+=tot>=dc?" · la mantienes":" · la pierdes";b.cls=tot>=dc?"":"fail"},fmt:tot=>`Concentración: ${tot} contra CD ${dc}`},tip:"Si fallas, termina la concentración."});log("Concentración");T.logLine=S.log[0];return}
   if(act==="concsave"){const v=sv(c,"CON"),r=d20(),tot=r.v+v,ok=tot>=+ds.dc;
     show({title:"Salvación de concentración",warn:ok?"":"Fallaste. Si un punto de sueño no te alcanza para llegar a la CD, termina la concentración.",d20:0,
       boxes:[{l:"CON contra CD "+ds.dc,v:tot,s:`d20 ${r.txt} ${sgn(v)}`,cls:ok?"":"fail"}],html:ok?"":`<div class="trayact"><button class="btn" data-do="endconc">Terminar la concentración</button></div>`});log(`Concentración: ${tot} contra CD ${ds.dc}`)}
@@ -1347,11 +1463,13 @@ document.addEventListener("click",e=>{
     if(!name||!(lv>0))return w("Escribe el nombre y el nivel de la criatura.");
     if(S.aided.some(x=>x.toLowerCase()===name.toLowerCase()))return w(`${name} ya recibió ${a.name}: necesita un descanso corto o largo.`);
     if(S.prestige<a.prest)return w("No tienes puntos de prestigio.");
+    if(phys()){const warn=spend(a.cost);S.prestige-=a.prest;S.aided.push(name);S.plog.unshift(`Gastó ${a.prest} en ${a.name} (${esc(name)})`);
+      show({title:`${a.name}: ${esc(name)}`,warn,boxes:[{l:"Curación",v:recipe(a.heal+"+"+lv),s:`nivel ${lv}`},{l:"Prestigio",v:S.prestige,s:"puntos restantes"}],tip:"Si te curas a ti mismo, anótalo con Curar."});log(`<b>${a.name}</b>: ${esc(name)}`);save();render();return}
     const warn=spend(a.cost),r=roll(a.heal+"+"+lv);S.prestige-=a.prest;S.aided.push(name);S.plog.unshift(`Gastó ${a.prest} en ${a.name} (${esc(name)})`);
     show({title:`${a.name}: ${esc(name)}`,warn,boxes:[{l:"Curación",v:"+"+r.tot,s:`${r.txt} · nivel ${lv}`},{l:"Prestigio",v:S.prestige,s:"puntos restantes"}],tip:"Si te curas a ti mismo, anótalo con Curar."});
     log(`<b>${a.name}</b>: ${esc(name)} +${r.tot} PV`)}
-  if(act==="sneak"){const r=roll(c.sneak.dice,T.crit);S.turn.sneak=true;T.sneakUsed=true;T.boxes.push({l:c.sneak.name,v:"+"+r.tot,s:r.txt+(T.crit?" · dados dobles":""),cls:"ex"});log(`${c.sneak.name}: +${r.tot}`);drawTray();save();render();return}
-  if(act==="stage"){S.turn.stage=true;if(ds.m==="dmg"){const r=roll(c.stage.dmg,T.crit);T.boxes.push({l:c.stage.name,v:"+"+r.tot,s:r.txt,cls:"ex"});log(`${c.stage.name}: +${r.tot} de daño`)}
+  if(act==="sneak"){S.turn.sneak=true;T.sneakUsed=true;const v=trayDice(c.sneak.name,c.sneak.dice,"ex");log(v==null?`${c.sneak.name} (${c.sneak.dice})`:`${c.sneak.name}: +${v}`);drawTray();save();render();return}
+  if(act==="stage"){S.turn.stage=true;if(ds.m==="dmg"){const v=trayDice(c.stage.name,c.stage.dmg,"ex");log(v==null?`${c.stage.name} (+${c.stage.dmg})`:`${c.stage.name}: +${v} de daño`)}
     else{S.stageAC=true;T.tip=(T.tip||"")+` ${c.stage.name}: +${c.stage.ac} CA hasta el inicio de tu siguiente turno.`;log(`${c.stage.name}: +${c.stage.ac} CA`)}drawTray();save();render();return}
   if(act==="flow"){const f=c.flow[+ds.i],w=spend("adicional");T.flowUsed=true;if(w)T.warn=w;T.tip=(T.tip||"")+` ${f.name}: ${f.note}`;log(`<b>${f.name}</b>`);drawTray();save();render();return}
   if(act==="harvest"){c.items.forEach(x=>S.items[x.id]=x.max);show({title:c.itemsName+": cosecha",tip:`Todos quedan en ${c.items[0].max}.`});log(`<b>Cosecha</b> de ${c.itemsName}`)}
@@ -1361,10 +1479,15 @@ document.addEventListener("click",e=>{
   if(act==="halve"){const a=c.actions[T.hv],n=parseInt($("hvn").value,10);if(!(n>0))return;const w=spend(a.cost),h=Math.floor(n/2);log(`<b>${a.name}</b>: ${n} → ${h}`);
     takeDamage(c,h);/* si takeDamage no abrió otra bandeja (concentración u ofertas) */if(T.hv!=null)show({title:a.name,warn:w,boxes:[{l:"Daño recibido",v:h,s:`la mitad de ${n}`},{l:"PV",v:S.hp,s:"de "+mhp(c)}]})}
   if(act==="pulse"){S.turn.pulse++;T.pulseUsed=true;const t=c.fruit.tech.find(x=>x.id===c.pulse.tech);useTech(t.id,t.l,{free:true,title:c.pulse.name+" (gratis)"});return}
+  if(act==="reroll"&&phys()&&T.p){const x=c.rerolls[+(ds.i||0)],t=T,b=t.boxes[t.d20],warn=x.react?spend("reaccion"):"";S.res[x.res]--;t.rerolled=true;
+    if(warn)t.warn=warn;t.nat=null;b.v=`1d20 ${sgnS(t.p.mod)}`;b.s=`${x.name}: vuelve a tirar el d20 y anota el nuevo resultado`;b.cls="";
+    for(const e of t.p.dmg){const y=t.boxes[e.i];if(y&&!y.fixed){y.v=(e.plus?"+":"")+e.norm;y.s=e.normS;y.cls=e.cls||""}}log(`${x.name}: vuelve a tirar`);drawTray();save();render();return}
   if(act==="reroll"){const x=c.rerolls[+(ds.i||0)],b=T.boxes[T.d20],warn=x.react?spend("reaccion"):"",r=d20(),old=T.raw;S.res[x.res]--;T.rerolled=true;
     b.v=(+b.v)-old+r.v;b.s+=` · ${x.name}: ${old} → ${r.txt}`;b.cls=r.v===20?"crit":r.v===1?"fail":"";T.raw=r.v;if(warn)T.warn=warn;log(`${x.name}: ${old} → ${r.v}`);drawTray();save();render();return}
+  if(act==="forerep"&&T.p){const f=S.fore[+ds.i];f.u=true;S.turn.fore=true;T.foreUsed=true;log(`Presagio ${f.v} en lugar del d20`);setD20(f.v);drawTray();return}
   if(act==="forerep"){const f=S.fore[+ds.i],b=T.boxes[T.d20],old=T.raw;f.u=true;S.turn.fore=true;T.foreUsed=true;
     b.v=(+b.v)-old+f.v;b.s+=` · presagio: ${old} → ${f.v}`;b.cls=f.v===20?"crit":f.v===1?"fail":"";T.raw=f.v;log(`Presagio ${f.v} reemplaza un ${old}`);drawTray();save();render();return}
+  if(act==="init"&&phys()){show({title:"Iniciativa",d20:0,boxes:[d20Box("Iniciativa",ini(c),mode)],p:{mod:ini(c),dmg:[],fmt:tot=>`<b>Iniciativa</b>: ${tot}`}});log("<b>Iniciativa</b>");T.logLine=S.log[0];save();return}
   if(act==="init"){const r=d20();show({title:"Iniciativa",d20:0,boxes:[{l:"Iniciativa",v:r.v+ini(c),s:`d20 ${r.txt} ${sgn(ini(c))}`}]});log(`<b>Iniciativa</b>: ${r.v+ini(c)}`)}
   if(act==="turn"){S.turn=newTurn(c);S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;if(S.hard>0){S.hard--;if(S.hard===0)log("Endurecimiento terminado")}$("tray").classList.add("hide");log("— Nuevo turno —");
     /* En frenesí, Postura de hierro se ofrece al inicio de cada turno */
@@ -1375,15 +1498,11 @@ document.addEventListener("click",e=>{
     if(act==="temp"){log(n>S.temp?`PV temporales: <b>${n}</b>`:`PV temporales: se queda con ${S.temp} (no se acumulan)`);S.temp=Math.max(S.temp,n)}
     if(act==="dmg")takeDamage(c,n);
     else if(act==="heal"){S.hp=Math.min(mhp(c),S.hp+n);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}log(`Recupera <b>${n}</b> PV`)}}
-  if(act==="death"){const r=d(20);
-    if(r===20){S.hp=1;S.ds={ok:0,ko:0};show({title:"¡Recuperas la consciencia!",boxes:[{l:"d20",v:20,s:"Vuelves con 1 PV",cls:"crit"}]})}
-    else{const ok=r>=10;if(ok)S.ds.ok++;else S.ds.ko+=(r===1?2:1);
-      show({title:"Salvación de muerte",warn:S.ds.ok>=3?"Estable":"",boxes:[{l:"d20",v:r,s:ok?"Éxito":r===1?"Dos fallos":"Fallo",cls:ok?"":"fail"}],
-        html:!ok&&S.dream>0?`<div class="trayact"><button class="btn gold" data-do="dreamsave" data-n="${r===1?2:1}">Gastar punto de sueño: convertir en éxito</button></div>`:""})}
-    log(`Salvación de muerte: ${r}`)}
+  if(act==="death"&&phys()){show({title:"Salvación de muerte",boxes:[{l:"Tira",v:"1d20",s:"10 o más: éxito · 1: dos fallos · 20: vuelves con 1 PV"}],apply:{ds:{label:"Anotar el d20",fn:n=>deathSave(Math.min(20,Math.max(1,n)))}}});return}
+  if(act==="death")deathSave(d(20));
   if(act==="dreamsave"){S.dream--;S.ds.ko=Math.max(0,S.ds.ko-(+ds.n));S.ds.ok++;show({title:"Punto de sueño",boxes:[{l:"Salvación",v:"Éxito",s:"El fallo se convierte en éxito"}],warn:S.ds.ok>=3?"Estable":""});log("Punto de sueño: salvación de muerte salvada")}
-  if(act==="dreams"){const r=d(20);if(r>=12){S.hp=1;S.ds={ok:0,ko:0};show({title:"¡No abandono mis sueños!",boxes:[{l:"d20",v:r,s:"Te levantas con 1 PV",cls:"crit"}]})}
-    else{S.dead=true;show({title:"No abandonaré mis sueños",boxes:[{l:"d20",v:r,s:"Necesitabas 12 o más",cls:"fail"}]})}log(`No abandonaré mis sueños: ${r}`)}
+  if(act==="dreams"&&phys()){show({title:"No abandonaré mis sueños",boxes:[{l:"Tira",v:"1d20",s:"12 o más: te levantas con 1 PV"}],apply:{dr:{label:"Anotar el d20",fn:n=>dreamsRoll(Math.min(20,Math.max(1,n)))}}});return}
+  if(act==="dreams")dreamsRoll(d(20));
   if(act==="p+"){S.prestige++;S.plog.unshift("Ganó 1 punto de prestigio")}
   if(act==="pspend"){spendOpen=!spendOpen}
   if(act==="short"||act==="long"){
@@ -1392,7 +1511,9 @@ document.addEventListener("click",e=>{
     if(act==="long"){const keep={dream:S.dream,prestige:S.prestige,plog:S.plog,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),items:S.items},
         manual=c.resources.filter(r=>r.rest==="none").map(r=>[r.id,S.res[r.id]]);
       S=Object.assign(fresh(c),keep);manual.forEach(([k,v])=>S.res[k]=v);foreArm=null;log("<b>Descanso largo</b>: PV y usos recuperados");
-      if(S.fore.length)log(`Nuevos presagios: <b>${S.fore.map(f=>f.v).join("</b> y <b>")}</b>`)}
+      if(S.fore.length&&phys()){S.fore.forEach(f=>{f.v=0;f.u=false});
+        show({title:"Vistazo al futuro",tip:"Tira 2d20 y anótalos como presagios.",apply:Object.fromEntries(S.fore.map((f,i)=>["f"+i,{label:`Anotar presagio ${i+1}`,fn:n=>{S.fore[i].v=Math.min(20,Math.max(1,n));log(`Presagio: <b>${S.fore[i].v}</b>`)}}]))})}
+      else if(S.fore.length)log(`Nuevos presagios: <b>${S.fore.map(f=>f.v).join("</b> y <b>")}</b>`)}
     else{c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);S.aided=[];c.actions.forEach(a=>{if(a.once&&!a.long)S.used[a.once]=false});log("<b>Descanso corto</b>: recursos y reacciones especiales recuperados")}
   }
   save();render();
