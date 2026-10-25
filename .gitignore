@@ -1,0 +1,5 @@
+# Solo se publican estos archivos. libros/ tiene texto con derechos de autor: nunca subirlo.
+*
+!.gitignore
+!index.html
+!dm.html

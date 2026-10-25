@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel del DM</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral+SC:wght@600;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: barra de turno fija arriba, lista de criaturas ordenada por iniciativa como tarjetas, formulario para agregar al final */
+:root{
+  --bg:#eceef2; --surface:#ffffff; --ink:#1b2130; --muted:#5b6376; --line:#d3d7e0;
+  --accent:#8c2f2b; --accent-ink:#ffffff; --gold:#8a5f0e; --good:#2c7a4b; --warn:#a86b00; --bad:#b3261e; --chip:#e3e6ee; --foe:#5a2a6e; --temp:#2f5e9e;
+  --f-display:"Spectral SC", Georgia, "Times New Roman", serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11141b; --surface:#1a1f29; --ink:#e7e9ef; --muted:#9ba3b4; --line:#2d3444;
+  --accent:#e2806f; --accent-ink:#1c0f0d; --gold:#e3b65c; --good:#62c690; --warn:#e8b04a; --bad:#ff8f84; --chip:#242a37; --foe:#c79be0; --temp:#86b2f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11141b; --surface:#1a1f29; --ink:#e7e9ef; --muted:#9ba3b4; --line:#2d3444;
+  --accent:#e2806f; --accent-ink:#1c0f0d; --gold:#e3b65c; --good:#62c690; --warn:#e8b04a; --bad:#ff8f84; --chip:#242a37; --foe:#c79be0; --temp:#86b2f0; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;
+  -webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select{background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:8px;color:var(--ink);min-width:0}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
+.toprow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
+.round{font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.turnbar{display:flex;align-items:center;gap:10px}
+.now{flex:1;min-width:0;padding:10px 14px;border-radius:12px;background:var(--surface);border:1.5px solid var(--accent)}
+.now small{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.now b{font-size:20px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn{padding:10px 14px;border-radius:10px;background:var(--chip);font-weight:700;font-size:14px;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.arm{background:var(--gold);color:var(--bg)}
+.btn.big{padding:14px 18px;font-size:16px}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.card.cur{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.card.ko{opacity:.6}
+.head{display:flex;align-items:center;gap:10px}
+.init{flex:0 0 40px;height:40px;border-radius:10px;background:var(--chip);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px}
+.card.cur .init{background:var(--accent);color:var(--accent-ink)}
+.name{flex:1;min-width:0;text-align:left;display:flex;flex-direction:column}
+.name b{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name span{font-size:12.5px;color:var(--muted)}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;background:var(--chip);color:var(--muted)}
+.tag.foe{background:var(--foe);color:var(--bg)}
+.hpnum{text-align:right;flex-shrink:0}
+.hpnum b{font-size:22px}
+.hpnum .t{color:var(--temp);font-weight:700;font-size:14px}
+.hpnum small{display:block;font-size:12px;color:var(--muted)}
+.state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;color:var(--bg)}
+.s-ok{background:var(--good)} .s-mid{background:var(--warn)} .s-low{background:var(--bad)} .s-ko{background:var(--ink)}
+.track{height:8px;border-radius:4px;background:var(--chip);overflow:hidden;display:flex}
+.track i{display:block;height:100%}
+.track .hp{background:var(--good)} .track .hp.mid{background:var(--warn)} .track .hp.low{background:var(--bad)}
+.track .tp{background:var(--temp)}
+.ctrl{display:grid;grid-template-columns:minmax(56px,1fr) auto auto auto;gap:6px}
+.ctrl input{text-align:center;font-size:17px;width:100%}
+.ctrl .d{background:var(--bad);color:var(--bg)} .ctrl .h{background:var(--good);color:var(--bg)} .ctrl .tb{background:var(--temp);color:var(--bg)}
+.conds{display:flex;gap:5px;flex-wrap:wrap}
+.conds b{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bad);color:var(--bg)}
+.more{display:flex;flex-direction:column;gap:8px;padding-top:6px;border-top:1px dashed var(--line)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chips button{padding:6px 10px;border-radius:999px;background:var(--chip);color:var(--muted);font-size:13px;font-weight:700}
+.chips button[aria-pressed="true"]{background:var(--bad);color:var(--bg)}
+.edit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.edit label,.add label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+
+section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
+.add{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:end}
+.add .w3{grid-column:span 3} .add .w2{grid-column:span 2} .add .w1{grid-column:span 1} .add .w6{grid-column:span 6}
+.initroll{display:flex;gap:4px}
+.initroll input{flex:1}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.note{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
+.empty{padding:20px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:12px}
+@media (max-width:520px){
+  .add{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .add .w3,.add .w2,.add .w6{grid-column:span 2} .add .w1{grid-column:span 1}
+  .edit{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tools{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header id="top"></header>
+  <div class="list" id="list"></div>
+  <section><h2>Agregar criatura</h2>
+    <form class="add" id="addf">
+      <label class="w3">Nombre<input id="f-name" required placeholder="Marine raso"></label>
+      <label class="w2">Tipo<select id="f-type"><option value="foe">Enemigo</option><option value="pc">Jugador</option><option value="ally">Aliado</option></select></label>
+      <label class="w1">Cant.<input id="f-qty" type="number" inputmode="numeric" min="1" max="20" value="1"></label>
+      <label class="w2">Iniciativa<span class="initroll"><input id="f-init" type="number" inputmode="numeric" placeholder="15"><button type="button" class="btn" id="f-roll" title="Tirar d20 + modificador">d20</button></span></label>
+      <label class="w1">Mod.<input id="f-mod" type="number" inputmode="numeric" placeholder="+2"></label>
+      <label class="w1">CA<input id="f-ac" type="number" inputmode="numeric" placeholder="14"></label>
+      <label class="w2">PV máx.<input id="f-max" type="number" inputmode="numeric" min="1" required placeholder="30"></label>
+      <button class="btn primary w6" type="submit">Agregar al combate</button>
+      <p class="note w6">Con cantidad mayor a 1 se crean copias numeradas. Con "Mod." y sin iniciativa, cada copia tira su propio d20.</p>
+    </form>
+  </section>
+  <section><h2>Combate</h2>
+    <div class="tools" id="tools"></div>
+  </section>
+</div>
+
+<script>
+const CONDS=["Agarrado","Apresado","Asustado","Aturdido","Cegado","Derribado","Ensordecido","Envenenado","Hechizado","Incapacitado","Invisible","Paralizado","Concentrado"];
+const TYPE={pc:"Jugador",foe:"Enemigo",ally:"Aliado"};
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let uid=1;const nid=()=>"c"+(Date.now().toString(36))+(uid++);
+/* Grupo base (Udon según su hoja; el resto, del Excel: revisar CA y PV) */
+const SEED={round:1,cur:null,list:[
+  {name:"Kalgo",type:"pc",init:null,ac:17,max:57},
+  {name:"Udon",type:"pc",init:null,ac:15,max:66},
+  {name:"Sungsopp",type:"pc",init:null,ac:17,max:29},
+  {name:"Fate",type:"pc",init:null,ac:17,max:84},
+  {name:"Kayn",type:"pc",init:null,ac:15,max:32},
+  {name:"Codel",type:"pc",init:null,ac:18,max:36}
+].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[]}))};
+let S=store.get("dm:combat2")||JSON.parse(JSON.stringify(SEED));
+if(!S.cur&&S.list.length)S.cur=sorted()[0].id;
+let open=null,armed=null;
+const save=()=>store.set("dm:combat2",S);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function sorted(){return S.list.map((c,i)=>[c,i]).sort((a,b)=>(b[0].init??-99)-(a[0].init??-99)||a[1]-b[1]).map(x=>x[0])}
+function band(c){if(c.hp<=0)return"ko";const p=c.hp/c.max;return p>.5?"ok":p>.25?"mid":"low"}
+const BAND={ok:["s-ok","Sano"],mid:["s-mid","Herido"],low:["s-low","Grave"],ko:["s-ko","KO"]};
+
+/* Misma lógica que la macro del Excel: el daño va primero a los PV temporales */
+function applyDamage(c,n){if(n>=c.temp){n-=c.temp;c.temp=0;c.hp-=n}else c.temp-=n;if(c.hp<0)c.hp=0}
+function applyHeal(c,n){c.hp=Math.min(c.max,c.hp+n)}
+
+function render(){
+  const L=sorted(),cur=L.find(c=>c.id===S.cur);
+  $("top").innerHTML=`<div class="toprow"><h1>Panel del DM</h1><span class="round">Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie</span></div>
+    <div class="turnbar"><div class="now"><small>Turno de</small><b>${cur?esc(cur.name):"—"}</b></div>
+    <button class="btn" data-do="prev" aria-label="Turno anterior">◀</button>
+    <button class="btn primary big" data-do="next">Siguiente</button></div>`;
+  $("list").innerHTML=L.length?L.map(card).join(""):`<div class="empty">No hay criaturas en combate. Agrégalas abajo.</div>`;
+  $("tools").innerHTML=[["heal","Restaurar PV de todos"],["foes","Quitar enemigos"],["reset","Vaciar combate"]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?"Toca para confirmar":t}</button>`).join("");
+}
+function card(c){
+  const b=band(c),tot=c.max+c.temp,hpW=c.hp/tot*100,tW=c.temp/tot*100,isOpen=open===c.id;
+  return `<div class="card ${S.cur===c.id?"cur":""} ${b==="ko"?"ko":""}">
+   <div class="head">
+     <span class="init">${c.init??"–"}</span>
+     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${TYPE[c.type]}</span> · CA ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${BAND[b][1]}</span></span></button>
+     <div class="hpnum">${b==="ko"?"<b>KO</b>":`<b>${c.hp}</b>${c.temp?` <span class="t">+${c.temp}</span>`:""}`}<small>de ${c.max} PV</small></div>
+   </div>
+   <div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>
+   ${c.conds.length?`<div class="conds">${c.conds.map(x=>`<b>${x}</b>`).join("")}</div>`:""}
+   <div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="Cantidad para ${esc(c.name)}">
+     <button class="btn d" data-dmg="${c.id}">Daño</button><button class="btn h" data-heal="${c.id}">Curar</button><button class="btn tb" data-temp="${c.id}">Temp.</button></div>
+   ${isOpen?`<div class="more">
+     <div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${x}</button>`).join("")}</div>
+     <div class="edit">
+       <label>Nombre<input id="e-name-${c.id}" value="${esc(c.name)}"></label>
+       <label>Iniciativa<input id="e-init-${c.id}" type="number" inputmode="numeric" value="${c.init??""}"></label>
+       <label>CA<input id="e-ac-${c.id}" type="number" inputmode="numeric" value="${c.ac??""}"></label>
+       <label>PV máx.<input id="e-max-${c.id}" type="number" inputmode="numeric" value="${c.max}"></label>
+     </div>
+     <div class="row"><button class="btn primary" data-save="${c.id}">Guardar cambios</button><button class="btn" data-turn="${c.id}">Darle el turno</button>
+       <button class="btn ${armed==="del"+c.id?"arm":""}" data-del="${c.id}">${armed==="del"+c.id?"Toca para quitar":"Quitar"}</button></div>
+   </div>`:""}
+  </div>`;
+}
+function num(id){const v=parseInt($(id).value,10);return isNaN(v)?null:v}
+
+document.addEventListener("click",e=>{
+  const el=e.target.closest("button");if(!el)return;const d=el.dataset;
+  const find=id=>S.list.find(c=>c.id===id);
+  if(d.open){open=open===d.open?null:d.open;armed=null;render();return}
+  if(d.dmg||d.heal||d.temp){const id=d.dmg||d.heal||d.temp,c=find(id),n=num("n-"+id);if(n==null||n<0)return;
+    if(d.dmg)applyDamage(c,n);else if(d.heal)applyHeal(c,n);else c.temp=n;save();render();return}
+  if(d.cond){const c=find(d.cond);c.conds=c.conds.includes(d.c)?c.conds.filter(x=>x!==d.c):[...c.conds,d.c];save();render();return}
+  if(d.save){const c=find(d.save);const nm=$("e-name-"+c.id).value.trim();if(nm)c.name=nm;c.init=num("e-init-"+c.id);c.ac=num("e-ac-"+c.id);
+    const mx=num("e-max-"+c.id);if(mx>0){c.max=mx;c.hp=Math.min(c.hp,mx)}open=null;save();render();return}
+  if(d.turn){S.cur=d.turn;open=null;save();render();return}
+  if(d.del){if(armed!=="del"+d.del){armed="del"+d.del;render();return}
+    const L=sorted(),i=L.findIndex(c=>c.id===d.del);if(S.cur===d.del&&L.length>1)S.cur=L[(i+1)%L.length].id;
+    S.list=S.list.filter(c=>c.id!==d.del);armed=null;open=null;if(!S.list.length)S.cur=null;save();render();return}
+  const act=d.do;if(!act)return;
+  if(act==="next"||act==="prev"){const L=sorted();if(!L.length)return;let i=L.findIndex(c=>c.id===S.cur);
+    for(let k=0;k<L.length;k++){i+=act==="next"?1:-1;
+      if(i>=L.length){i=0;S.round++}if(i<0){i=L.length-1;S.round=Math.max(1,S.round-1)}
+      if(L[i].hp>0||L[i].type==="pc")break}
+    S.cur=L[i].id;armed=null;save();render();return}
+  if(["heal","foes","reset"].includes(act)){
+    if(armed!==act){armed=act;render();return}armed=null;
+    if(act==="heal")S.list.forEach(c=>{c.hp=c.max;c.temp=0;c.conds=[]});
+    if(act==="foes"){S.list=S.list.filter(c=>c.type!=="foe");S.round=1;S.cur=sorted()[0]?.id||null}
+    if(act==="reset"){S={round:1,cur:null,list:[]}}
+    save();render();return}
+});
+$("f-roll").addEventListener("click",()=>{const m=parseInt($("f-mod").value,10)||0;$("f-init").value=1+Math.floor(Math.random()*20)+m});
+$("addf").addEventListener("submit",e=>{e.preventDefault();
+  const name=$("f-name").value.trim(),max=num("f-max");if(!name||!(max>0))return;
+  const qty=Math.min(20,Math.max(1,num("f-qty")||1)),init=num("f-init"),mod=num("f-mod"),ac=num("f-ac"),type=$("f-type").value;
+  for(let k=1;k<=qty;k++){
+    const ini=init!=null?init:(mod!=null?1+Math.floor(Math.random()*20)+mod:null);
+    S.list.push({id:nid(),name:qty>1?`${name} ${k}`:name,type,init:ini,ac,max,hp:max,temp:0,conds:[]})}
+  if(!S.cur)S.cur=sorted()[0].id;
+  ["f-name","f-init","f-mod","f-ac","f-max"].forEach(i=>$(i).value="");$("f-qty").value=1;
+  save();render();
+});
+render();
+</script>
+
+</body>
+</html>
