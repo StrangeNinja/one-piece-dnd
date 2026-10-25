@@ -90,6 +90,14 @@ button.stat:active{transform:scale(.96)}
 .econ i{width:9px;height:9px;border-radius:50%;background:var(--good);display:inline-block}
 .econ.spent{opacity:.45} .econ.spent i{background:var(--muted)}
 .econ.haki{border-color:var(--haki);background:var(--haki);color:var(--bg)} .econ.haki i{background:var(--bg)}
+/* Fichas que llevan a su sección: --hdr es el alto del encabezado fijo (lo pone render), así el título queda visible */
+button.econ[data-jump]:active{transform:scale(.96)}
+/* Teléfonos angostos: fila 1 Acción · Acción adicional · Reacción; fila 2 el resto (mismo orden). .brk fuerza el salto de línea */
+.turn .brk{display:none}
+@media (max-width:480px){.turn{gap:6px 4px}.econ{padding:5px 7px;gap:4px;font-size:11.5px;letter-spacing:-.02em}.econ i{width:7px;height:7px}.turn .brk{display:block;flex-basis:100%;height:0;margin-top:-6px}}
+#main section{scroll-margin-top:calc(var(--hdr,180px) + env(safe-area-inset-top,0px) + 8px)}
+section h2{border-radius:8px;transition:background-color .5s,box-shadow .5s}
+section h2.flash{background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 16%,transparent)}
 .newturn{margin-left:auto;padding:7px 12px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px}
 
 .adv{display:grid;grid-template-columns:repeat(3,1fr);background:var(--chip);border-radius:10px;padding:3px}
@@ -229,7 +237,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-25 20:50";
+const APP_VERSION="2026-10-25 20:57";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -799,6 +807,11 @@ function log(t){S.log.unshift(t);S.log=S.log.slice(0,12)}
 
 /* ===================== RENDER ===================== */
 const $=id=>document.getElementById(id);
+/* Acciones de combate de un coste (secciones Acción, Acción adicional y Reacción) */
+const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&formShows(c,a));
+/* Ficha de la economía del turno: botón que salta a su sección si la sección está en pantalla; si no, solo muestra el estado */
+function chip(k,off,label){const c=C(),has=!(c.caster&&book)&&(k==="especial"||costList(c,k).length>0);
+  return has?`<button class="econ${off?" spent":""}" data-jump="sec-${k}"><i></i>${label}</button>`:`<span class="econ${off?" spent":""}"><i></i>${label}</span>`}
 function render(){
   document.title=tx("Mesa de Combate","Combat Table");
   const c=C(),t=S.turn,pct=Math.max(0,S.hp/mhp(c)*100);
@@ -821,10 +834,10 @@ function render(){
      <div class="hpctl"><input class="hpin" id="hpin" type="number" inputmode="numeric" min="0" placeholder="0" aria-label="${tx("Cantidad de PV","Hit point amount")}">
      <button class="hpbtn dmg" data-do="dmg">${tx("Daño","Damage")}</button><button class="hpbtn heal" data-do="heal">${tx("Curar","Heal")}</button><button class="hpbtn tmp" data-do="temp" aria-label="${tx("PV temporales","Temporary hit points")}">Temp.</button></div></div>
    <div class="turn">
-     <span class="econ${t.a<=0?" spent":""}"><i></i>${tx("Acción","Action")}${t.a>0&&apa(c)>1?` · ${t.atk} ${t.atk===1?tx("golpe","attack"):tx("golpes","attacks")}`:""}${t.a>1?` ×${t.a}`:""}</span>
-     <span class="econ${t.b<=0?" spent":""}"><i></i>${tx("Adicional","Bonus")}</span>
-     <span class="econ${t.r<=0?" spent":""}"><i></i>${tx("Reacción","Reaction")}</span>
-     <span class="econ${t.sr<=0?" spent":""}"><i></i>${tx("Especial","Special")} ${t.sr}/2</span>
+     ${chip("accion",t.a<=0,tx("Acción","Action")+(t.a>0&&apa(c)>1?` · ${t.atk} ${t.atk===1?tx("golpe","attack"):tx("golpes","attacks")}`:"")+(t.a>1?` ×${t.a}`:""))}
+     ${chip("adicional",t.b<=0,tx("Acción adicional","Bonus Action"))}
+     ${chip("reaccion",t.r<=0,tx("Reacción","Reaction"))}<span class="brk" aria-hidden="true"></span>
+     ${chip("especial",t.sr<=0,`${tx("Especial","Special")} ${t.sr}/2`)}
      ${S.hard>0?`<span class="econ haki"><i></i>Haki +${c.hardening.bonus} · ${S.hard} t.</span>`:""}
      ${S.exh?`<span class="econ"><i></i>${tx("Agotamiento","Exhaustion")} ${S.exh}</span>`:""}
      ${S.fore.map((f,i)=>`<button class="econ${f.u?" spent":""}" data-fore="${i}" ${f.u?"disabled":""} aria-label="${tx("Presagio","Foretelling roll")} ${f.v||tx("sin anotar","not entered")}"><i></i>${tx("Presagio","Foretelling")} ${f.v||"?"}${foreArm===i?tx(" · próxima tirada"," · next roll"):""}</button>`).join("")}
@@ -853,15 +866,15 @@ function render(){
   h+=`<div class="adv" role="group" aria-label="${tx("Modo de tirada","Roll mode")}">${["normal","ventaja","desventaja"].map(m=>`<button data-mode="${m}" aria-pressed="${mode===m}">${{normal:"Normal",ventaja:tx("Ventaja","Advantage"),desventaja:tx("Desventaja","Disadvantage")}[m]}</button>`).join("")}</div>`;
 
   for(const cost of ["accion","adicional","reaccion"]){
-    const list=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&formShows(c,a)); if(!list.length)continue;
-    h+=`<section><h2>${COST[cost]}${cost==="accion"?` <small>${tx("Crítico con","Critical on")} ${c.critMin}–20</small>`:""}</h2><div class="list">${list.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
+    const list=costList(c,cost); if(!list.length)continue;
+    h+=`<section id="sec-${cost}"><h2>${COST[cost]}${cost==="accion"?` <small>${tx("Crítico con","Critical on")} ${c.critMin}–20</small>`:""}</h2><div class="list">${list.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   }
   if(c.caster)h+=spellSec(c);
   if(c.fruit)h+=fruitSec(c);
   if(c.items)h+=itemSec(c);
   if(c.companion)h+=compSec(c);
   if(c.role)h+=roleSec(c);
-  h+=`<section><h2>${tx("Reacciones especiales","Special Reactions")} <small>${tx(`2 por ronda · ${c.prof} usos c/u por descanso corto`,`2 per round · ${c.prof} uses each per short rest`)}</small></h2><div class="list">`;
+  h+=`<section id="sec-especial"><h2>${tx("Reacciones especiales","Special Reactions")} <small>${tx(`2 por ronda · ${c.prof} usos c/u por descanso corto`,`2 per round · ${c.prof} uses each per short rest`)}</small></h2><div class="list">`;
   for(const s of SPECIALS){
     let big="";
     if(s.kind==="attack"){const st=wStats(c.weapons[s.w]);big=`${sgn(st.hit)}<small>${c.weapons[s.w].dice}${sgn(st.mod)}</small>`}
@@ -904,6 +917,7 @@ function render(){
     :fb?`<p class="note">${tx("Los PV, usos y puntos se guardan solo en este teléfono.","HP, uses and points are saved only on this phone.")}</p><button class="btn primary" data-do="login">${tx("Entrar con Google","Sign in with Google")}</button>`
     :`<p class="note">${tx("Los PV, usos y puntos se guardan en este teléfono.","HP, uses and points are saved on this phone.")}</p>`;
   $("main").innerHTML=h;
+  document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px");
 }
 /* Acciones de una forma (form) solo en esa forma y con su opción elegida (opt); en una forma con hideAttacks se ocultan los ataques normales */
 const formShows=(c,a)=>{const f=formOf(c);return a.form?S.form===a.form&&(!a.opt||S.formOpts.includes(a.opt)):!(f&&f.hideAttacks&&a.kind==="attack")};
@@ -1392,6 +1406,7 @@ document.addEventListener("input",e=>{if(e.target.id==="in-d20")setD20(parseInt(
 /* Cambiar Dados o la paleta vuelve a dibujar la ficha; cambiar el idioma rearma los datos y cierra la bandeja (su texto quedó en el idioma anterior) */
 let lastLang=look.lang;
 function onLook(){if(look.lang!==lastLang){lastLang=look.lang;localize();$("tray").classList.add("hide")}if(S)render()}
+addEventListener("resize",()=>{if(view==="char")document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px")});
 document.addEventListener("toggle",e=>{if(e.target.classList&&e.target.classList.contains("skills"))skillsOpen=e.target.open},true);
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
   if(id!==undefined)fb.F.updateDoc(fb.F.doc(fb.db,"players",id),{char:e.target.value||null}).catch(err=>show({title:tx("No se pudo asignar","Couldn't assign"),warn:err.code||String(err)}))});
@@ -1433,6 +1448,9 @@ document.addEventListener("click",e=>{
   const c=C(),ds=el.dataset;
   if(ds.pick){$("tray").classList.add("hide");if(ds.pick==="mesa"){view="mesa";render();return}
     if(user){openChar(ds.pick);return}cur=ds.pick;load();save();render();return}
+  if(ds.jump){const s=$(ds.jump);if(!s)return;const h2=s.querySelector("h2");
+    s.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+    h2.classList.add("flash");setTimeout(()=>h2.classList.remove("flash"),1200);return}
   if(ds.mode){mode=ds.mode;render();return}
   if(ds.act!==undefined){armed=null;doAct(+ds.act);return}
   if(ds.sr){armed=null;doSpecial(ds.sr);return}
