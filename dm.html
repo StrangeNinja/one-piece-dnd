@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Panel del DM</title>
+<meta name="theme-color" content="#eef3f7">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral+SC:wght@600;700&display=swap">
 <style>
@@ -11,18 +12,38 @@
 body{margin:0}
 [hidden]{display:none!important}
 /* Layout: barra de turno fija arriba, lista de criaturas ordenada por iniciativa como tarjetas, formulario para agregar al final */
+/* ===== Paletas (mismo bloque en index.html y dm.html) =====
+   data-pal en <html>: grand (predeterminada) · bandera · paja. data-theme: light (día) · dark (noche).
+   Colores de estado: iguales en todas, salvo el daño en las paletas de acento rojo y los PV temporales en Grand Line (acento azul). */
+:root,[data-pal]{--good:#1f7a45;--bad:#b3261e;--warn:#8f5b00;--haki:#3f3486;--temp:#2b5ea8;--foe:#6d2b80;--shadow:rgba(0,0,0,.14);color-scheme:light}
+[data-pal][data-theme="dark"]{--good:#5cc98c;--bad:#ff8a80;--warn:#eab14d;--haki:#b7a9f2;--temp:#86b2f0;--foe:#cf9be6;--shadow:rgba(0,0,0,.55);color-scheme:dark}
+:root,[data-pal="grand"]{--bg:#eef3f7;--surface:#ffffff;--ink:#10243a;--muted:#4f6378;--line:#cfdae4;--chip:#e1e9f0;--accent:#1d5c8f;--accent-ink:#ffffff;--gold:#8e6607;--temp:#00737a}
+[data-pal="bandera"]{--bg:#f2f0ee;--surface:#ffffff;--ink:#1a1a1a;--muted:#5e5a56;--line:#dcd7d2;--chip:#e7e3df;--accent:#b0202a;--accent-ink:#ffffff;--gold:#7d5f17;--bad:#9d1a5f}
+[data-pal="paja"]{--bg:#fbf5e6;--surface:#fffdf6;--ink:#2b2416;--muted:#6b5f47;--line:#ebdfc2;--chip:#f2e8cf;--accent:#b8342a;--accent-ink:#ffffff;--gold:#8c6807;--bad:#9d1a5f}
+[data-pal="grand"][data-theme="dark"]{--bg:#0b1622;--surface:#13233a;--ink:#e6eef6;--muted:#93a6ba;--line:#22364f;--chip:#1b2d47;--accent:#5fa8e6;--accent-ink:#0b1622;--gold:#e8c15a;--temp:#4fd3dc}
+[data-pal="bandera"][data-theme="dark"]{--bg:#0e0e10;--surface:#1a1a1d;--ink:#ededed;--muted:#a3a3a8;--line:#2c2c31;--chip:#242428;--accent:#ff5a5f;--accent-ink:#0e0e10;--gold:#d9b45a;--bad:#ff8fc4}
+[data-pal="paja"][data-theme="dark"]{--bg:#1b160c;--surface:#262012;--ink:#f3ead6;--muted:#b5a88a;--line:#3a3120;--chip:#322a19;--accent:#ee7466;--accent-ink:#1b160c;--gold:#f0c24b;--bad:#ff8fc4}
+.lk{border:1.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;width:min(420px,calc(100vw - 32px));box-shadow:0 12px 32px var(--shadow)}
+.lk::backdrop{background:var(--shadow)}
+.lk-in{padding:14px;display:flex;flex-direction:column}
+.lk-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lk-top b{font-family:var(--f-display);font-size:20px}
+.lk h3{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.lk-pal{display:flex;flex-direction:column;gap:6px}
+.lk-pal button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);font-weight:700;text-align:left}
+.lk-pal button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.sw{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--line);flex-shrink:0}
+.sw i{width:14px;height:22px}
+.sw i:nth-child(1){background:var(--bg)} .sw i:nth-child(2){background:var(--surface)} .sw i:nth-child(3){background:var(--accent)} .sw i:nth-child(4){background:var(--gold)}
+.lk-mode{display:grid;grid-template-columns:repeat(3,1fr);background:var(--chip);border-radius:10px;padding:3px}
+.lk-mode button{padding:8px 4px;border-radius:8px;font-size:14px;font-weight:700;color:var(--muted)}
+.lk-mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
+.ico{width:20px;height:20px;display:block}
+/* ===== fin de paletas ===== */
 :root{
-  --bg:#eceef2; --surface:#ffffff; --ink:#1b2130; --muted:#5b6376; --line:#d3d7e0;
-  --accent:#8c2f2b; --accent-ink:#ffffff; --gold:#8a5f0e; --good:#2c7a4b; --warn:#a86b00; --bad:#b3261e; --chip:#e3e6ee; --foe:#5a2a6e; --temp:#2f5e9e;
   --f-display:"Spectral SC", Georgia, "Times New Roman", serif;
   --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#11141b; --surface:#1a1f29; --ink:#e7e9ef; --muted:#9ba3b4; --line:#2d3444;
-  --accent:#e2806f; --accent-ink:#1c0f0d; --gold:#e3b65c; --good:#62c690; --warn:#e8b04a; --bad:#ff8f84; --chip:#242a37; --foe:#c79be0; --temp:#86b2f0; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#11141b; --surface:#1a1f29; --ink:#e7e9ef; --muted:#9ba3b4; --line:#2d3444;
-  --accent:#e2806f; --accent-ink:#1c0f0d; --gold:#e3b65c; --good:#62c690; --warn:#e8b04a; --bad:#ff8f84; --chip:#242a37; --foe:#c79be0; --temp:#86b2f0; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.4;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px;
@@ -63,15 +84,17 @@ h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
 .hpnum b{font-size:22px}
 .hpnum .t{color:var(--temp);font-weight:700;font-size:14px}
 .hpnum small{display:block;font-size:12px;color:var(--muted)}
-.state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;color:var(--bg)}
+.name .state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;color:var(--bg)}
 .s-ok{background:var(--good)} .s-mid{background:var(--warn)} .s-low{background:var(--bad)} .s-ko{background:var(--ink)}
 .track{height:8px;border-radius:4px;background:var(--chip);overflow:hidden;display:flex}
 .track i{display:block;height:100%}
-.track .hp{background:var(--good)} .track .hp.mid{background:var(--warn)} .track .hp.low{background:var(--bad)}
+.track .hp{background:var(--good)} .track .hp.mid{background:var(--warn)} .track .hp.low{background:repeating-linear-gradient(135deg,var(--bad) 0 6px,transparent 6px 9px)}
 .track .tp{background:var(--temp)}
 .ctrl{display:grid;grid-template-columns:minmax(56px,1fr) auto auto auto;gap:6px}
 .ctrl input{text-align:center;font-size:17px;width:100%}
 .ctrl .d{background:var(--bad);color:var(--bg)} .ctrl .h{background:var(--good);color:var(--bg)} .ctrl .tb{background:var(--temp);color:var(--bg)}
+/* Símbolo además del color: en las paletas rojas el daño no depende solo del tono */
+.ctrl .d::before{content:"− "} .ctrl .h::before{content:"+ "}
 .conds{display:flex;gap:5px;flex-wrap:wrap}
 .conds b{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bad);color:var(--bg)}
 .more{display:flex;flex-direction:column;gap:8px;padding-top:6px;border-top:1px dashed var(--line)}
@@ -98,6 +121,35 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<script>
+/* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
+const PALS={grand:"Grand Line",bandera:"Bandera pirata",paja:"Sombrero de paja"},MODES={auto:"Automático",day:"Día",night:"Noche"},LOOK_KEY="mc:look";
+const ICON=`<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2.2" fill="currentColor"/><circle cx="13" cy="10" r="2.2" fill="currentColor"/><circle cx="8" cy="15" r="2.2" fill="currentColor"/></svg>`;
+const darkQ=matchMedia("(prefers-color-scheme: dark)");
+const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode}:null;
+function readLook(){try{return okLook(JSON.parse(localStorage.getItem(LOOK_KEY)))}catch(e){return null}}
+let look=readLook()||{pal:"grand",mode:"auto"};
+const isDark=()=>look.mode==="night"||(look.mode==="auto"&&darkQ.matches);
+function applyLook(){const r=document.documentElement;r.dataset.pal=look.pal;r.dataset.theme=isDark()?"dark":"light";
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(r).getPropertyValue("--bg").trim();
+  const d=document.getElementById("lk");if(d&&d.open)drawLook()}
+/* fromCloud: el valor viene de Firebase, no hay que volver a subirlo */
+function setLook(v,fromCloud){v=okLook(v);if(!v||(v.pal===look.pal&&v.mode===look.mode))return;look=v;
+  try{localStorage.setItem(LOOK_KEY,JSON.stringify(look))}catch(e){}
+  applyLook();if(!fromCloud&&typeof lookToCloud==="function")lookToCloud(look)}
+function drawLook(){const t=isDark()?"dark":"light";
+  document.getElementById("lk").innerHTML=`<div class="lk-in"><div class="lk-top"><b>Apariencia</b><button class="btn" data-lk="close">Cerrar</button></div>
+  <h3>Paleta</h3><div class="lk-pal">${Object.entries(PALS).map(([k,n])=>`<button data-lkpal="${k}" aria-pressed="${look.pal===k}"><span class="sw" data-pal="${k}" data-theme="${t}"><i></i><i></i><i></i><i></i></span>${n}</button>`).join("")}</div>
+  <h3>Modo</h3><div class="lk-mode">${Object.entries(MODES).map(([k,n])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n}</button>`).join("")}</div></div>`}
+function openLook(){let d=document.getElementById("lk");
+  if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";d.setAttribute("aria-label","Apariencia");document.body.append(d);
+    d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
+      const sel=b.dataset.lkpal?`[data-lkpal="${b.dataset.lkpal}"]`:`[data-lkmode="${b.dataset.lkmode}"]`;
+      setLook(b.dataset.lkpal?{...look,pal:b.dataset.lkpal}:{...look,mode:b.dataset.lkmode});d.querySelector(sel)?.focus()})}
+  drawLook();d.showModal()}
+applyLook();darkQ.addEventListener("change",applyLook);
+addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook()}}});
+</script>
 </head>
 <body>
 
@@ -152,7 +204,7 @@ function applyHeal(c,n){c.hp=Math.min(c.max,c.hp+n)}
 
 function render(){
   const L=sorted(),cur=L.find(c=>c.id===S.cur);
-  $("top").innerHTML=`<div class="toprow"><h1>Panel del DM</h1><span class="round">Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie</span></div>
+  $("top").innerHTML=`<div class="toprow"><h1>Panel del DM</h1><span style="display:flex;align-items:center;gap:10px"><span class="round">Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie</span><button class="btn" data-do="look" aria-label="Apariencia">${ICON}</button></span></div>
     <div class="turnbar"><div class="now"><small>Turno de</small><b>${cur?esc(cur.name):"—"}</b></div>
     <button class="btn" data-do="prev" aria-label="Turno anterior">◀</button>
     <button class="btn primary big" data-do="next">Siguiente</button></div>`;
@@ -200,6 +252,7 @@ document.addEventListener("click",e=>{
     const L=sorted(),i=L.findIndex(c=>c.id===d.del);if(S.cur===d.del&&L.length>1)S.cur=L[(i+1)%L.length].id;
     S.list=S.list.filter(c=>c.id!==d.del);armed=null;open=null;if(!S.list.length)S.cur=null;save();render();return}
   const act=d.do;if(!act)return;
+  if(act==="look"){openLook();return}
   if(act==="next"||act==="prev"){const L=sorted();if(!L.length)return;let i=L.findIndex(c=>c.id===S.cur);
     for(let k=0;k<L.length;k++){i+=act==="next"?1:-1;
       if(i>=L.length){i=0;S.round++}if(i<0){i=L.length-1;S.round=Math.max(1,S.round-1)}
