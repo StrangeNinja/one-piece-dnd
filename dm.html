@@ -120,7 +120,9 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 .add .w3{grid-column:span 3} .add .w2{grid-column:span 2} .add .w1{grid-column:span 1} .add .w6{grid-column:span 6}
 .initroll{display:flex;gap:4px}
 .initroll input{flex:1}
-.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tools{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sync{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap} .sync b{color:var(--good)} .sync .btn{padding:6px 10px;font-size:12.5px}
+.tag.live{background:var(--good);color:var(--bg)}
 .note{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
 .empty{padding:20px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:12px}
 @media (max-width:520px){
@@ -134,7 +136,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-25 21:35";
+const APP_VERSION="2026-10-25 21:43";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -203,6 +205,14 @@ const condT=x=>tx(x,CONDS_EN[x]||x),tl=v=>v[look.lang]||v.es;
 const TYPE={pc:{es:"Jugador",en:"Player"},foe:{es:"Enemigo",en:"Enemy"},ally:{es:"Aliado",en:"Ally"}};
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let uid=1;const nid=()=>"c"+(Date.now().toString(36))+(uid++);
+/* ===== Nube (Firebase): combate compartido con los jugadores =====
+   combat/dm: el combate completo (solo el DM). combat/live: lo que ven los jugadores (ronda, turno y quién sigue; los enemigos van sin nombre ni datos).
+   Sin sesión de DM todo queda en este teléfono, como antes; además se copia en localStorage (mc:live) para la app abierta en el mismo navegador.
+   Configuración pública (la protegen las reglas de Firestore): la misma que en index.html */
+const FIREBASE={apiKey:"AIzaSyBjywHbBPsTBVvWtOXbKhjQDf4kmbEc-MU",authDomain:"one-piece-dnd.firebaseapp.com",projectId:"one-piece-dnd",storageBucket:"one-piece-dnd.firebasestorage.app",messagingSenderId:"629290049992",appId:"1:629290049992:web:6fe9f692bb47c8878460fd"};
+const FB="https://www.gstatic.com/firebasejs/10.12.2/firebase-";
+const CHAR_KEYS=["udon","codel","kalgo","sungsopp","ryuga"]; // claves de los personajes en index.html
+let fb=null,user=null,isDM=false,unsubs=[],LIVE={state:{},prog:{}},syncT=null,firstDm=true;
 /* Grupo base (Udon según su hoja; el resto, del Excel: revisar CA y PV) */
 const SEED={round:1,cur:null,list:[
   {name:"Kalgo",type:"pc",init:null,ac:17,max:75},
@@ -211,7 +221,7 @@ const SEED={round:1,cur:null,list:[
   {name:"Codel",type:"pc",init:null,ac:18,max:62},
   {name:"Ryuga",type:"pc",init:null,ac:null,max:null},
   {name:"Fluffy",type:"ally",init:null,ac:15,max:68,owner:"Sungsopp"}
-].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[]}))};
+].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[],...(c.type==="pc"?{char:c.name.toLowerCase()}:{})}))};
 /* Personajes con fruta del diablo: icono y recordatorio en su tarjeta */
 const FRUITS={Codel:["Mochi Mochi no Mi",{es:"el kairoseki anula sus poderes",en:"seastone cancels its powers"}],Kalgo:["Zushi Zushi no Mi",{es:"el agua y el kairoseki anulan sus poderes",en:"water and seastone cancel its powers"}],Sungsopp:[{es:"Saru Saru no Mi (Ape)",en:"Saru Saru no Mi, Model: Ape"},{es:"el agua y el kairoseki lo devuelven a forma humana",en:"water and seastone return them to human form"}]};
 /* Rol en la tripulación de cada personaje (etiqueta junto al nombre) */
@@ -223,7 +233,8 @@ const FRUIT_ICON=`<svg class="fr-ico" viewBox="0 0 16 16" fill="none" stroke="cu
 let S=store.get("dm:combat2")||JSON.parse(JSON.stringify(SEED));
 if(!S.cur&&S.list.length)S.cur=sorted()[0].id;
 let open=null,armed=null;
-const save=()=>store.set("dm:combat2",S);
+/* Cada cambio queda en este teléfono y, con sesión de DM, sube a la nube (at: para saber cuál es el más nuevo entre dispositivos del DM) */
+const save=()=>{S.at=Date.now();store.set("dm:combat2",S);syncOut()};
 /* v2: Codel pasó a CA 18 y 62 PV (antes 36) también en combates ya guardados; si estaba con los PV llenos, sigue lleno */
 if((S.v||1)<2){for(const c of S.list)if(c.type==="pc"&&c.name==="Codel"){const full=c.hp>=c.max;c.ac=18;c.max=62;if(full)c.hp=62}S.v=2;save()}
 /* v3: Kalgo pasó a CA 17 y 75 PV (antes 57) */
@@ -234,9 +245,45 @@ if(S.v<4){for(const c of S.list)if(c.type==="pc"&&c.name==="Sungsopp"){const ful
 if(S.v<5){S.list=S.list.filter(c=>!(c.type==="pc"&&(c.name==="Fate"||c.name==="Kayn")));
   for(const n of["Ryuga","Fluffy"])if(!S.list.some(c=>c.name===n)){const s=SEED.list.find(c=>c.name===n);S.list.push({...s,id:nid(),conds:[]})}
   if(!S.list.some(c=>c.id===S.cur))S.cur=S.list.length?sorted()[0].id:null;S.v=5;save()}
+/* v6: cada jugador queda enlazado a su personaje (char) para avisarle su turno; el combate empieza inactivo */
+if(S.v<6){for(const c of S.list){const n=c.name.toLowerCase();if(c.type==="pc"&&CHAR_KEYS.includes(n))c.char=n}S.active=false;S.turnId=S.turnId||0;S.v=6;save()}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function sorted(){return S.list.map((c,i)=>[c,i]).sort((a,b)=>(b[0].init??-99)-(a[0].init??-99)||a[1]-b[1]).map(x=>x[0])}
+/* Enlace con la app: jugador → su personaje; aliado con dueño (Fluffy) → el personaje del dueño */
+function linkOf(c){const n=(c.char||c.name||"").trim().toLowerCase(),o=(c.owner||"").trim().toLowerCase();
+  if(c.type==="pc"&&CHAR_KEYS.includes(n))return{char:n,kind:"pc"};if(c.type==="ally"&&CHAR_KEYS.includes(o))return{char:o,kind:"pet"};return null}
+/* Lo que ven los jugadores: sin nombres, PV ni CA de enemigos */
+function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx=null;
+  for(let k=1;k<L.length;k++){const c=L[(i+k)%L.length];if(c.hp>0||c.type==="pc"){nx=c;break}}
+  const pub=c=>{if(!c)return null;if(c.type==="foe")return{kind:"foe",char:null,name:""};const l=linkOf(c);return{kind:l?l.kind:"ally",char:l?l.char:null,name:c.name}};
+  return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),at:Date.now()}}
+function syncOut(){if(typeof sorted!=="function")return;store.set("mc:live",liveOf());
+  if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
+    F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
+    F.setDoc(F.doc(db,"combat","live"),liveOf()).catch(e=>console.warn("No se pudo publicar el turno",e))},250)}
+/* PV en vivo de cada jugador (state/{personaje}) y de Fluffy (state/sungsopp.comp) */
+function liveView(c){const l=isDM&&linkOf(c),s=l&&LIVE.state[l.char];if(!s)return null;
+  if(l.kind==="pet"){const k=s.comp||{};return Number.isFinite(k.hp)?{hp:k.hp,temp:k.temp||0,conds:c.conds,max:c.max}:null}
+  return Number.isFinite(s.hp)?{hp:s.hp,temp:s.temp||0,conds:Array.isArray(s.conds)?s.conds.filter(x=>CONDS.includes(x)):[],max:s.maxHp||c.max}:null}
+/* PV máximos al subir de nivel: los manda el teléfono del jugador (state.maxHp) o la aprobación del DM (progress.maxHp) */
+function liveMax(){let ch=false;for(const c of S.list){const l=linkOf(c);if(!l||l.kind!=="pc")continue;
+  const m=(LIVE.state[l.char]||{}).maxHp||(LIVE.prog[l.char]||{}).maxHp;if(Number.isInteger(m)&&m>0&&m!==c.max){c.hp=c.max==null?m:Math.min(c.hp,m);c.max=m;ch=true}}if(ch)save()}
+async function cloudInit(){
+  try{const [A,U,F]=await Promise.all(["app","auth","firestore"].map(m=>import(FB+m+".js")));const app=A.initializeApp(FIREBASE);let db;
+    try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){db=F.getFirestore(app)}
+    fb={U,F,db,auth:U.getAuth(app)}}catch(e){return} // sin internet y sin la librería: sigue solo en el teléfono
+  render();
+  fb.U.onAuthStateChanged(fb.auth,async u=>{unsubs.forEach(f=>f());unsubs=[];user=u;isDM=false;firstDm=true;LIVE={state:{},prog:{}};
+    if(u)try{isDM=(await fb.F.getDoc(fb.F.doc(fb.db,"admins",u.uid))).exists()}catch(e){}
+    if(isDM){const {F,db}=fb;
+      /* Otro dispositivo del DM: gana el combate guardado más nuevo */
+      unsubs.push(F.onSnapshot(F.doc(db,"combat","dm"),d=>{const v=d.exists()&&d.data();
+        if(v&&v.S&&Array.isArray(v.S.list)&&(v.at||0)>(S.at||0)&&!d.metadata.hasPendingWrites){S=v.S;store.set("dm:combat2",S);store.set("mc:live",liveOf());render()}
+        if(firstDm){firstDm=false;syncOut()}}));
+      unsubs.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>LIVE.state[d.id]=d.data());liveMax();render()}));
+      unsubs.push(F.onSnapshot(F.collection(db,"progress"),q=>{q.forEach(d=>LIVE.prog[d.id]=d.data());liveMax();render()}))}
+    render()})}
 /* max null: personaje sin hoja todavía (Ryuga) */
 function band(c){if(c.max==null)return"pend";if(c.hp<=0)return"ko";const p=c.hp/c.max;return p>.5?"ok":p>.25?"mid":"low"}
 const BAND={ok:["s-ok",{es:"Sano",en:"Healthy"}],mid:["s-mid",{es:"Herido",en:"Hurt"}],low:["s-low",{es:"Grave",en:"Critical"}],ko:["s-ko",{es:"KO",en:"KO"}],pend:["s-mid",{es:"Hoja pendiente",en:"Sheet pending"}]};
@@ -255,24 +302,27 @@ function render(){
   $("top").innerHTML=`<div class="toprow"><h1>${tx("Panel del DM","DM Panel")}</h1><span style="display:flex;align-items:center;gap:10px"><span class="round">${tx(`Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie`,`Round ${S.round} · ${L.filter(c=>c.hp>0).length} standing`)}</span><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></span></div>
     <div class="turnbar"><div class="now"><small>${tx("Turno de","Turn of")}</small><b>${cur?esc(cur.name):"—"}</b></div>
     <button class="btn" data-do="prev" aria-label="${tx("Turno anterior","Previous turn")}">◀</button>
-    <button class="btn primary big" data-do="next">${tx("Siguiente","Next")}</button></div>`;
+    <button class="btn primary big" data-do="next">${tx("Siguiente","Next")}</button></div>
+    <div class="sync">${S.active?`<b>${tx("Combate en curso","Combat in progress")}</b>`:tx("Sin combate: «Siguiente» lo empieza","No combat: “Next” starts it")} · ${!fb?tx("solo en este teléfono","this phone only")
+      :!user?`<button class="btn" data-do="login">${tx("Entrar con Google para avisar los turnos","Sign in with Google to announce turns")}</button>`
+      :isDM?tx("en la nube: los jugadores ven los turnos","in the cloud: players see the turns"):`${tx("esta cuenta no es del DM","this account isn't the DM's")} <button class="btn" data-do="logout">${tx("Cerrar sesión","Sign out")}</button>`}</div>`;
   $("list").innerHTML=L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`;
-  $("tools").innerHTML=[["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["reset",tx("Vaciar combate","Clear combat")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("");
+ $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["reset",tx("Vaciar combate","Clear combat")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("");
 }
-function card(c){
-  const b=band(c),pend=b==="pend",tot=c.max+c.temp,hpW=c.hp/tot*100,tW=c.temp/tot*100,isOpen=open===c.id;
+function card(c0){
+  const lv=liveView(c0),c=lv?{...c0,...lv}:c0,b=band(c),pend=b==="pend",tot=c.max+c.temp,hpW=c.hp/tot*100,tW=c.temp/tot*100,isOpen=open===c.id,own=lv&&linkOf(c0).kind==="pc";
   return `<div class="card ${S.cur===c.id?"cur":""} ${b==="ko"?"ko":""}">
    <div class="head">
      ${c.type==="pc"?`<input class="init initin" type="number" inputmode="numeric" value="${c.init??""}" placeholder="–" data-initfor="${c.id}" aria-label="${tx(`Iniciativa de ${esc(c.name)} (la tira el jugador)`,`${esc(c.name)}'s initiative (rolled by the player)`)}">`:`<span class="init">${c.init??"–"}</span>`}${c.type==="pc"?pic(c.name):""}
-     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}${ROLES[c.name]?` <span class="tag role">${tl(ROLES[c.name])}</span>`:""}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${tl(TYPE[c.type])}</span> · ${tx("CA","AC")} ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${tl(BAND[b][1])}</span></span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name].map(x=>typeof x==="string"?x:tl(x)).join(" · ")}</span>`:""}${c.owner?`<span class="fr">${tx(`Mascota de ${esc(c.owner)}`,`${esc(c.owner)}'s companion`)}</span>`:""}</button>
+     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}${ROLES[c.name]?` <span class="tag role">${tl(ROLES[c.name])}</span>`:""}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${tl(TYPE[c.type])}</span> · ${tx("CA","AC")} ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${tl(BAND[b][1])}</span>${lv?` <span class="tag live">${tx("en vivo","live")}</span>`:""}</span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name].map(x=>typeof x==="string"?x:tl(x)).join(" · ")}</span>`:""}${c.owner?`<span class="fr">${tx(`Mascota de ${esc(c.owner)}`,`${esc(c.owner)}'s companion`)}</span>`:""}</button>
      <div class="hpnum">${pend?`<b>—</b><small>${tx("sin PV todavía","no HP yet")}</small>`:b==="ko"?`<b>KO</b><small>${tx(`de ${c.max} PV`,`of ${c.max} HP`)}</small>`:`<b>${c.hp}</b>${c.temp?` <span class="t">+${c.temp}</span>`:""}<small>${tx(`de ${c.max} PV`,`of ${c.max} HP`)}</small>`}</div>
    </div>
    ${pend?`<p class="note">${tx("Su hoja llega más adelante. Puedes ponerle CA y PV máx. tocando su nombre.","Their sheet comes later. You can set AC and max HP by tapping their name.")}</p>`:`<div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>`}
    ${c.conds.length?`<div class="conds">${c.conds.map(x=>`<b>${condT(x)}</b>`).join("")}</div>`:""}
-   ${pend?"":`<div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="${tx(`Cantidad para ${esc(c.name)}`,`Amount for ${esc(c.name)}`)}">
+   ${pend?"":lv?`<p class="note">${own?tx("PV y estados en vivo desde la app del jugador: los cambia el jugador.","Live HP and conditions from the player's app: the player changes them."):tx("PV en vivo desde la app de su dueño.","Live HP from the owner's app.")}</p>`:`<div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="${tx(`Cantidad para ${esc(c.name)}`,`Amount for ${esc(c.name)}`)}">
      <button class="btn d" data-dmg="${c.id}">${tx("Daño","Damage")}</button><button class="btn h" data-heal="${c.id}">${tx("Curar","Heal")}</button><button class="btn tb" data-temp="${c.id}">Temp.</button></div>`}
    ${isOpen?`<div class="more">
-     <div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>
+     ${own?"":`<div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>`}
      <div class="edit">
        <label>${tx("Nombre","Name")}<input id="e-name-${c.id}" value="${esc(c.name)}"></label>
        <label>${tx("Iniciativa","Initiative")}<input id="e-init-${c.id}" type="number" inputmode="numeric" value="${c.init??""}"></label>
@@ -295,22 +345,25 @@ document.addEventListener("click",e=>{
   if(d.cond){const c=find(d.cond);c.conds=c.conds.includes(d.c)?c.conds.filter(x=>x!==d.c):[...c.conds,d.c];save();render();return}
   if(d.save){const c=find(d.save);const nm=$("e-name-"+c.id).value.trim();if(nm)c.name=nm;c.init=num("e-init-"+c.id);c.ac=num("e-ac-"+c.id);
     const mx=num("e-max-"+c.id);if(mx>0){c.hp=c.max==null?mx:Math.min(c.hp,mx);c.max=mx}open=null;save();render();return}
-  if(d.turn){S.cur=d.turn;open=null;save();render();return}
+  if(d.turn){S.cur=d.turn;S.turnId=(S.turnId||0)+1;S.active=true;open=null;save();render();return}
   if(d.del){if(armed!=="del"+d.del){armed="del"+d.del;render();return}
     const L=sorted(),i=L.findIndex(c=>c.id===d.del);if(S.cur===d.del&&L.length>1)S.cur=L[(i+1)%L.length].id;
     S.list=S.list.filter(c=>c.id!==d.del);armed=null;open=null;if(!S.list.length)S.cur=null;save();render();return}
   const act=d.do;if(!act)return;
   if(act==="look"){openLook();return}
+  if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>alert(tx("No se pudo entrar: ","Couldn't sign in: ")+(e.code||e)));return}
+  if(act==="logout"){fb.U.signOut(fb.auth);return}
   if(act==="next"||act==="prev"){const L=sorted();if(!L.length)return;let i=L.findIndex(c=>c.id===S.cur);
     for(let k=0;k<L.length;k++){i+=act==="next"?1:-1;
       if(i>=L.length){i=0;S.round++}if(i<0){i=L.length-1;S.round=Math.max(1,S.round-1)}
       if(L[i].hp>0||L[i].type==="pc")break}
-    S.cur=L[i].id;armed=null;save();render();return}
-  if(["heal","foes","reset"].includes(act)){
+    S.cur=L[i].id;S.turnId=(S.turnId||0)+1;S.active=true;armed=null;save();render();return}
+  if(["end","heal","foes","reset"].includes(act)){
     if(armed!==act){armed=act;render();return}armed=null;
     if(act==="heal")S.list.forEach(c=>{c.hp=c.max;c.temp=0;c.conds=[]});
     if(act==="foes"){S.list=S.list.filter(c=>c.type!=="foe");S.round=1;S.cur=sorted()[0]?.id||null}
-    if(act==="reset"){S={round:1,cur:null,list:[]}}
+    if(act==="end"){S.active=false;S.round=1}
+    if(act==="reset"){S={round:1,cur:null,list:[],v:S.v,active:false,turnId:S.turnId}} // v: que no vuelvan a correr las migraciones
     save();render();return}
 });
 document.addEventListener("change",e=>{const id=e.target.dataset&&e.target.dataset.initfor;if(!id)return;
@@ -326,7 +379,10 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
   ["f-name","f-init","f-mod","f-ac","f-max"].forEach(i=>$(i).value="");$("f-qty").value=1;
   save();render();
 });
-staticT();render();
+/* Lo publicado nunca lleva nombre, PV ni CA de enemigos */
+{const t={...S};S={round:2,cur:"e",list:[{id:"e",name:"Kaido",type:"foe",init:20,ac:22,hp:500,max:500,temp:0,conds:[]},{id:"u",name:"Udon",char:"udon",type:"pc",init:10,ac:15,hp:66,max:66,temp:0,conds:[]}],active:true,turnId:3};
+  const p=JSON.stringify(liveOf());console.assert(!/Kaido|"hp"|"ac"|"max"/.test(p)&&/"char":"udon"/.test(p),"dm-live: "+p);S=t}
+staticT();render();cloudInit();
 </script>
 
 </body>

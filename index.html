@@ -208,6 +208,17 @@ code{font-size:12px;word-break:break-all;user-select:all}
 .lvck{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.4} .lvck input{margin-top:3px;width:18px;height:18px;flex-shrink:0;accent-color:var(--accent)}
 .lvhist summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--muted)}
 .conc.lvb{background:var(--gold)}
+/* Turnos del combate: barra arriba, aviso grande, aviso suave e insignia */
+.cbar{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:6px 12px;border-radius:10px;background:var(--chip);font-size:13px;color:var(--muted)}
+.cbar b{color:var(--ink)} .cbar span:not(.nx){color:var(--ink);font-weight:700} .cbar .nx{margin-left:auto}
+.cbar.me{background:var(--accent);color:var(--accent-ink)} .cbar.me b,.cbar.me span{color:var(--accent-ink)!important}
+.yt{position:fixed;left:0;right:0;top:0;z-index:58;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;
+  padding:calc(22px + env(safe-area-inset-top,0px)) 20px 20px;background:var(--accent);color:var(--accent-ink);box-shadow:0 10px 30px var(--shadow);animation:ytin .35s ease-out}
+.yt b{font-family:var(--f-display);font-size:clamp(28px,8vw,44px);line-height:1.1} .yt span{font-size:15px;font-weight:700;max-width:30em} .yt small{font-size:12px;opacity:.8}
+.yn{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:57;max-width:min(92vw,480px);padding:10px 16px;border-radius:999px;
+  background:var(--surface);color:var(--ink);border:1.5px solid var(--gold);box-shadow:0 6px 18px var(--shadow);font-weight:700;font-size:14px;cursor:pointer;animation:ynin .3s ease-out}
+@keyframes ytin{from{transform:translateY(-100%)}to{transform:none}} @keyframes ynin{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translateX(-50%)}}
+.econ.yt-b{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)} .econ.yt-b i{background:var(--accent-ink)}
 /* Retratos: imagen sobre la inicial (si falta el archivo, queda la inicial). Papel de cartel derivado de los tokens de la paleta */
 .av{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--chip);color:var(--muted);font-weight:700;font-size:12px;line-height:1}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -258,7 +269,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-25 21:35";
+const APP_VERSION="2026-10-25 21:43";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -908,8 +919,8 @@ function render(){
   $("pick").innerHTML=(admin?`<button data-pick="mesa" aria-pressed="${view==="mesa"}">${tx("Mesa","Table")}</button>`:"")+
     (keys.length>1||admin?keys.map(k=>`<button data-pick="${k}" aria-pressed="${k===cur&&view==="char"}">${pic(k,"mini",24)}${CHARS[k].name}</button>`).join(""):"");
   $("hero").hidden=view!=="char";
-  if(view!=="char"){$("main").innerHTML=`<div style="display:flex;justify-content:flex-end;padding-top:12px"><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></div>`+gate();return}
-  $("hero").innerHTML=`
+  if(view!=="char"){$("main").innerHTML=cbBar()+`<div style="display:flex;justify-content:flex-end;padding-top:12px"><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></div>`+gate();return}
+  $("hero").innerHTML=cbBar()+`
    <div class="hdr"><button class="portrait" data-do="poster" aria-label="${tx(`Ver el cartel de ${c.name}`,`See ${c.name}'s poster`)}">${pic(cur,"retrato",60)}${c.bounty?`<small class="bounty">฿ ${esc(c.bounty)}</small>`:""}</button>
     <h1 title="${c.name}">${c.name}</h1>
     <div class="stats">
@@ -925,7 +936,7 @@ function render(){
    <div class="turn">
      ${chip("accion",t.a<=0,tx("Acción","Action")+(t.a>0&&apa(c)>1?` · ${t.atk} ${t.atk===1?tx("golpe","attack"):tx("golpes","attacks")}`:"")+(t.a>1?` ×${t.a}`:""))}
      ${chip("adicional",t.b<=0,tx("Acción adicional","Bonus Action"))}
-     ${chip("reaccion",t.r<=0,tx("Reacción","Reaction"))}<span class="brk" aria-hidden="true"></span>
+     ${chip("reaccion",t.r<=0,tx("Reacción","Reaction"))}<span class="brk" aria-hidden="true"></span>${cbBadge()}
      ${chip("especial",t.sr<=0,`${tx("Especial","Special")} ${t.sr}/2`)}
      ${S.hard>0?`<span class="econ haki"><i></i>Haki +${c.hardening.bonus} · ${S.hard} t.</span>`:""}
      ${S.exh?`<span class="econ"><i></i>${tx("Agotamiento","Exhaustion")} ${S.exh}</span>`:""}
@@ -1052,7 +1063,7 @@ function itemSec(c){
    Ataque con multi:"heads": un ataque por cabeza viva. Estado en S.comp: hp, temp, heads, tf, turnDmg. La mascota actúa en su propio turno: no gasta acciones del personaje */
 function compSec(c){
   const cp=c.companion,k=S.comp,pct=Math.max(0,k.hp/cp.hp*100),down=k.hp<=0;
-  return`<section><h2><span class="h2t">${sico("companion")}${tx("Mascota","Companion")}</span> <small>${cp.name} · ${cp.kind} · ${tx("CA","AC")} ${cp.ac}</small></h2><div class="box2">
+  return`<section id="sec-mascota"><h2><span class="h2t">${sico("companion")}${tx("Mascota","Companion")}</span> <small>${cp.name} · ${cp.kind} · ${tx("CA","AC")} ${cp.ac}</small></h2><div class="box2">
     <div class="hp"><div class="hpbar"><div class="hptxt"><span><b>${k.hp}</b>${k.temp?` <span class="t">+${k.temp}</span>`:""} / ${cp.hp} ${tx("PV","HP")}${down?tx(" · cae"," · down"):""}</span><span>${cp.heads?`${tx("Cabezas","Heads")} ${k.heads}/${cp.heads}`:""}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${Math.max(0,k.hp)/(cp.hp+k.temp)*100}%"></div>${k.temp?`<div class="fill tp" style="width:${k.temp/(cp.hp+k.temp)*100}%"></div>`:""}</div></div>
       <div class="hpctl"><input class="hpin" id="compin" type="number" inputmode="numeric" min="0" placeholder="0" aria-label="${tx(`Cantidad de PV de ${cp.name}`,`${cp.name}'s hit point amount`)}">
@@ -1444,6 +1455,7 @@ async function signedIn(u){
   view="load";render();
   const {F,db}=fb;
   try{admin=(await F.getDoc(F.doc(db,"admins",u.uid))).exists()}catch(e){}
+  unsub.push(F.onSnapshot(F.doc(db,"combat","live"),d=>onCombat(d.exists()?d.data():null),()=>onCombat(null)));
   if(admin){
     unsub.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>mesa.state[d.id]=d.data());if(view==="mesa")render()}));
     unsub.push(F.onSnapshot(F.collection(db,"progress"),q=>q.forEach(d=>onProg(d.id,d.data()))));
@@ -1475,7 +1487,7 @@ function openChar(k){
 /* La apariencia viaja en el documento del jugador (o del DM) para seguirlo a otros dispositivos */
 function lookToCloud(v){if(fb&&user)fb.F.setDoc(fb.F.doc(fb.db,"players",user.uid),{look:v},{merge:true}).catch(e=>console.warn("No se pudo guardar la apariencia",e))}
 function push(){clearTimeout(pushT);pushT=null;if(!fb||!user)return;
-  fb.F.setDoc(fb.F.doc(fb.db,"state",cur),{...S,by:user.uid,at:fb.F.serverTimestamp()}).catch(e=>console.warn("No se pudo guardar en la nube",e))}
+  fb.F.setDoc(fb.F.doc(fb.db,"state",cur),{...S,maxHp:C().maxHp,by:user.uid,at:fb.F.serverTimestamp()}).catch(e=>console.warn("No se pudo guardar en la nube",e))}
 
 function gate(){
   if(view==="login")return`<section class="box2" style="margin-top:24px"><h1>${tx("Mesa de Combate","Combat Table")}</h1>
@@ -1713,7 +1725,7 @@ function lvDmClick(ds){const k=ds.k,P=k&&(PROG[k]||{});
   if(ds.lvdm==="cancel"){progWrite(k,{event:null});return}
   if(ds.lvdm==="no"){delete RV[k];progWrite(k,{pending:null,event:{...P.event,rej:true}});return}
   if(ds.lvdm==="ok"&&P.pending){const e=RV[k]||{},np=lvApply(P,P.pending,e),h=np.hist[np.hist.length-1];
-    h.hp=buildChar(k,np).maxHp-CHARS[k].maxHp;delete RV[k];progWrite(k,np,true)}}
+    np.maxHp=buildChar(k,np).maxHp;h.hp=np.maxHp-CHARS[k].maxHp;delete RV[k];progWrite(k,np,true)}} // maxHp: lo lee dm.html
 /* Aviso en el encabezado del jugador mientras hay una subida en curso */
 function lvBanner(){const P=PROG[cur];if(admin||!P||!P.event)return"";
   return`<div class="conc lvb"><span>${P.pending?tx(`Subida a nivel ${P.event.to}: esperando que el DM la apruebe`,`Level ${P.event.to}: waiting for the DM's approval`):P.event.rej?tx(`El DM rechazó tu subida a nivel ${P.event.to}: revísala y vuelve a enviarla`,`The DM rejected your level ${P.event.to} proposal: review it and send it again`):tx(`¡Subiste a nivel ${P.event.to}! Elige tus mejoras`,`You reached level ${P.event.to}! Choose your improvements`)}</span>${P.pending?"":`<button class="btn" data-lv="open">${tx("Continuar","Continue")}</button>`}</div>`}
@@ -1721,6 +1733,48 @@ function lvBanner(){const P=PROG[cur];if(admin||!P||!P.event)return"";
 function lvSheet(c){const P=PROG[cur]||{},g=c.gained||[],hi=P.hist||[];if(!g.length&&!hi.length)return"";
   return`<section><h2>${tx("Rasgos por nivel","Level features")}</h2><div class="box2">${g.map(x=>`<p class="note"><b>${x.n}</b>${x.lvl?` (${tx("nivel","level")} ${x.lvl})`:x.feat?` (${tx("dote","feat")})`:""}${x.sum?": "+x.sum:""}</p>`).join("")}
     ${hi.length?`<details class="lvhist"><summary>${tx("Historial de niveles","Level history")} (${hi.length})</summary>${hi.map(h=>lvHist(cur,h)).reverse().join("")}</details>`:""}</div></section>`}
+
+/* Inicio de turno: economía, efectos por turno y duraciones (botón "Nuevo turno" o aviso del DM) */
+function startTurn(c){S.turn=newTurn(c);S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;if(S.hard>0){S.hard--;if(S.hard===0)log(tx("Endurecimiento terminado","Weapon Hardening ended"))}$("tray").classList.add("hide");log(tx("— Nuevo turno —","— New turn —"));
+  /* En frenesí, Postura de hierro se ofrece al inicio de cada turno */
+  const ir=c.actions.findIndex(x=>x.kind==="temproll"&&x.perTurn&&x.only&&S[x.only]);
+  if(ir>=0)show({title:tx("Inicio de turno · ","Start of turn · ")+c.frenzy.label,html:`<div class="trayact"><button class="btn primary" data-act="${ir}">${c.actions[ir].name}: +${c.actions[ir].temp} ${tx("PV temporales","temporary HP")}</button></div>`,tip:c.frenzy.note})}
+
+/* ===================== TURNOS DEL COMBATE (dm.html) ===================== */
+/* combat/live (lo escribe dm.html con sesión de DM): active, round, turnId (sube en cada cambio de turno), cur y next {kind: pc | pet | ally | foe, char, name}.
+   Los enemigos llegan sin nombre. Sin cuenta se lee la copia local mc:live (DM y app en el mismo navegador). mc:turnseen: último turno ya avisado en este teléfono */
+let CB=null;
+const CB_KINDS=["pc","pet","ally","foe"],CB_CHARS=["udon","codel","kalgo","sungsopp","ryuga"];
+const cbWho=x=>x&&typeof x==="object"&&CB_KINDS.includes(x.kind)?{kind:x.kind,char:CB_CHARS.includes(x.char)?x.char:null,name:x.kind==="foe"?"":String(x.name||"").slice(0,40)}:null;
+const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next)}:null;
+console.assert(cleanCB({active:true,round:2,turnId:5,cur:{kind:"foe",name:"Kaido"},next:{kind:"pc",char:"udon",name:"Udon"}}).cur.name===""&&cleanCB({active:false})===null,"combate");
+/* Turno de quién, visto desde este teléfono: mine (es mi personaje), name (escapado) */
+const cbMine=x=>!!x&&!admin&&view==="char"&&x.char===cur;
+const cbName=x=>x.kind==="foe"?tx("los enemigos","the enemies"):cbMine(x)&&x.kind==="pc"?tx("tú","you"):esc(x.name);
+function onCombat(raw){CB=cleanCB(raw);
+  if(CB&&S&&!admin&&view==="char"&&CB.turnId!==store.get("mc:turnseen")){store.set("mc:turnseen",CB.turnId);const c=C(),t=CB.cur,n=CB.next;
+    if(cbMine(t)&&t.kind==="pc")myTurn(c);
+    else if(cbMine(t)&&t.kind==="pet")petTurn(t);
+    else if(cbMine(n))cbToast(n.kind==="pet"?tx(`Prepárate: ${esc(n.name)} va después de ${cbName(t)}`,`Get ready: ${esc(n.name)} goes after ${cbName(t)}`):tx(`Prepárate, vas después de ${cbName(t)}`,`Get ready, you're up after ${cbName(t)}`))}
+  render()}
+const reduceM=()=>matchMedia("(prefers-reduced-motion: reduce)").matches;
+const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}; // Android vibra; iPhone no tiene la función y no pasa nada
+function cbJump(id){requestAnimationFrame(()=>{const s=$(id);if(s)s.scrollIntoView({behavior:reduceM()?"auto":"smooth",block:"start"})})}
+function myTurn(c){book=false;startTurn(c);save();buzz([220,90,220]);
+  cbBanner(tx(`¡Es tu turno, ${esc(c.name)}!`,`It's your turn, ${esc(c.name)}!`),tx(`Ronda ${CB.round} · tu turno ya empezó: acción, acción adicional y reacción listas`,`Round ${CB.round} · your turn has started: action, bonus action and reaction ready`));render();cbJump("sec-accion")}
+function petTurn(t){buzz(160);cbBanner(tx(`Turno de ${esc(t.name)}`,`${esc(t.name)}'s turn`),tx(`Ronda ${CB.round} · sus ataques no gastan tus acciones`,`Round ${CB.round} · its attacks don't use your actions`));render();cbJump("sec-mascota")}
+/* Aviso grande: se cierra al tocarlo o solo a los 6 segundos */
+function cbBanner(title,sub){let d=$("yt");if(!d){d=document.createElement("div");d.id="yt";d.className="yt";d.setAttribute("role","alert");d.addEventListener("click",()=>d.hidden=true);document.body.append(d)}
+  d.innerHTML=`<b>${title}</b><span>${sub}</span><small>${tx("Toca para cerrar","Tap to close")}</small>`;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,6000)}
+/* Aviso suave para el que sigue */
+function cbToast(text){let d=$("yn");if(!d){d=document.createElement("div");d.id="yn";d.className="yn";d.setAttribute("role","status");d.addEventListener("click",()=>d.hidden=true);document.body.append(d)}
+  d.innerHTML=text;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,5000)}
+/* Barra de combate (todos, mientras el DM tiene un combate activo) e insignia "Tu turno" */
+function cbBar(){if(!CB)return"";const t=CB.cur,n=CB.next;
+  const tt=t.kind==="foe"?tx("Turno de los enemigos","Enemies' turn"):cbMine(t)&&t.kind==="pc"?tx("Tu turno","Your turn"):tx(`Turno de ${esc(t.name)}`,`${esc(t.name)}'s turn`);
+  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}</div>`}
+const cbBadge=()=>CB&&cbMine(CB.cur)?`<span class="econ yt-b"><i></i>${CB.cur.kind==="pet"?tx(`Turno de ${esc(CB.cur.name)}`,`${esc(CB.cur.name)}'s turn`):tx("Tu turno","Your turn")}</span>`:"";
+addEventListener("storage",e=>{if(e.key==="mc:live"&&!user)onCombat(store.get("mc:live"))});
 
 /* ===================== EVENTOS ===================== */
 document.addEventListener("click",e=>{
@@ -1867,10 +1921,7 @@ document.addEventListener("click",e=>{
     b.v=(+b.v)-old+f.v;b.s+=` · ${tx("presagio","foretelling")}: ${old} → ${f.v}`;b.cls=f.v===20?"crit":f.v===1?"fail":"";T.raw=f.v;log(tx(`Presagio ${f.v} reemplaza un ${old}`,`Foretelling roll ${f.v} replaces a ${old}`));drawTray();save();render();return}
   if(act==="init"&&phys()){show({title:INIT_(),d20:0,boxes:[d20Box(INIT_(),ini(c),mode)],p:{mod:ini(c),dmg:[],fmt:tot=>`<b>${INIT_()}</b>: ${tot}`}});log(`<b>${INIT_()}</b>`);T.logLine=S.log[0];save();return}
   if(act==="init"){const r=d20();show({title:INIT_(),d20:0,boxes:[{l:INIT_(),v:r.v+ini(c),s:`d20 ${r.txt} ${sgn(ini(c))}`}]});log(`<b>${INIT_()}</b>: ${r.v+ini(c)}`)}
-  if(act==="turn"){S.turn=newTurn(c);S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;if(S.hard>0){S.hard--;if(S.hard===0)log(tx("Endurecimiento terminado","Weapon Hardening ended"))}$("tray").classList.add("hide");log(tx("— Nuevo turno —","— New turn —"));
-    /* En frenesí, Postura de hierro se ofrece al inicio de cada turno */
-    const ir=c.actions.findIndex(x=>x.kind==="temproll"&&x.perTurn&&x.only&&S[x.only]);
-    if(ir>=0)show({title:tx("Inicio de turno · ","Start of turn · ")+c.frenzy.label,html:`<div class="trayact"><button class="btn primary" data-act="${ir}">${c.actions[ir].name}: +${c.actions[ir].temp} ${tx("PV temporales","temporary HP")}</button></div>`,tip:c.frenzy.note})}
+  if(act==="turn")startTurn(c);
   if(act==="dmg"||act==="heal"||act==="temp"){const n=parseInt($("hpin").value,10);if(!(n>0))return;
     /* Los PV temporales no se acumulan: queda el valor más alto */
     if(act==="temp"){log(n>S.temp?`${tx("PV temporales","Temporary HP")}: <b>${n}</b>`:tx(`PV temporales: se queda con ${S.temp} (no se acumulan)`,`Temporary HP: keeps ${S.temp} (they don't stack)`));S.temp=Math.max(S.temp,n)}
@@ -1897,7 +1948,7 @@ document.addEventListener("click",e=>{
   save();render();
 });
 
-load();render();cloudInit();
+load();render();cloudInit();onCombat(store.get("mc:live")); // sin cuenta: combate del dm.html abierto en este navegador
 </script>
 
 </body>
