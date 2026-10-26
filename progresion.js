@@ -76,12 +76,15 @@ const PCLASS={
       15:[{id:"tireless",k:"passive",n:{es:"Entrenamiento incansable",en:"Tireless Training"},sum:{es:"Doble capacidad de carga, salto con carrera sin tomar impulso e ignoras un nivel de agotamiento por marcha forzada por descanso largo.",en:"Double carrying capacity, running jumps without a run-up, and ignore one level of exhaustion from a forced march per long rest."}}],
       18:[{id:"invincible",k:"review",n:{es:"Invencible",en:"Invincible"},sum:{es:"En frenesí, resistencia a todo el daño.",en:"While frenzied, resistance to all damage."},why:{es:"El libro antiguo lo da con Prepárate para el impacto y sin fuerza; la hoja mezcla los dos libros.",en:"The old book ties it to Brace for Impact and excludes force; the sheet mixes both books."}}],
       20:[{id:"king",k:"review",n:{es:"El Rey",en:"The King"},sum:{es:"FUE y CON +2 (máximo 22) y recuperas todos los dados de golpe al descansar.",en:"STR and CON +2 (max 22) and you regain all Hit Dice on a long rest."},why:{es:"Cambia el máximo de características: aplicarlo a mano.",en:"It changes the ability cap: apply it by hand."}}]},
-    /* Rasgos de furia: se conocen tantos como el bono de competencia (el DM le permitió 4 a Kalgo con competencia +3) */
-    choice:{9:[{type:"fury",n:1,review:true}],13:[{type:"fury",n:1,review:true}],17:[{type:"fury",n:1,review:true}]},
+    /* Rasgos de furia: el libro da tantos como el bono de competencia. Decisión del DM para Kalgo: competencia + 1 (4 con +3, 5 en nivel 9, 6 en 13, 7 en 17); en los dos casos se suma uno cuando sube la competencia */
+    choice:{9:[{type:"fury",n:1}],13:[{type:"fury",n:1}],17:[{type:"fury",n:1}]},
     fury:[{id:"keepGoing",n:{es:"Sigue adelante",en:"Keep Going"},sum:{es:"Si fallas una salvación, gastas 1 de furia para repetirla y te quedas con el segundo resultado.",en:"When you fail a saving throw, spend 1 fury point to reroll it and take the second result."},
         act:{cost:"gratis",kind:"use",res:"furia",name:{es:"Sigue adelante",en:"Keep Going"},note:{es:"Furia: al fallar una salvación, la repites y usas el segundo resultado",en:"Fury: when you fail a saving throw, reroll it and take the second result"}}},
       {id:"unbending",n:{es:"Determinación inquebrantable",en:"Unbending Resolve"},sum:{es:"Acción adicional y 1 de furia: terminas hechizado o asustado en ti.",en:"Bonus action and 1 fury point: end charmed or frightened on yourself."},
-        act:{cost:"adicional",kind:"use",res:"furia",name:{es:"Determinación inquebrantable",en:"Unbending Resolve"},note:{es:"Furia: terminas hechizado o asustado en ti",en:"Fury: end charmed or frightened on yourself"}}}]},
+        act:{cost:"adicional",kind:"use",res:"furia",name:{es:"Determinación inquebrantable",en:"Unbending Resolve"},note:{es:"Furia: terminas hechizado o asustado en ti",en:"Fury: end charmed or frightened on yourself"}}},
+      /* Del libro antiguo (PA): el nuevo solo trae 6 rasgos de furia y Kalgo llega a 7 en nivel 17 */
+      {id:"machineGun",n:{es:"Golpes de ametralladora",en:"Machine Gun Blows"},sum:{es:"Libro antiguo. Justo después de la acción de Atacar, 1 de furia: dos golpes sin arma o con armas de Bruiser como acción adicional.",en:"Old book. Right after the Attack action, 1 fury point: two unarmed strikes or bruiser weapon attacks as a bonus action."},
+        act:{cost:"adicional",kind:"use",res:"furia",name:{es:"Golpes de ametralladora",en:"Machine Gun Blows"},note:{es:"Furia, tras la acción de Atacar: dos golpes sin arma o con armas de Bruiser",en:"Fury, after the Attack action: two unarmed strikes or bruiser weapon attacks"}}}]},
   rogue:{n:{es:"Rogue",en:"Rogue"},src:"PA",hd:8,avg:5,asi:[4,8,10,12,16,19],
     col:{apa:byLvl(Array(20).fill(1)),sneak:byLvl(["1d6","1d6","2d6","2d6","3d6","3d6","4d6","4d6","5d6","5d6","6d6","6d6","7d6","7d6","8d6","8d6","9d6","9d6","10d6","10d6"])},
     feat:{
@@ -109,8 +112,8 @@ const PSUB={
   skyDomain:{cls:"priest",n:"Sky Domain",src:"EH",
     domain:{1:["fogCloud","thunderwave"],3:["gustOfWind","shatter"],5:["callLightning","sleetStorm"],7:["controlWater","iceStorm"],9:["destructiveWave","insectPlague"]},
     feat:{1:[{id:"dialStrike",k:"have",n:{es:"Golpe atronador de dial",en:"Thunderous Dial Strike"}}],2:[{id:"wrath",k:"have",n:{es:"Ira Destructiva",en:"Destructive Wrath"}}],6:[{id:"dialRitual",k:"have",n:{es:"Ritual de dial",en:"Dial Ritual"}}],
-      8:[{id:"dialInfusion",k:"review",n:{es:"Infusión de dial",en:"Dial Infusion"},sum:{es:"Una vez por turno, al impactar con un conjuro o un ataque con arma: +1d8 de trueno; salvación de CON contra tu CD de conjuros o empujado 10 pies o derribado.",en:"Once per turn, when you hit with a spell or weapon attack: +1d8 thunder; CON save against your spell save DC or pushed 10 feet or knocked prone."},
-          why:{es:"Se suma a Poder de tormenta (decisión del DM, también 1d8 una vez por turno) y a Golpes bendecidos: tres daños extra por turno.",en:"It stacks with Storm Power (DM decision, also 1d8 once per turn) and Blessed Strikes: three extra damage dice per turn."},
+      /* Decisión del DM: se suma a Poder de tormenta y a Golpes bendecidos (cada uno una vez por turno), como en el libro */
+      8:[{id:"dialInfusion",k:"extra",n:{es:"Infusión de dial",en:"Dial Infusion"},sum:{es:"Una vez por turno, al impactar con un conjuro o un ataque con arma: +1d8 de trueno; salvación de CON contra tu CD de conjuros o empujado 10 pies o derribado.",en:"Once per turn, when you hit with a spell or weapon attack: +1d8 thunder; CON save against your spell save DC or pushed 10 feet or knocked prone."},
           x:{id:"dialInfusion",name:{es:"Infusión de dial",en:"Dial Infusion"},dice:"1d8",type:"trueno",when:{es:"impacto con conjuro o arma; CON o empujado 10 pies o derribado",en:"hit with a spell or weapon; CON save or pushed 10 feet or knocked prone"}}}],
       9:[{id:"skySpells9",k:"review",n:{es:"Conjuros de dominio: Destructive Wave e Insect Plague",en:"Domain spells: Destructive Wave and Insect Plague"},sum:{es:"Siempre preparados desde nivel 9.",en:"Always prepared from level 9."},why:{es:"Todavía no están en conjuros.js.",en:"They aren't in conjuros.js yet."}}],
       14:[{id:"dialInfusion2",k:"info",n:{es:"Infusión de dial: 2d8",en:"Dial Infusion: 2d8"}}],
@@ -252,10 +255,9 @@ const FEATS=[
 const PROG_NOTES=[
   {es:"Warrior 12 · Hawk Strike: el libro no dice cuántos usos tiene.",en:"Warrior 12 · Hawk Strike: the book doesn't give its number of uses."},
   {es:"Udon · usos de Endurecimiento (Haki): la hoja dice 3; no depende del nivel en el libro, queda fijo.",en:"Udon · Weapon Hardening (Haki) uses: the sheet says 3; not level-based in the book, kept fixed."},
-  {es:"Priest 8 · Infusión de dial se suma a Poder de tormenta y Golpes bendecidos.",en:"Priest 8 · Dial Infusion stacks with Storm Power and Blessed Strikes."},
   {es:"Priest 9 · Destructive Wave e Insect Plague (dominio) y todos los conjuros de nivel 5+ todavía no están en conjuros.js.",en:"Priest 9 · Destructive Wave and Insect Plague (domain) and every 5th-level+ spell aren't in conjuros.js yet."},
   {es:"Priest 10 y 20 · Voluntad espiritual: el efecto lo decide el DM.",en:"Priest 10 and 20 · Spiritual Willpower: the DM decides the effect."},
-  {es:"Bruiser 9, 13, 17 · rasgos de furia: el libro da uno más por competencia, pero el DM ya le dio 4 a Kalgo con +3.",en:"Bruiser 9, 13, 17 · fury features: the book adds one per proficiency step, but the DM already gave Kalgo 4 at +3."},
+  {es:"Bruiser 17 · el séptimo rasgo de furia de Kalgo sale del libro antiguo (Machine Gun Blows): el libro nuevo solo trae 6.",en:"Bruiser 17 · Kalgo's seventh fury feature comes from the old book (Machine Gun Blows): the new book only has 6."},
   {es:"Bruiser 18 y 20 · Invencible y El Rey: versiones distintas en los dos libros.",en:"Bruiser 18 and 20 · Invincible and The King: the two books differ."},
   {es:"Black Fist 11 y 17: la hoja de Kalgo mezcla los dos libros (alcance de Hazlo caer y el rasgo de nivel 17).",en:"Black Fist 11 and 17: Kalgo's sheet mixes both books (Bring Him Down's range and the 17th-level feature)."},
   {es:"Black Fist del libro antiguo (Demon Stance, Haki-Coated): no están en la hoja; no se agregan.",en:"Old-book Black Fist (Demon Stance, Haki-Coated): not on the sheet; not added."},
