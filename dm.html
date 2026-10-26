@@ -101,6 +101,11 @@ h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
 .track .hp{background:var(--good)} .track .hp.mid{background:var(--warn)} .track .hp.low{background:repeating-linear-gradient(135deg,var(--bad) 0 6px,transparent 6px 9px)}
 .track .tp{background:var(--temp)}
 .ctrl{display:grid;grid-template-columns:minmax(56px,1fr) auto auto auto;gap:6px}
+.ctrl select{grid-column:1 / -1;font-size:14px}
+/* Resultado de daño o curación (solo lo ve el DM): aviso arriba unos segundos, se cierra al tocarlo */
+.dmt{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:30;width:max-content;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:14px;
+  background:var(--surface);color:var(--ink);border:2px solid var(--rc,var(--line));box-shadow:0 6px 18px var(--shadow);font-size:14px;cursor:pointer;text-align:center}
+.dmt b{color:var(--rc)} .dmt.d{--rc:var(--bad)} .dmt.h{--rc:var(--good)} .dmt.t{--rc:var(--temp)}
 .ctrl input{text-align:center;font-size:17px;width:100%}
 .ctrl .d{background:var(--bad);color:var(--bg)} .ctrl .h{background:var(--good);color:var(--bg)} .ctrl .tb{background:var(--temp);color:var(--bg)}
 /* Símbolo además del color: en las paletas rojas el daño no depende solo del tono */
@@ -136,16 +141,17 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-25 23:06";
+const APP_VERSION="2026-10-26 08:46";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
 const ICON=`<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2.2" fill="currentColor"/><circle cx="13" cy="10" r="2.2" fill="currentColor"/><circle cx="8" cy="15" r="2.2" fill="currentColor"/></svg>`;
 const darkQ=matchMedia("(prefers-color-scheme: dark)");
 /* dice: "fis" (cada jugador tira sus dados y la app da la receta, predeterminado) o "dig" (la app tira) */
-const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode,dice:DICE[v.dice]?v.dice:"fis",lang:v.lang==="en"?"en":"es"}:null;
+/* quick: uso rápido de ataques sin límite (sin ficha de detalle); el ajuste solo aparece en la app de los jugadores (body con data-quick) */
+const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode,dice:DICE[v.dice]?v.dice:"fis",lang:v.lang==="en"?"en":"es",quick:v.quick===true||v.quick==="1"}:null;
 function readLook(){try{return okLook(JSON.parse(localStorage.getItem(LOOK_KEY)))}catch(e){return null}}
-let look=readLook()||{pal:"grand",mode:"auto",dice:"fis",lang:"es"};
+let look=readLook()||{pal:"grand",mode:"auto",dice:"fis",lang:"es",quick:false};
 const tx=(es,en)=>look.lang==="en"?en:es;
 const isDark=()=>look.mode==="night"||(look.mode==="auto"&&darkQ.matches);
 function applyLook(){const r=document.documentElement;r.dataset.pal=look.pal;r.dataset.theme=isDark()?"dark":"light";r.lang=look.lang;
@@ -161,12 +167,14 @@ function drawLook(){const t=isDark()?"dark":"light",d=document.getElementById("l
   <h3>${tx("Modo","Mode")}</h3><div class="lk-mode">${Object.entries(MODES).map(([k,o])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n(o)}</button>`).join("")}</div>
   <h3>${tx("Dados","Dice")}</h3><div class="lk-mode lk-two">${Object.entries(DICE).map(([k,o])=>`<button data-lkdice="${k}" aria-pressed="${look.dice===k}">${n(o)}</button>`).join("")}</div>
   <p class="note" style="margin-top:6px">${look.dice==="fis"?tx("Tiras tus dados y la app te dice qué tirar. Puedes anotar el resultado.","You roll your own dice and the app tells you what to roll. You can enter the result."):tx("La app tira los dados por ti.","The app rolls the dice for you.")}</p>
+  ${document.body.hasAttribute("data-quick")?`<h3>${tx("Uso rápido para ataques sin límite","Quick use for unlimited attacks")}</h3><div class="lk-mode lk-two">${[["1",tx("Activado","On")],["0",tx("Desactivado","Off")]].map(([k,n])=>`<button data-lkquick="${k}" aria-pressed="${look.quick===(k==="1")}">${n}</button>`).join("")}</div>
+  <p class="note" style="margin-top:6px">${tx("Activado: armas, golpes sin arma y trucos se usan con un toque. Lo que tiene usos limitados siempre muestra antes su ficha.","On: weapons, unarmed strikes and cantrips are used with one tap. Anything with limited uses always shows its sheet first.")}</p>`:""}
   <h3>Idioma / Language</h3><div class="lk-mode lk-two">${Object.entries(LANGS).map(([k,o])=>`<button data-lklang="${k}" lang="${k}" aria-pressed="${look.lang===k}">${n(o)}</button>`).join("")}</div>
   <p class="lk-ver">${tx("Versión","Version")} ${APP_VERSION}</p></div>`}
 function openLook(){let d=document.getElementById("lk");
   if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";document.body.append(d);
     d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
-      const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":b.dataset.lklang?"lang":"dice",val=b.dataset["lk"+k];
+      const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":b.dataset.lklang?"lang":b.dataset.lkquick?"quick":"dice",val=b.dataset["lk"+k];
       setLook({...look,[k]:val});d.querySelector(`[data-lk${k}="${val}"]`)?.focus()})}
   drawLook();d.showModal()}
 applyLook();darkQ.addEventListener("change",applyLook);
@@ -308,6 +316,13 @@ function onLook(){staticT();render()}
 
 /* Misma lógica que la macro del Excel: el daño va primero a los PV temporales */
 function applyDamage(c,n){if(n>=c.temp){n-=c.temp;c.temp=0;c.hp-=n}else c.temp-=n;if(c.hp<0)c.hp=0}
+/* Tipos de daño (los mismos que index.html) y nombre completo: "daño cortante" / "daño de fuego" */
+const DMG=["contundente","perforante","cortante","fuego","frío","rayo","trueno","ácido","veneno","necrótico","radiante","fuerza","psíquico","oscuridad","luz"];
+const DMG_EN={cortante:"slashing",perforante:"piercing",contundente:"bludgeoning",fuego:"fire",frío:"cold",rayo:"lightning",trueno:"thunder",fuerza:"force",necrótico:"necrotic",radiante:"radiant",ácido:"acid",veneno:"poison",psíquico:"psychic",oscuridad:"darkness",luz:"light"};
+const dmgName=ty=>!ty?tx("daño","damage"):tx(/^(contundente|perforante|cortante|necrótico|radiante|psíquico)$/.test(ty)?"daño "+ty:"daño de "+ty,DMG_EN[ty]+" damage");
+/* Resultado en tercera persona, solo en este teléfono (nunca se publica) */
+function dmToast(cls,html){let d=$("dmt");if(!d){d=document.createElement("div");d.id="dmt";d.setAttribute("role","status");d.addEventListener("click",()=>d.hidden=true);document.body.append(d)}
+  d.className="dmt "+cls;d.innerHTML=html;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,5000)}
 function applyHeal(c,n){c.hp=Math.min(c.max,c.hp+n)}
 
 function render(){
@@ -333,6 +348,7 @@ function card(c0){
    ${pend?`<p class="note">${tx("Su hoja llega más adelante. Puedes ponerle CA y PV máx. tocando su nombre.","Their sheet comes later. You can set AC and max HP by tapping their name.")}</p>`:`<div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>`}
    ${c.conds.length?`<div class="conds">${c.conds.map(x=>`<b>${condT(x)}</b>`).join("")}</div>`:""}
    ${pend?"":lv?`<p class="note">${own?tx("PV y estados en vivo desde la app del jugador: los cambia el jugador.","Live HP and conditions from the player's app: the player changes them."):tx("PV en vivo desde la app de su dueño.","Live HP from the owner's app.")}</p>`:`<div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="${tx(`Cantidad para ${esc(c.name)}`,`Amount for ${esc(c.name)}`)}">
+     <select id="ty-${c.id}" aria-label="${tx(`Tipo de daño para ${esc(c.name)}`,`Damage type for ${esc(c.name)}`)}"><option value="">${tx("Daño sin tipo","Untyped damage")}</option>${DMG.map(t=>`<option value="${t}">${tx(t[0].toUpperCase()+t.slice(1),DMG_EN[t][0].toUpperCase()+DMG_EN[t].slice(1))}</option>`).join("")}</select>
      <button class="btn d" data-dmg="${c.id}">${tx("Daño","Damage")}</button><button class="btn h" data-heal="${c.id}">${tx("Curar","Heal")}</button><button class="btn tb" data-temp="${c.id}">Temp.</button></div>`}
    ${isOpen?`<div class="more">
      ${own?"":`<div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>`}
@@ -354,7 +370,10 @@ document.addEventListener("click",e=>{
   const find=id=>S.list.find(c=>c.id===id);
   if(d.open){open=open===d.open?null:d.open;armed=null;render();return}
   if(d.dmg||d.heal||d.temp){const id=d.dmg||d.heal||d.temp,c=find(id),n=num("n-"+id);$("n-"+id).value="";if(n==null||n<0)return;
-    if(d.dmg)applyDamage(c,n);else if(d.heal)applyHeal(c,n);else c.temp=n;save();render();return}
+    const nm=esc(c.name),left=()=>tx(`Le quedan ${c.hp} / ${c.max} PV`,`${c.hp} / ${c.max} HP left`);
+    if(d.dmg){const ty=$("ty-"+id).value;applyDamage(c,n);dmToast("d",tx(`${nm} recibió <b>${n}</b> de ${dmgName(ty)}`,`${nm} took <b>${n}</b> ${dmgName(ty)}`)+" · "+left())}
+    else if(d.heal){const h0=c.hp;applyHeal(c,n);dmToast("h",tx(`${nm} recuperó <b>${c.hp-h0}</b> PV · Ahora tiene ${c.hp} / ${c.max} PV`,`${nm} regained <b>${c.hp-h0}</b> HP · Now at ${c.hp} / ${c.max} HP`))}
+    else{c.temp=n;dmToast("t",tx(`${nm} tiene <b>${n}</b> PV temporales`,`${nm} has <b>${n}</b> temporary HP`))}save();render();return}
   if(d.cond){const c=find(d.cond);c.conds=c.conds.includes(d.c)?c.conds.filter(x=>x!==d.c):[...c.conds,d.c];save();render();return}
   if(d.save){const c=find(d.save);const nm=$("e-name-"+c.id).value.trim();if(nm)c.name=nm;c.init=num("e-init-"+c.id);c.ac=num("e-ac-"+c.id);
     const mx=num("e-max-"+c.id);if(mx>0){c.hp=c.max==null?mx:Math.min(c.hp,mx);c.max=mx}open=null;save();render();return}
