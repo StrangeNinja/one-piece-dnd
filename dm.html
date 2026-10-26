@@ -106,6 +106,15 @@ h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
 .dmt{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:30;width:max-content;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:14px;
   background:var(--surface);color:var(--ink);border:2px solid var(--rc,var(--line));box-shadow:0 6px 18px var(--shadow);font-size:14px;cursor:pointer;text-align:center}
 .dmt b{color:var(--rc)} .dmt.d{--rc:var(--bad)} .dmt.h{--rc:var(--good)} .dmt.t{--rc:var(--temp)}
+/* Caídos: aviso grande arriba (mismo diseño que en index.html) y etiqueta en la tarjeta */
+.fa{position:fixed;left:0;right:0;top:0;z-index:62;display:flex;align-items:center;justify-content:center;gap:14px;text-align:left;cursor:pointer;
+  padding:calc(18px + env(safe-area-inset-top,0px)) 20px 18px;background:var(--fc);color:var(--bg);box-shadow:0 10px 30px var(--shadow);animation:fain .35s ease-out}
+.fa.down,.fa.dead{--fc:var(--bad)} .fa.stable{--fc:var(--warn)} .fa.up{--fc:var(--good)}
+.fa .av{width:64px;height:64px;border-radius:50%;border:3px solid var(--bg);font-family:var(--f-display);font-size:28px}
+.fa b{display:block;font-family:var(--f-display);font-size:clamp(22px,6.5vw,34px);line-height:1.1} .fa small{font-size:12px;opacity:.85}
+@keyframes fain{from{transform:translateY(-100%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.fa{animation:none}}
+.tag.fall{background:var(--bad);color:var(--bg)} .tag.fall.stable{background:var(--warn)}
 .ctrl input{text-align:center;font-size:17px;width:100%}
 .ctrl .d{background:var(--bad);color:var(--bg)} .ctrl .h{background:var(--good);color:var(--bg)} .ctrl .tb{background:var(--temp);color:var(--bg)}
 /* Símbolo además del color: en las paletas rojas el daño no depende solo del tono */
@@ -141,7 +150,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-26 08:46";
+const APP_VERSION="2026-10-26 09:06";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -278,7 +287,9 @@ function linkOf(c){const n=(c.char||c.name||"").trim().toLowerCase(),o=(c.owner|
 function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx=null;
   for(let k=1;k<L.length;k++){const c=L[(i+k)%L.length];if(c.hp>0||c.type==="pc"){nx=c;break}}
   const pub=c=>{if(!c)return null;if(c.type==="foe")return{kind:"foe",char:null,name:""};const l=linkOf(c);return{kind:l?l.kind:"ally",char:l?l.char:null,name:c.name}};
-  return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),at:Date.now()}}
+  /* Caídos y avisos: solo jugadores y mascotas (nombre, tipo y estado; nada privado) */
+  const fallen=Object.entries(S.fall||{}).map(([k,st])=>{const c=S.list.find(x=>{const l=linkOf(x);return l&&fallKey(l)===k});return c&&{...linkOf(c),name:c.name,st}}).filter(Boolean);
+  return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],at:Date.now()}}
 function syncOut(){if(typeof sorted!=="function")return;store.set("mc:live",liveOf());
   if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
     F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
@@ -326,6 +337,7 @@ function dmToast(cls,html){let d=$("dmt");if(!d){d=document.createElement("div")
 function applyHeal(c,n){c.hp=Math.min(c.max,c.hp+n)}
 
 function render(){
+  watchFall();
   const L=sorted(),cur=L.find(c=>c.id===S.cur);document.title=tx("Panel del DM","DM Panel");
   $("top").innerHTML=`<div class="toprow"><h1>${tx("Panel del DM","DM Panel")}</h1><span style="display:flex;align-items:center;gap:10px"><span class="round">${tx(`Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie`,`Round ${S.round} · ${L.filter(c=>c.hp>0).length} standing`)}</span><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></span></div>
     <div class="turnbar"><div class="now"><small>${tx("Turno de","Turn of")}</small><b>${cur?esc(cur.name):"—"}</b></div>
@@ -337,16 +349,44 @@ function render(){
   put($("list"),L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`);
  $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["reset",tx("Vaciar combate","Clear combat")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("");
 }
+/* ===== Caídos: aviso a todo el grupo =====
+   Solo este panel publica (es el único que lee los PV de todos): compara los PV de cada jugador y de Fluffy con los de antes (FALLPREV)
+   y agrega el aviso a S.alerts (los últimos 5; id = hora) y el estado a S.fall {clave: down | stable | dead}; combat/live los lleva como alerts y fallen.
+   Los cambios guardados por la propia cuenta del DM (una ficha abierta desde Mesa en index.html) son pruebas: no avisan */
+let FALLPREV={};
+const fallKey=l=>(l.kind==="pet"?"pet:":"")+l.char;
+const FALL_ST={down:{es:"A 0 PV",en:"At 0 HP"},stable:{es:"Estable",en:"Stable"},dead:{es:"Sin vida",en:"Dead"}};
+const FALL_T=a=>{const n=esc(a.name);return{down:a.kind==="pet"?tx(`¡${n} cayó!`,`${n} is down!`):tx(`¡${n} cayó inconsciente!`,`${n} is down!`),stable:tx(`${n} está estable`,`${n} is stable`),
+  up:tx(`¡${n} volvió a levantarse!`,`${n} is back up!`),dead:tx(`${n} ha caído para siempre…`,`${n} has fallen for good…`)}[a.ev]};
+function fallBanner(a){let d=$("fa");if(!d){d=document.createElement("div");d.id="fa";d.setAttribute("role","alert");d.addEventListener("click",()=>d.hidden=true);document.body.append(d)}
+  const src=`imagenes/${a.char}-retrato.jpg`;d.className="fa "+a.ev;
+  d.innerHTML=`<span class="av">${esc(a.name[0]||"?")}${a.kind==="pc"&&!NOIMG.has(src)?`<img src="${src}" width="64" height="64" alt="" onerror="NOIMG.add(this.getAttribute('src'));this.remove()">`:""}</span><span><b>${FALL_T(a)}</b><small>${tx("Toca para cerrar","Tap to close")}</small></span>`;
+  d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,7000);try{navigator.vibrate&&navigator.vibrate(a.ev==="up"||a.ev==="stable"?160:[300,100,300])}catch(e){}}
+function addAlert(c,l,ev){const a={id:Date.now(),char:l.char,kind:l.kind,name:c.name,ev,at:Date.now()};S.alerts=[a,...(S.alerts||[])].slice(0,5);fallBanner(a)}
+function watchFall(){let ch=false;S.fall=S.fall||{};
+  for(const c of S.list){const l=linkOf(c);if(!l||c.max==null)continue;
+    const k=fallKey(l),lv=liveView(c),st=lv&&LIVE.state[l.char],hp=lv?lv.hp:c.hp,p=FALLPREV[k],f=S.fall[k];FALLPREV[k]={hp,live:!!lv};
+    if(st&&user&&st.by===user.uid)continue; // prueba del DM desde la app: no avisa
+    if(!p||p.live!==!!lv){if(hp>0&&f){delete S.fall[k];ch=true}continue} // primera lectura (o cambia de fuente): solo se ordena, sin aviso
+    if(p.hp>0&&hp<=0){S.fall[k]="down";addAlert(c,l,"down");ch=true}
+    else if(p.hp<=0&&hp>0&&f){delete S.fall[k];addAlert(c,l,"up");ch=true}
+    else if(hp<=0&&f==="down"&&l.kind==="pc"&&st&&st.ds&&st.ds.ok>=3){S.fall[k]="stable";addAlert(c,l,"stable");ch=true}}
+  if(ch)save()}
+/* Muerte: la confirma el DM (tras 3 salvaciones falladas y No abandonaré mis sueños; sin datos en vivo, cuando el DM lo decida) */
+function canDie(c){const l=linkOf(c),f=l&&(S.fall||{})[fallKey(l)];if(!f||f==="dead")return false;const st=liveView(c)&&LIVE.state[l.char];
+  return l.kind==="pet"||!st||st.dead===true||(st.ds&&st.ds.ko>=3)}
 function card(c0){
   const lv=liveView(c0),c=lv?{...c0,...lv}:c0,b=band(c),pend=b==="pend",tot=c.max+c.temp,hpW=c.hp/tot*100,tW=c.temp/tot*100,isOpen=open===c.id,own=lv&&linkOf(c0).kind==="pc";
+  const lk=linkOf(c0),fs=lk&&(S.fall||{})[fallKey(lk)];
   return `<div class="card ${S.cur===c.id?"cur":""} ${b==="ko"?"ko":""}">
    <div class="head">
      ${c.type==="pc"?`<input class="init initin" type="number" inputmode="numeric" value="${c.init??""}" placeholder="–" id="i-${c.id}" data-initfor="${c.id}" aria-label="${tx(`Iniciativa de ${esc(c.name)} (la tira el jugador)`,`${esc(c.name)}'s initiative (rolled by the player)`)}">`:`<span class="init">${c.init??"–"}</span>`}${c.type==="pc"?pic(c.name):""}
-     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}${ROLES[c.name]?` <span class="tag role">${tl(ROLES[c.name])}</span>`:""}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${tl(TYPE[c.type])}</span> · ${tx("CA","AC")} ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${tl(BAND[b][1])}</span>${lv?` <span class="tag live">${tx("en vivo","live")}</span>`:""}</span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name].map(x=>typeof x==="string"?x:tl(x)).join(" · ")}</span>`:""}${c.owner?`<span class="fr">${tx(`Mascota de ${esc(c.owner)}`,`${esc(c.owner)}'s companion`)}</span>`:""}</button>
+     <button class="name" data-open="${c.id}" aria-expanded="${isOpen}"><b>${esc(c.name)}${ROLES[c.name]?` <span class="tag role">${tl(ROLES[c.name])}</span>`:""}</b><span><span class="tag ${c.type==="foe"?"foe":""}">${tl(TYPE[c.type])}</span> · ${tx("CA","AC")} ${c.ac??"–"} · <span class="state ${BAND[b][0]}">${tl(BAND[b][1])}</span>${lv?` <span class="tag live">${tx("en vivo","live")}</span>`:""}${fs?` <span class="tag fall ${fs}">${tl(FALL_ST[fs])}</span>`:""}</span>${FRUITS[c.name]?`<span class="fr">${FRUIT_ICON}${FRUITS[c.name].map(x=>typeof x==="string"?x:tl(x)).join(" · ")}</span>`:""}${c.owner?`<span class="fr">${tx(`Mascota de ${esc(c.owner)}`,`${esc(c.owner)}'s companion`)}</span>`:""}</button>
      <div class="hpnum">${pend?`<b>—</b><small>${tx("sin PV todavía","no HP yet")}</small>`:b==="ko"?`<b>KO</b><small>${tx(`de ${c.max} PV`,`of ${c.max} HP`)}</small>`:`<b>${c.hp}</b>${c.temp?` <span class="t">+${c.temp}</span>`:""}<small>${tx(`de ${c.max} PV`,`of ${c.max} HP`)}</small>`}</div>
    </div>
    ${pend?`<p class="note">${tx("Su hoja llega más adelante. Puedes ponerle CA y PV máx. tocando su nombre.","Their sheet comes later. You can set AC and max HP by tapping their name.")}</p>`:`<div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>`}
    ${c.conds.length?`<div class="conds">${c.conds.map(x=>`<b>${condT(x)}</b>`).join("")}</div>`:""}
+   ${canDie(c0)?`<div class="row"><button class="btn ${armed==="dead"+c.id?"arm":""}" data-dead="${c.id}">${armed==="dead"+c.id?tx("Toca para confirmar: avisa a todos","Tap to confirm: tells everyone"):tx("Confirmar muerte","Confirm death")}</button></div>`:""}
    ${pend?"":lv?`<p class="note">${own?tx("PV y estados en vivo desde la app del jugador: los cambia el jugador.","Live HP and conditions from the player's app: the player changes them."):tx("PV en vivo desde la app de su dueño.","Live HP from the owner's app.")}</p>`:`<div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="${tx(`Cantidad para ${esc(c.name)}`,`Amount for ${esc(c.name)}`)}">
      <select id="ty-${c.id}" aria-label="${tx(`Tipo de daño para ${esc(c.name)}`,`Damage type for ${esc(c.name)}`)}"><option value="">${tx("Daño sin tipo","Untyped damage")}</option>${DMG.map(t=>`<option value="${t}">${tx(t[0].toUpperCase()+t.slice(1),DMG_EN[t][0].toUpperCase()+DMG_EN[t].slice(1))}</option>`).join("")}</select>
      <button class="btn d" data-dmg="${c.id}">${tx("Daño","Damage")}</button><button class="btn h" data-heal="${c.id}">${tx("Curar","Heal")}</button><button class="btn tb" data-temp="${c.id}">Temp.</button></div>`}
@@ -378,6 +418,8 @@ document.addEventListener("click",e=>{
   if(d.save){const c=find(d.save);const nm=$("e-name-"+c.id).value.trim();if(nm)c.name=nm;c.init=num("e-init-"+c.id);c.ac=num("e-ac-"+c.id);
     const mx=num("e-max-"+c.id);if(mx>0){c.hp=c.max==null?mx:Math.min(c.hp,mx);c.max=mx}open=null;save();render();return}
   if(d.turn){S.cur=d.turn;S.turnId=(S.turnId||0)+1;S.active=true;open=null;save();render();return}
+  if(d.dead){if(armed!=="dead"+d.dead){armed="dead"+d.dead;render();return}
+    const c=find(d.dead),l=linkOf(c);armed=null;if(c&&l){S.fall[fallKey(l)]="dead";addAlert(c,l,"dead");save()}render();return}
   if(d.del){if(armed!=="del"+d.del){armed="del"+d.del;render();return}
     const L=sorted(),i=L.findIndex(c=>c.id===d.del);if(S.cur===d.del&&L.length>1)S.cur=L[(i+1)%L.length].id;
     S.list=S.list.filter(c=>c.id!==d.del);armed=null;open=null;if(!S.list.length)S.cur=null;save();render();return}

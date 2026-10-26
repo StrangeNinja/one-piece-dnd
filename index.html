@@ -218,6 +218,14 @@ code{font-size:12px;word-break:break-all;user-select:all}
 .yn{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:57;max-width:min(92vw,480px);padding:10px 16px;border-radius:999px;
   background:var(--surface);color:var(--ink);border:1.5px solid var(--gold);box-shadow:0 6px 18px var(--shadow);font-weight:700;font-size:14px;cursor:pointer;animation:ynin .3s ease-out}
 @keyframes ytin{from{transform:translateY(-100%)}to{transform:none}} @keyframes ynin{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translateX(-50%)}}
+/* Caídos: aviso grande arriba (mismo diseño que en dm.html) e insignia en la barra de combate */
+.fa{position:fixed;left:0;right:0;top:0;z-index:62;display:flex;align-items:center;justify-content:center;gap:14px;text-align:left;cursor:pointer;
+  padding:calc(18px + env(safe-area-inset-top,0px)) 20px 18px;background:var(--fc);color:var(--bg);box-shadow:0 10px 30px var(--shadow);animation:fain .35s ease-out}
+.fa.down,.fa.dead{--fc:var(--bad)} .fa.stable{--fc:var(--warn)} .fa.up{--fc:var(--good)}
+.fa .av{width:64px;height:64px;border-radius:50%;border:3px solid var(--bg);font-family:var(--f-display);font-size:28px}
+.fa b{display:block;font-family:var(--f-display);font-size:clamp(22px,6.5vw,34px);line-height:1.1} .fa small{font-size:12px;opacity:.85}
+@keyframes fain{from{transform:translateY(-100%)}to{transform:none}}
+.cbar i.fb{font-style:normal;font-weight:700;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bad);color:var(--bg)!important} .cbar i.fb.stable{background:var(--warn)}
 .econ.yt-b{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)} .econ.yt-b i{background:var(--accent-ink)}
 /* Retratos: imagen sobre la inicial (si falta el archivo, queda la inicial). Papel de cartel derivado de los tokens de la paleta */
 .av{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:50%;overflow:hidden;background:var(--chip);color:var(--muted);font-weight:700;font-size:12px;line-height:1}
@@ -299,7 +307,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-26 08:46";
+const APP_VERSION="2026-10-26 09:06";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -1681,7 +1689,7 @@ document.addEventListener("change",e=>{const id=e.target.dataset.assign;
 /* r: d20 natural (tirado por la app o anotado por el jugador) */
 function deathSave(r){
   if(r===20){S.hp=1;S.ds={ok:0,ko:0};show({title:tx("¡Recuperas la consciencia!","You regain consciousness!"),boxes:[{l:"d20",v:20,s:tx("Vuelves con 1 PV","Back with 1 HP"),cls:"crit"}]})}
-  else{const ok=r>=10;if(ok)S.ds.ok++;else S.ds.ko+=(r===1?2:1);
+  else{const ok=r>=10;if(ok)S.ds.ok++;else S.ds.ko+=(r===1?2:1);if(admin&&ok&&S.ds.ok===3)fallAlert({char:cur,kind:"pc",name:C().name,ev:"stable"},false,true);
     show({title:DS_(),warn:S.ds.ok>=3?tx("Estable","Stable"):"",boxes:[{l:"d20",v:r,s:ok?tx("Éxito","Success"):r===1?tx("Dos fallos","Two failures"):tx("Fallo","Failure"),cls:ok?"":"fail"}],
       html:!ok&&S.dream>0?`<div class="trayact"><button class="btn gold" data-do="dreamsave" data-n="${r===1?2:1}">${tx("Gastar punto de sueño: convertir en éxito","Spend a dream point: turn it into a success")}</button></div>`:""})}
   log(`${DS_()}: ${r}`)}
@@ -2005,7 +2013,27 @@ console.assert(cleanCB({active:true,round:2,turnId:5,cur:{kind:"foe",name:"Kaido
 /* Turno de quién, visto desde este teléfono: mine (es mi personaje), name (escapado) */
 const cbMine=x=>!!x&&!admin&&view==="char"&&x.char===cur;
 const cbName=x=>x.kind==="foe"?tx("los enemigos","the enemies"):cbMine(x)&&x.kind==="pc"?tx("tú","you"):esc(x.name);
-function onCombat(raw){CB=cleanCB(raw);
+/* ===== Caídos (los publica dm.html en combat/live: fallen = quién está a 0 PV, estable o sin vida; alerts = los últimos avisos) =====
+   Cada aviso se muestra una vez por teléfono (mc:alertseen) y solo si es reciente. El jugador caído ya vio su tarjeta en segunda persona */
+let FALL=[];
+const FA_EV=["down","stable","up","dead"],FA_K=["pc","pet"];
+const cleanFallen=v=>Array.isArray(v)?v.filter(x=>x&&CB_CHARS.includes(x.char)&&FA_K.includes(x.kind)&&["down","stable","dead"].includes(x.st)).slice(0,10).map(x=>({char:x.char,kind:x.kind,name:String(x.name||"").slice(0,40),st:x.st})):[];
+const FALL_T=(a,self)=>{const n=esc(a.name);return{down:self?tx("¡Caíste a 0 PV!","You dropped to 0 HP!"):a.kind==="pet"?tx(`¡${n} cayó!`,`${n} is down!`):tx(`¡${n} cayó inconsciente!`,`${n} is down!`),
+  stable:self?tx("Estás estable","You're stable"):tx(`${n} está estable`,`${n} is stable`),up:self?tx("¡Volviste a levantarte!","You got back up!"):tx(`¡${n} volvió a levantarse!`,`${n} is back up!`),
+  dead:self?tx("Has caído para siempre…","You have fallen for good…"):tx(`${n} ha caído para siempre…`,`${n} has fallen for good…`)}[a.ev]};
+/* prev: vista previa del DM con una ficha abierta desde Mesa (no se envía a nadie) */
+function fallAlert(a,self,prev){let d=$("fa");if(!d){d=document.createElement("div");d.id="fa";d.setAttribute("role","alert");d.addEventListener("click",()=>d.hidden=true);document.body.append(d)}
+  d.className="fa "+a.ev;
+  d.innerHTML=`${a.kind==="pc"?pic(a.char,"retrato",64,64,a.name||"?"):`<span class="av">${esc(a.name[0]||"?")}</span>`}<span><b>${FALL_T(a,self)}</b><small>${prev?tx("Vista previa: no se envía al grupo · ","Preview: not sent to the party · "):""}${tx("Toca para cerrar","Tap to close")}</small></span>`;
+  d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,7000);buzz(a.ev==="up"||a.ev==="stable"?160:[300,100,300])}
+function onFall(raw){FALL=cleanFallen(raw&&raw.fallen);const al=Array.isArray(raw&&raw.alerts)?raw.alerts:[],seen=store.get("mc:alertseen")||0;let top=seen;
+  for(const a of al.slice(0,5).reverse()){if(!a||!isInt(a.id,1,1e14)||a.id<=seen||!FA_EV.includes(a.ev)||!CB_CHARS.includes(a.char)||!FA_K.includes(a.kind))continue;top=Math.max(top,a.id);
+    if(!isInt(a.at,0,1e14)||Date.now()-a.at>180000)continue; // solo avisos de los últimos 3 minutos
+    const mine=!admin&&view==="char"&&a.char===cur,card=$("rcard");
+    if(mine&&a.ev==="down"&&card&&!card.hidden)continue; // ya está viendo su tarjeta "¡Caíste a 0 PV!"
+    fallAlert({char:a.char,kind:a.kind,name:String(a.name||"").slice(0,40),ev:a.ev},mine&&a.kind==="pc")}
+  if(top>seen)store.set("mc:alertseen",top)}
+function onCombat(raw){onFall(raw);CB=cleanCB(raw);
   if(CB&&S&&!admin&&view==="char"&&CB.turnId!==store.get("mc:turnseen")){store.set("mc:turnseen",CB.turnId);const c=C(),t=CB.cur,n=CB.next;
     if(cbMine(t)&&t.kind==="pc")myTurn(c);
     else if(cbMine(t)&&t.kind==="pet")petTurn(t);
@@ -2024,9 +2052,10 @@ function cbBanner(title,sub){let d=$("yt");if(!d){d=document.createElement("div"
 function cbToast(text){let d=$("yn");if(!d){d=document.createElement("div");d.id="yn";d.className="yn";d.setAttribute("role","status");d.addEventListener("click",()=>d.hidden=true);document.body.append(d)}
   d.innerHTML=text;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,5000)}
 /* Barra de combate (todos, mientras el DM tiene un combate activo) e insignia "Tu turno" */
-function cbBar(){if(!CB)return"";const t=CB.cur,n=CB.next;
+function cbBar(){const fb=FALL.map(f=>`<i class="fb ${f.st}">${esc(f.name)} · ${{down:tx("a 0 PV","at 0 HP"),stable:tx("estable","stable"),dead:tx("sin vida","dead")}[f.st]}</i>`).join("");
+  if(!CB)return fb?`<div class="cbar" role="status">${fb}</div>`:"";const t=CB.cur,n=CB.next;
   const tt=t.kind==="foe"?tx("Turno de los enemigos","Enemies' turn"):cbMine(t)&&t.kind==="pc"?tx("Tu turno","Your turn"):tx(`Turno de ${esc(t.name)}`,`${esc(t.name)}'s turn`);
-  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}</div>`}
+  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}${fb}</div>`}
 const cbBadge=()=>CB&&cbMine(CB.cur)?`<span class="econ yt-b"><i></i>${CB.cur.kind==="pet"?tx(`Turno de ${esc(CB.cur.name)}`,`${esc(CB.cur.name)}'s turn`):tx("Tu turno","Your turn")}</span>`:"";
 addEventListener("storage",e=>{if(e.key==="mc:live"&&!user)onCombat(store.get("mc:live"))});
 
@@ -2173,9 +2202,11 @@ document.addEventListener("click",e=>{
   if(act==="init"){const r=d20();show({title:INIT_(),d20:0,boxes:[{l:INIT_(),v:r.v+ini(c),s:`d20 ${r.txt} ${sgn(ini(c))}`}]});log(`<b>${INIT_()}</b>: ${r.v+ini(c)}`)}
   if(act==="turn")startTurn(c);
   if(act==="hpopen"){hpOpen(ds.k,ds.who);return}
-  if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0))return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"";
+  if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0))return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"",pet=h.who==="comp",hp=()=>pet?S.comp.hp:S.hp,h0=hp();
     $("tray").classList.add("hide");
-    if(h.k==="dmg")(h.who==="comp"?compDamage:takeDamage)(c,n,h.ty,h.mag);else if(h.k==="heal")healHp(c,h.who,n,src);else tempHp(c,h.who,n)}
+    if(h.k==="dmg")(pet?compDamage:takeDamage)(c,n,h.ty,h.mag);else if(h.k==="heal")healHp(c,h.who,n,src);else tempHp(c,h.who,n);
+    /* DM con una ficha abierta desde Mesa: vista previa del aviso al grupo (dm.html no avisa los cambios hechos con la cuenta del DM) */
+    const ev=h0>0&&hp()<=0?"down":h0<=0&&hp()>0?"up":"";if(admin&&ev)fallAlert({char:cur,kind:pet?"pet":"pc",name:pet?c.companion.name:c.name,ev},false,true)}
   if(act==="death"&&phys()){show({title:DS_(),boxes:[{l:tx("Tira","Roll"),v:"1d20",s:tx("10 o más: éxito · 1: dos fallos · 20: vuelves con 1 PV","10 or higher: success · 1: two failures · 20: back with 1 HP")}],apply:{ds:{label:tx("Anotar el d20","Enter the d20"),fn:n=>deathSave(Math.min(20,Math.max(1,n)))}}});return}
   if(act==="death")deathSave(d(20));
   if(act==="dreamsave"){S.dream--;S.ds.ko=Math.max(0,S.ds.ko-(+ds.n));S.ds.ok++;show({title:DP_(),boxes:[{l:tx("Salvación","Saving throw"),v:tx("Éxito","Success"),s:tx("El fallo se convierte en éxito","The failure becomes a success")}],warn:S.ds.ok>=3?tx("Estable","Stable"):""});log(tx("Punto de sueño: salvación de muerte salvada","Dream point: death saving throw turned into a success"))}
