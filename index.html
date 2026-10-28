@@ -272,7 +272,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 .cnt .btn{padding:6px 10px}
 /* Ficha de detalle (se lee antes de usar): velo detrás, tirador para deslizar hacia abajo, filas de datos y botón Usar */
 .scrim{position:fixed;inset:0;z-index:19;background:var(--shadow)} .tray.hide + .scrim{display:none}
-.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:-6px auto 0;flex-shrink:0}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);background-clip:content-box;padding:12px 40px;margin:-18px auto -8px;flex-shrink:0;touch-action:none}
 .dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin:0;font-size:14px;line-height:1.4}
 .dl dt{color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;padding-top:2px}
 .dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
@@ -307,7 +307,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-26 09:06";
+const APP_VERSION="2026-10-28 09:30";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -571,10 +571,10 @@ const CHARS = {
       {cost:"adicional",kind:"attack",w:"main",offhand:true,req:{es:"Recuerda: Scrapper requiere haber usado la acción de Atacar.",en:"Remember: Scrapper requires having taken the Attack action."},name:{es:"Scrapper: Puños del Cosmos",en:"Scrapper: Fists of the Cosmos"},note:{es:"Tras la acción de Atacar: un golpe con los guanteletes (cuenta para Pulse Wave) o un agarre",en:"After the Attack action: one strike with the gauntlets (counts for Pulse Wave) or a grapple"}},
       {cost:"adicional",kind:"frenzy",name:{es:"Emoción del combate",en:"Thrill of the Fight"},note:{es:"Frenesí de 1 minuto: +{prof} de daño con Puños y golpes sin arma, resistencia a contundente, perforante y cortante, ventaja en pruebas y salvaciones de FUE. Al entrar recuperas 1 punto de furia",en:"1-minute frenzy: +{prof} damage with Fists and unarmed strikes, resistance to bludgeoning, piercing and slashing, advantage on STR checks and saving throws. When you enter it you regain 1 fury point"}},
       {cost:"adicional",kind:"use",name:{es:"Fuerza bruta",en:"Brute Force"},res:"furia",note:{es:"Furia: empujón o agarre a una criatura a 5 pies",en:"Fury: shove or grapple a creature within 5 feet"}},
-      {cost:"adicional",kind:"temproll",name:{es:"Prepárate para el impacto",en:"Brace for Impact"},res:"furia",temp:"{scrap}+{lvl}",note:{es:"Furia: ganas PV temporales",en:"Fury: you gain temporary hit points"}},
+      {cost:"adicional",kind:"temproll",onHit:1,name:{es:"Prepárate para el impacto",en:"Brace for Impact"},res:"furia",temp:"{scrap}+{lvl}",note:{es:"Furia: ganas PV temporales",en:"Fury: you gain temporary hit points"}},
       {cost:"adicional",kind:"use",name:{es:"Redirigir la ira",en:"Redirect Anger"},res:"furia",note:{es:"Furia: te mueves hasta la mitad de tu velocidad hacia un enemigo sin provocar ataques de oportunidad",en:"Fury: you move up to half your speed toward an enemy without provoking opportunity attacks"}},
       {cost:"adicional",kind:"use",name:{es:"Hazlo caer",en:"Bring Him Down"},only:"frenzy",once:"caer",perFrenzy:true,note:{es:"Black Fist: los enemigos a 15 pies tienen desventaja al atacar a otros que no seas tú, hasta que termine la Emoción del combate. 1 vez por Emoción",en:"Black Fist Style: enemies within 15 feet have disadvantage on attacks against anyone but you until Thrill of the Fight ends. Once per Thrill of the Fight"}},
-      {cost:"adicional",kind:"muscle",haki:true,name:{es:"Músculos recubiertos de Haki",en:"Armament-Coated Muscles"},only:"frenzy",note:{es:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−{CON} al daño de cada golpe, salvo fuerza y psíquico) o ataque (+{ceil(CON/2)} al ataque y +{ceil(CON/2)} al daño con Puños y golpes sin arma)",en:"Black Fist Style: until the start of your next turn, choose defense (−{CON} to each hit's damage, except force and psychic) or attack (+{ceil(CON/2)} to attack and +{ceil(CON/2)} to damage with Fists and unarmed strikes)"}},
+      {cost:"adicional",kind:"muscle",haki:true,onHit:1,name:{es:"Músculos recubiertos de Haki",en:"Armament-Coated Muscles"},only:"frenzy",note:{es:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−{CON} al daño de cada golpe, salvo fuerza y psíquico) o ataque (+{ceil(CON/2)} al ataque y +{ceil(CON/2)} al daño con Puños y golpes sin arma)",en:"Black Fist Style: until the start of your next turn, choose defense (−{CON} to each hit's damage, except force and psychic) or attack (+{ceil(CON/2)} to attack and +{ceil(CON/2)} to damage with Fists and unarmed strikes)"}},
       {cost:"reaccion",kind:"temproll",name:{es:"Sangre por músculo",en:"Blood for Brawn"},once:"sangre",trigger:"half",temp:"{scrap}+{lvl}",refill:"furia",note:{es:"Al quedar con la mitad de tus PV o menos: ganas PV temporales y recuperas todos los puntos de furia. 1 vez por descanso corto o largo",en:"When you drop to half your hit points or less: you gain temporary hit points and regain all fury points. Once per short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"rampage",name:{es:"Ataque temerario",en:"Rampage"},note:{es:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno",en:"This turn you have advantage on melee weapon attack rolls; attack rolls against you have advantage until your next turn"}},
@@ -1324,7 +1324,7 @@ function drawTray(){
    ${t.boxes&&t.boxes.length?`<div class="res" id="trayres">${boxesHtml(t)}</div>`:""}
    ${t.p&&t.d20!=null?`<div class="hp d20in"><label for="in-d20">${tx("Si quieres, anota el d20 natural","Optionally, enter the natural d20")}</label><input class="hpin" id="in-d20" type="number" inputmode="numeric" min="1" max="20" value="${t.nat??""}" placeholder="d20"></div>`:""}
    ${Object.entries(t.apply||{}).map(([k,a])=>`<div class="hp"><input class="hpin" id="in-${k}" type="number" inputmode="numeric" placeholder="total" aria-label="${a.label}"><button class="btn primary" data-do="apply" data-k="${k}">${a.label}</button></div>`).join("")}
-   ${t.html||""}${t.tip?`<div class="tip">${t.tip}</div>`:""}${acts?`<div class="trayact">${acts}</div>`:""}`;
+   ${t.html||""}${t.tip?`<div class="tip">${t.tip}</div>`:""}${t.resp?respHtml(c,t.resp):""}${acts?`<div class="trayact">${acts}</div>`:""}`;
 }
 
 /* ===================== FICHA DE DETALLE ===================== */
@@ -1671,6 +1671,7 @@ function gate(){
     <p class="note">${tx("Conectado como DM","Signed in as DM")}: ${esc(user.email)}</p>${outBtn()}`;
 }
 document.addEventListener("input",e=>{const t=e.target;if(t.id==="in-d20")setD20(parseInt(t.value,10));if(t.id==="hpn")hpCalc();
+  if(t.id==="rin"&&T&&T.resp){const c=C(),R=T.resp,v=R.rv[R.sel];v.n=parseInt(t.value,10);$("rprev").innerHTML=respPrev(c,R);document.querySelector('#trayin [data-do="rconf"]').disabled=!!respNeed(c,respOf(c,R.sel).a,v)}
   /* Dado de PV del asistente: se actualiza en el lugar (sin redibujar, para no perder el foco) */
   if(t.id==="lv-die"&&W){const hd=lvCl(W.k).hd,n=parseInt(t.value,10),con=CHARS[W.k].abil.CON;W.die=n>=1&&n<=hd?n:null;W.mode="roll";
     $("lv-gain").textContent=W.die?"+"+(W.die+con):"—";$("lv-gs").textContent=W.die?`d${hd} ${W.die} ${sgn(con)}`:"";const nb=document.querySelector('[data-lv="next"]');if(nb)nb.disabled=!W.die}
@@ -1719,7 +1720,7 @@ function hpOpen(k,who){const c=C(),cp=who==="comp"&&c.companion,nm=cp?cp.name:c.
     html:`<div class="hp"><input class="hpin" id="hpn" type="number" inputmode="numeric" min="1" placeholder="0" aria-label="${tx("Cantidad","Amount")}" style="width:84px">${k==="heal"?`<input class="hpin" id="hpsrc" type="text" maxlength="40" placeholder="${tx("Fuente (opcional)","Source (optional)")}" aria-label="${tx("De dónde viene la curación (opcional)","Where the healing comes from (optional)")}" style="flex:1;width:auto;text-align:left;font-size:15px">`:""}</div>
     ${k==="dmg"?`<div class="chips" role="group" aria-label="${tx("Tipo de daño","Damage type")}">${DMG.map(t=>`<button data-dty="${t}" aria-pressed="false">${dmgT(t)}</button>`).join("")}</div>
     <button class="btn tgl" data-dmag aria-pressed="false">${tx("Mágico / con Haki","Magical / with Haki")}</button>`:""}
-    <ol class="calc" id="hpcalc" aria-live="polite"></ol><button class="btn primary use" data-do="hpgo" disabled>${{dmg:tx("Aplicar daño","Apply damage"),heal:tx("Curar","Heal"),temp:tx("Aplicar PV temporales","Apply temporary HP")}[k]}</button>`,
+    <ol class="calc" id="hpcalc" aria-live="polite"></ol><button class="btn primary use" data-do="hpgo" disabled>${{dmg:tx("Aplicar daño","Apply damage"),heal:tx("Curar","Heal"),temp:tx("Aplicar PV temporales","Apply temporary HP")}[k]}</button><button class="btn" data-do="close">${tx("Cancelar","Cancel")}</button>`,
     tip:k==="dmg"?tx("Elige el tipo para aplicar tus resistencias. El Haki de Armadura cuenta como mágico.","Pick the type to apply your resistances. Armament Haki counts as magical."):k==="temp"?tx("No se acumulan: queda el valor más alto.","They don't stack: the higher value stays."):""});
   hpCalc();$("hpn").focus()}
 /* Cálculo en vivo del panel (sin redibujar la bandeja, para no perder lo escrito) */
@@ -1745,7 +1746,7 @@ function resCard(cls,who,title,subs,hpL){const c=C(),cp=who==="comp"&&c.companio
 /* PV temporales primero; una forma con PV propios absorbe el daño y, si llega a 0, vuelve a forma humana con el daño sobrante.
    Luego: fin del frenesí y de la concentración a 0 PV. La bandeja ofrece la CD de concentración, los rasgos con trigger ("half" o "zero")
    y las reacciones al recibir un golpe (onHit). lastHit guarda los PV de antes para que esas reacciones rehagan el daño (rehit) */
-let lastHit=null;
+let lastHit=null,quiet=false;
 const HPF=["hp","temp","form","formOpts","humanHp","conc","frenzy","muscle","dead","ds"];
 const hitOk=()=>!!lastHit&&lastHit.cur===cur&&S.hp===lastHit.hp&&S.temp===lastHit.temp;
 function takeDamage(c,raw,ty="",mag=false,why=""){
@@ -1765,20 +1766,68 @@ function takeDamage(c,raw,ty="",mag=false,why=""){
     boxes.push({l:tx("CD salvación CON","CON save DC"),v:dc,s:tx("10 o la mitad del daño, lo que sea mayor","10 or half the damage, whichever is higher")});
     acts+=`<button class="btn primary" data-do="concsave" data-dc="${dc}">${tx("Tirar salvación de CON","Roll CON saving throw")} (${sgn(sv(c,"CON"))})</button>`;
     tips.push(tx(`Si fallas, pierdes la concentración en ${concOf(c,S.conc.id).n}.`,`If you fail, you lose concentration on ${concOf(c,S.conc.id).n}.`))}
-  if(offA.length){acts+=offA.map(([x,i])=>`<button class="btn gold" data-act="${i}" data-peek>${x.name}</button>`).join("");
-    tips.push(S.hp<=0?tx("Puedes evitar caer inconsciente.","You can avoid falling unconscious."):tx("Quedaste con la mitad de tus PV o menos.","You're at half your HP or less."))}
-  /* Reacciones al recibir un golpe: se recuerdan si están disponibles (se leen en su ficha antes de usarlas) */
-  const rem=n>0?c.actions.map((a,i)=>a.onHit&&S.turn.r>0&&!(a.res&&S.res[a.res]<=0)?`<button class="btn" data-act="${i}" data-peek>${a.name}</button>`:"").join("")
-    +SPECIALS.map(s=>s.onHit&&S.turn.sr>0&&S.sr[s.id]>0?`<button class="btn" data-sr="${s.id}" data-peek>${s.name}</button>`:"").join(""):"";
-  if(rem){acts+=rem;tips.push(tx("Si te toca una reacción, úsala ahora: las que reducen o evitan el golpe rehacen este daño.","If a reaction applies, use it now: the ones that reduce or avoid the hit redo this damage."))}
-  lastHit={cur,raw,ty,mag,snap,th,line,hp:S.hp,temp:S.temp};
-  if(acts)show({title:tx("Después del daño","After the damage"),boxes,html:`<div class="trayact">${acts}</div>`,tip:tips.join(" ")});
+  if(offA.length)tips.push(S.hp<=0?tx("Puedes evitar caer inconsciente.","You can avoid falling unconscious."):tx("Quedaste con la mitad de tus PV o menos.","You're at half your HP or less."));
+  /* Respuestas al golpe (rasgos con trigger y reacciones onHit disponibles): se eligen en una lista que solo muestra el efecto; nada se gasta hasta Confirmar */
+  const econOk=cost=>({reaccion:S.turn.r,adicional:S.turn.b}[cost]??1)>0;
+  const opts=[...offA.map(([,i])=>"a"+i),...(n>0?[...c.actions.map((a,i)=>a.onHit&&!a.trigger&&econOk(a.cost)&&!(a.res&&S.res[a.res]<=0)&&!(a.only&&!S[a.only])&&!(a.kind==="muscle"&&S.muscle==="def")?"a"+i:""),
+    ...SPECIALS.map(s=>s.onHit&&S.turn.sr>0&&S.sr[s.id]>0?"s"+s.id:"")].filter(Boolean):[])];
+  if(opts.length)tips.push(tx("Elige cómo respondes para ver el efecto; puedes cambiarla o tocarla otra vez para quitarla. No se gasta nada hasta Confirmar.","Pick how you respond to see the effect; you can change it or tap it again to clear it. Nothing is spent until you Confirm."));
+  lastHit={cur,raw,ty,mag,snap,th,line,hp:S.hp,temp:S.temp,n,pre:preU}; // pre: estado de antes del daño, para que Deshacer tras Confirmar lo revierta todo
+  if(quiet)return;
+  if(acts||opts.length)show({title:tx("Después del daño","After the damage"),boxes,html:acts?`<div class="trayact">${acts}</div>`:"",resp:opts.length?{o:opts,sel:"",rv:{}}:null,tip:tips.join(" ")});
   const zero=S.hp<=0&&before>0,names=offA.map(([x])=>x.name).join(tx(" o "," or ")),took=n?tx(`Recibiste ${n} de ${dmgName(ty)}`,`You took ${n} ${dmgName(ty)}`):tx("No recibiste daño","You took no damage");
   resCard("dmg","me",zero?tx("¡Caíste a 0 PV!","You dropped to 0 HP!"):took,[zero&&took,calc,why,ab&&tx(`Tus PV temporales absorbieron ${ab}`,`Your temporary HP absorbed ${ab}`),
     zero&&(names?tx(`Antes de caer, puedes usar ${names}.`,`Before you fall, you can use ${names}.`):tx("Empiezas a tirar salvaciones de muerte. Con tres fallos, No abandonaré mis sueños: d20, con 12 o más te levantas con 1 PV.","You start making death saving throws. At three failures, I Won't Abandon My Dreams: d20, on 12 or higher you get back up with 1 HP."))],
     tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):""))}
 /* Una reacción cambia el último golpe (Esquiva asombrosa, Bloquear golpe, Desviar proyectil, Desvío, Paso relámpago): vuelve a los PV de antes y aplica el daño nuevo */
-function rehit(n,why){const h=lastHit;if(!hitOk())return false;Object.assign(S,h.snap);S.turn.hurt=h.th;S.log=S.log.filter(l=>l!==h.line);takeDamage(C(),Math.max(0,n),h.ty,h.mag,why);return true}
+function rehit(n,why){const h=lastHit;if(!hitOk())return false;Object.assign(S,h.snap);S.turn.hurt=h.th;S.log=S.log.filter(l=>l!==h.line);takeDamage(C(),Math.max(0,n),h.ty,h.mag,why);lastHit.pre=h.pre;return true}
+/* Respuesta al golpe: k = "a"+índice de la acción o "s"+id de la reacción especial. respRun la aplica; respSim la corre sobre una copia
+   (quiet: sin bandeja ni tarjeta) para la vista previa, así lo que se ve es exactamente lo que hará Confirmar */
+const respOf=(c,k)=>k[0]==="a"?{a:c.actions[+k.slice(1)],i:+k.slice(1)}:{a:SPECIALS.find(s=>s.id===k.slice(1)),sr:k.slice(1)};
+const RHIT=["halve","reduce","flash","deflect","muscle"],RDO=[...RHIT,"temproll","stay1"],RVS=["flash","deflect"]; // RDO: las que aplica respRun; el resto usa su acción normal
+const respDice=(c,a)=>a.kind==="reduce"?"1d10+"+c.level:a.kind==="temproll"?a.temp:"";
+const respNeed=(c,a,v)=>phys()&&respDice(c,a)&&!(v.n>=0)?tx(`Tira ${recipe(respDice(c,a))} y anota el total.`,`Roll ${recipe(respDice(c,a))} and enter the total.`)
+  :RVS.includes(a.kind)&&v.ok==null?tx("¿Lo evitaste? Elige el resultado.","Did you avoid it? Pick the result.")
+  :RHIT.includes(a.kind)&&!hitOk()?tx("Tus PV cambiaron desde ese golpe: ya no se puede rehacer.","Your HP changed since that hit: it can't be redone anymore."):"";
+function respRun(c,k,v){const{a,sr}=respOf(c,k),h=lastHit;let warn="";
+  if(sr){if(S.turn.sr>0)S.turn.sr--;else warn=tx("Ya usaste tus 2 reacciones especiales esta ronda.","You already used your 2 special reactions this round.");S.sr[sr]--}
+  else{if(a.kind!=="stay1")warn=spend(a.cost);if(a.res)S.res[a.res]--;if(a.once)S.used[a.once]=true;if(a.perTurn)S.turn[a.perTurn]=true}
+  const roll_=v.d!=null?`: ${v.d}`:"";
+  if(a.kind==="halve")rehit(Math.floor(h.raw/2),`${a.name}: ${h.raw} → ${Math.floor(h.raw/2)}`);
+  else if(a.kind==="reduce")rehit(h.raw-v.n,`${a.name}: −${v.n}`);
+  else if(RVS.includes(a.kind)&&v.ok)rehit(0,a.name+roll_);
+  else if(a.kind==="muscle"){lastHit={...h,snap:{...h.snap,muscle:"def"}};rehit(h.raw,a.name)}
+  else if(a.kind==="temproll"){const rr=a.refill&&c.resources.find(x=>x.id===a.refill),old=S.temp;if(rr)S.res[rr.id]=rr.max;S.temp=Math.max(old,v.n);
+    log(`<b>${a.name}</b>: ${v.n} ${tx("PV temporales","temporary HP")}${v.n<=old?tx(` (te quedas con ${old})`,` (you keep ${old})`):""}`)}
+  else if(a.kind==="stay1"){S.hp=Math.max(1,S.hp);S.ds={ok:0,ko:0};S.dead=false;if(dropPrev){S.frenzy=dropPrev.frenzy;S.muscle=dropPrev.muscle;S.conc=dropPrev.conc;dropPrev=null}
+    log(`<b>${a.name}</b>: ${tx("quedas en 1 PV","you stay at 1 HP")}`)}
+  else log(`<b>${a.name}</b>${roll_}`);
+  return warn}
+function respSim(c,k,v){const keep=JSON.stringify(S),lh=lastHit,dp=dropPrev;quiet=true;
+  try{const warn=respRun(c,k,v);return{warn,hp:S.hp,temp:S.temp,n:lastHit.n,turn:{...S.turn},res:{...S.res},sr:{...S.sr}}}
+  finally{S=JSON.parse(keep);lastHit=lh;dropPrev=dp;quiet=false}}
+/* Vista previa: daño nuevo, PV que quedarían, PV temporales y lo que se gasta o se recupera */
+function respPrev(c,R){const k=R.sel;if(!k)return"";const{a}=respOf(c,k),v=R.rv[k]||{},need=respNeed(c,a,v);if(need)return`<li>${need}</li>`;
+  const r=respSim(c,k,v),L=[],g=[],got=[];if(r.warn)L.push(r.warn);
+  L.push(r.n!==lastHit.n?tx(`Recibirías <b>${r.n}</b> de daño en lugar de ${lastHit.n}`,`You would take <b>${r.n}</b> damage instead of ${lastHit.n}`):tx(`El daño no cambia: ${lastHit.n}`,`The damage doesn't change: ${lastHit.n}`));
+  if(a.kind==="temproll")L.push(v.n>S.temp?tx(`Ganas <b>${v.n}</b> PV temporales`,`You gain <b>${v.n}</b> temporary HP`):tx(`No se acumulan: te quedas con tus ${S.temp} PV temporales`,`They don't stack: you keep your ${S.temp} temporary HP`));
+  if(a.kind==="deflect"&&v.ok){const w=c.weapons[a.w],st=wStats(w);L.push(tx("Y le haces daño a tu atacante: ","And you deal damage to your attacker: ")+recipe(w.dice+"+"+st.mod,v.crit)+" "+w.type)}
+  L.push(`<b>${tx(`Te quedarían ${r.hp} / ${mhp(c)} PV`,`You would have ${r.hp} / ${mhp(c)} HP left`)}${r.temp?tx(` y ${r.temp} temporales`,` and ${r.temp} temporary`):""}</b>`);
+  if(r.turn.r<S.turn.r)g.push(tx("tu reacción","your reaction"));if(r.turn.b<S.turn.b)g.push(tx("tu acción adicional","your bonus action"));
+  if(r.turn.sr<S.turn.sr)g.push(tx("1 reacción especial de la ronda","1 special reaction this round"));
+  SPECIALS.forEach(s=>{if(r.sr[s.id]<S.sr[s.id])g.push(tx(`1 uso de ${s.name} (te quedan ${r.sr[s.id]})`,`1 use of ${s.name} (${r.sr[s.id]} left)`))});
+  c.resources.forEach(x=>{const d=r.res[x.id]-S.res[x.id];if(d<0)g.push(tx(`${-d} de ${x.name} (te quedan ${r.res[x.id]})`,`${-d} ${x.name} (${r.res[x.id]} left)`));if(d>0)got.push(`${x.name} (${r.res[x.id]})`)});
+  if(a.once&&!S.used[a.once])g.push(a.long?tx("su uso por descanso largo","its once-per-long-rest use"):tx("su uso por descanso","its once-per-rest use"));
+  L.push(g.length?tx("Gastas: ","You spend: ")+g.join(" · "):tx("No gastas nada","You spend nothing"));if(got.length)L.push(tx("Recuperas: ","You regain: ")+got.join(" · "));
+  return L.map(x=>`<li>${x}</li>`).join("")}
+function respHtml(c,R){const k=R.sel,a=k&&respOf(c,k).a,v=k?R.rv[k]:{},dz=a&&respDice(c,a),bon=a&&(a.kind==="flash"?sv(c,"DES"):a.kind==="deflect"?wStats(c.weapons[a.w]).hit:0);
+  return`<div class="chips" role="group" aria-label="${tx("Cómo respondes al golpe","How you respond to the hit")}">${R.o.map(o=>{const x=respOf(c,o).a;return`<button data-resp="${o}" aria-pressed="${o===k}">${x.name} · ${o[0]==="s"?tx("reacción especial","special reaction"):COST[x.cost]||x.cost}</button>`}).join("")}</div>
+  ${k?`${a.note?`<p class="note">${a.note}</p>`:""}
+   ${dz?(phys()?`<div class="hp"><input class="hpin" id="rin" type="number" inputmode="numeric" min="0" value="${v.n??""}" placeholder="${tx("total","total")}" aria-label="${tx(`Tu tirada de ${recipe(dz)}`,`Your ${recipe(dz)} roll`)}"><span class="note">${tx("Tira","Roll")} ${recipe(dz)}</span></div>`:`<p class="note">${tx("Tirada","Roll")}: <b>${v.n}</b> (${v.txt})</p>`):""}
+   ${RVS.includes(a.kind)?`<p class="note">${a.kind==="flash"?tx("Salvación DES","DEX save"):tx("Tu tirada","Your roll")}: ${v.d!=null?`<b>${v.d}</b> (${v.dtxt})`:`${tx("tira","roll")} 1d20 ${sgnS(bon)}`}</p>
+    <div class="chips" role="group" aria-label="${tx("Resultado","Result")}"><button data-rok="1" aria-pressed="${v.ok===true}">${tx("Lo evitaste","You avoided it")}</button><button data-rok="0" aria-pressed="${v.ok===false}">${tx("Te impactó igual","It hit anyway")}</button></div>`:""}
+   <ol class="calc" id="rprev" aria-live="polite">${respPrev(c,R)}</ol>`:""}
+  <button class="btn primary use" data-do="rconf" ${k&&!respNeed(c,a,v)?"":"disabled"}>${tx("Confirmar","Confirm")}</button>`}
 const NOHIT_=()=>hitOk()?`<div class="trayact"><button class="btn primary" data-do="nohit">${tx("Lo evitaste: quitar el daño que anotaste","You avoided it: remove the damage you entered")}</button></div>`:"";
 function compDamage(c,raw,ty,mag){const cp=c.companion,k=S.comp,{v:n,txt}=dmgSteps(c,"comp",raw,ty,mag),calc=txt.includes("→")?txt:"",before=k.hp;
   const ab=Math.min(k.temp,n);k.temp-=ab;k.hp=Math.max(0,k.hp-(n-ab));k.turnDmg+=n;
@@ -2074,6 +2123,13 @@ document.addEventListener("click",e=>{
   /* Panel de daño: tipo y "Mágico / con Haki" (sin redibujar la bandeja) */
   if(ds.dty!==undefined&&T&&T.hp){T.hp.ty=T.hp.ty===ds.dty?"":ds.dty;hpCalc();return}
   if(ds.dmag!==undefined&&T&&T.hp){T.hp.mag=!T.hp.mag;hpCalc();return}
+  /* Respuesta al golpe: elegir solo muestra el efecto (la app tira una vez por opción, para que cambiar no vuelva a tirar) */
+  if(ds.resp&&T&&T.resp){const R=T.resp,k=ds.resp;R.sel=R.sel===k?"":k;
+    if(R.sel&&!R.rv[k]){const a=respOf(c,k).a,v=R.rv[k]={},dz=respDice(c,a);
+      if(!phys()&&dz){const r=roll(dz);v.n=r.tot;v.txt=r.txt}
+      if(!phys()&&RVS.includes(a.kind)){const b=a.kind==="flash"?sv(c,"DES"):wStats(c.weapons[a.w]).hit,r=d20();v.d=r.v+b;v.dtxt=`d20 ${r.txt} ${sgn(b)}`;v.crit=a.kind==="deflect"&&r.v>=c.critMin}}
+    drawTray();return}
+  if(ds.rok!==undefined&&T&&T.resp&&T.resp.sel){T.resp.rv[T.resp.sel].ok=ds.rok==="1";drawTray();return}
   /* Tarjetas: primero la ficha de detalle (salvo Uso rápido en ataques sin límite); data-peek la abre también desde los recordatorios */
   const uk=USE_KEYS.find(k=>ds[k]!==undefined);
   if(uk&&(ds.peek!==undefined||el.classList.contains("act")&&(el.getAttribute("aria-disabled")==="true"||!quickOk(c,uk,ds[uk])))){armed=null;openSheet(uk,ds[uk]);return}
@@ -2188,6 +2244,18 @@ document.addEventListener("click",e=>{
   if(act==="fpick"){const o=ds.o,sel=T.fsel;if(sel.includes(o))T.fsel=sel.filter(x=>x!==o);else if(sel.length<c.forms[T.fform].pick)sel.push(o);T.html=formPicker(c,T.fact);drawTray();return}
   if(act==="fgo"){const a=c.actions[T.fact],f=c.forms[a.form],sel=T.fsel,names=sel.map(o=>f.opts.find(x=>x.id===o).n);if(sel.length!==f.pick)return;
     const warn=spend(a.cost);S.res[a.res]--;startForm(c,a.form,sel);show({title:f.name,warn,tip:f.bar+" · "+names.join(" · ")});log(`<b>${f.name}</b>: ${names.join(", ")}`)}
+  /* Confirmar la respuesta: recién ahí se gasta. Deshacer vuelve a antes del daño (lastHit.pre) */
+  if(act==="rconf"&&T&&T.resp){const R=T.resp,k=R.sel,{a,i,sr}=respOf(c,k),v=R.rv[k]||{},pre=lastHit&&lastHit.pre;if(respNeed(c,a,v))return;
+    $("tray").classList.add("hide");
+    if(!RDO.includes(a.kind)){if(pre)preU=pre;sr?doSpecial(sr):doAct(i);return}
+    const warn=respRun(c,k,v);if(warn)log(warn);const left=tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):"");
+    if(a.kind==="deflect"&&v.ok){const w=c.weapons[a.w],st=wStats(w),base=w.dice+"+"+st.mod;
+      if(phys())show({title:a.name,exec:true,crit:v.crit,boxes:[{l:tx("Daño a tu atacante · ","Damage to your attacker · ")+w.type,v:recipe(base),s:CRIT_()+recipe(base,true)}],tip:DEFL_()});
+      else{const dm=roll(base,v.crit);let d=dm.tot,type=w.type;if(v.crit&&c.blackArmory){d+=roll("2d6").tot;type=dmgT("fuerza")}
+        show({title:a.name,exec:true,crit:v.crit,boxes:[{l:tx("Daño a tu atacante","Damage to your attacker"),v:d,s:dm.txt+" "+type,cls:v.crit?"crit":""}]});log(`<b>${a.name}</b>: ${d} ${type}`)}}
+    else if(a.kind==="temproll")resCard("tmp","me",a.name,[tx(`Ganas ${v.n} PV temporales`,`You gain ${v.n} temporary HP`)],left);
+    else if(a.kind==="stay1")resCard("heal","me",a.name,[tx("Quedas en 1 PV","You stay at 1 HP")],left);
+    if(pre)preU=pre;save();render();return}
   if(act==="nohit"){rehit(0,T&&T.title);save();render();return}
   if(act==="pulse"){S.turn.pulse++;T.pulseUsed=true;const t=c.fruit.tech.find(x=>x.id===c.pulse.tech);useTech(t.id,t.l,{free:true,dmg:c.pulse.dmg,title:c.pulse.name+tx(" (gratis)"," (free)")});return}
   if(act==="reroll"&&phys()&&T.p){const x=c.rerolls[+(ds.i||0)],t=T,b=t.boxes[t.d20],warn=x.react?spend("reaccion"):"";S.res[x.res]--;t.rerolled=true;
@@ -2229,11 +2297,14 @@ document.addEventListener("click",e=>{
 /* Deshacer: después del toque, si cambió el estado (ver DESHACER) */
 document.addEventListener("click",e=>{const el=e.target.closest("button"),p=preU;preU=null;
   if(p&&el&&S&&p.cur===cur&&!Object.keys(el.dataset).some(k=>NO_UNDO.includes(k))&&JSON.stringify(S)!==p.s)offerUndo(p)});
-/* La bandeja se cierra con el velo, deslizando hacia abajo o con Escape; Enter en el panel de PV lo aplica */
-$("scrim").addEventListener("click",()=>$("tray").classList.add("hide"));
-{let y0=null;const t=$("tray");t.addEventListener("touchstart",e=>{y0=t.scrollTop<=0?e.touches[0].clientY:null},{passive:true});
-  t.addEventListener("touchend",e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>70)t.classList.add("hide");y0=null},{passive:true})}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("tray").classList.contains("hide")&&!document.querySelector("dialog[open]"))$("tray").classList.add("hide");
+/* La bandeja se cierra con Cerrar o Cancelar, o deslizando hacia abajo desde el tirador: tocar dentro nunca la cierra.
+   El velo y Escape la cierran, pero si escribiste algo preguntan antes. Enter en el panel de PV lo aplica */
+const trayDirty=()=>[...document.querySelectorAll("#trayin input")].some(x=>x.value!==x.defaultValue);
+function trayAway(){if(!trayDirty()||confirm(tx("¿Descartar?","Discard?")))$("tray").classList.add("hide")}
+$("scrim").addEventListener("click",trayAway);
+{let y0=null;const t=$("tray");t.addEventListener("touchstart",e=>{y0=e.target.closest(".grab")?e.touches[0].clientY:null},{passive:true});
+  t.addEventListener("touchend",e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>40)t.classList.add("hide");y0=null},{passive:true})}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("tray").classList.contains("hide")&&!document.querySelector("dialog[open]"))trayAway();
   if(e.key==="Enter"&&(e.target.id==="hpn"||e.target.id==="hpsrc")){const b=document.querySelector('#trayin [data-do="hpgo"]');if(b&&!b.disabled)b.click()}});
 load();render();cloudInit();onCombat(store.get("mc:live")); // sin cuenta: combate del dm.html abierto en este navegador
 </script>
