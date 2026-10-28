@@ -252,6 +252,9 @@ code{font-size:12px;word-break:break-all;user-select:all}
 section h2 .h2t{display:inline-flex;align-items:center}
 @media (prefers-reduced-motion:reduce){.wp,.wp:nth-child(even){transform:none}}
 .skills summary{cursor:pointer;list-style:none}
+/* Inventario: una fila por objeto (nombre arriba, botones abajo si no cabe) */
+.invit{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.invit > div:first-child{flex:1 1 150px;min-width:0;overflow-wrap:anywhere} .invit .cnt .btn{padding:6px 10px} .money{font-size:20px}
 .skills summary::-webkit-details-marker{display:none}
 .skills summary h2{margin:0} .skills[open] summary h2{margin-bottom:8px} .skills summary h2 span{white-space:nowrap}
 .skills summary h2 span::before{content:"▸ ";color:var(--muted)} .skills[open] summary h2 span::before{content:"▾ "}
@@ -307,7 +310,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 09:51";
+const APP_VERSION="2026-10-28 10:00";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -367,6 +370,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 const CHARS = {
   udon:{
     name:"Udon", bounty:"", sub:{es:"Guerrero · Black Weapon · Nivel {lvl} · Humano · Samurái",en:"Warrior · Black Weapon · Level {lvl} · Human · Samurai"},
+    inv:{money:1000,items:[{w:"main",eq:1},{w:"sc",eq:1}]},
     cls:"warrior", sc:"blackWeapon", scores:{FUE:20,DES:13,CON:16,INT:8,SAB:10,CAR:10}, tags:["race:human","armor:light","armor:medium","armor:heavy"],
     level:7, prof:3, ac:15, maxHp:66, init:1, speed:{es:"30 pies",en:"30 feet"},
     critMin:"=lvl>=15?17:lvl>=7?18:19", attacksPerAction:"=apa",
@@ -411,6 +415,7 @@ const CHARS = {
   },
   codel:{
     name:"Codel", bounty:"", sub:{es:"Sacerdote · Sky Domain · Nivel {lvl} · Birkan · Mercenario",en:"Priest · Sky Domain · Level {lvl} · Birkan · Mercenary"},
+    inv:{money:124000,items:[{w:"main",eq:1},{w:"pistol",eq:1},{k:"balas",n:{es:"Balas de pistola",en:"Pistol bullets"},q:20},{n:{es:"Escudo",en:"Shield"},q:1,eq:1},{n:{es:"Símbolo sagrado",en:"Holy symbol"},q:1,eq:1},{k:"kits",n:{es:"Kits de sanación",en:"Healer's kits"},q:2},{n:{es:"Dial de tono",en:"Tone Dial"},q:1,eq:1}]},
     cls:"priest", sc:"skyDomain", scores:{FUE:8,DES:15,CON:16,INT:8,SAB:18,CAR:9}, tags:["race:skyIslander","caster","fruit","armor:light","armor:medium","armor:heavy","feat:spellcasterDisruptor"],
     level:7, prof:3, ac:18, maxHp:62, init:2, speed:{es:"30 pies",en:"30 feet"},
     critMin:20, attacksPerAction:1,
@@ -482,9 +487,7 @@ const CHARS = {
       {id:"predecir",name:{es:"Predecir el resultado",en:"Predict Outcome"},max:"=prof",rest:"short"},
       {id:"pluma",name:{es:"Protección de las Nubes",en:"Protection of the Clouds"},max:1,rest:"short"},
       {id:"kami",name:{es:"Voluntad de Kami",en:"Kami's Will"},max:"=lvl*5",rest:"long",counter:true},
-      {id:"balas",name:{es:"Balas de pistola",en:"Pistol Bullets"},max:20,rest:"none",counter:true,fill:{es:"Recargar",en:"Reload"}},
-      {id:"tono",name:{es:"Dial de tono",en:"Tone Dial"},max:5,rest:"none",counter:true,dawn:"1d4+1"},
-      {id:"kits",name:{es:"Kits de sanación",en:"Healer's Kits"},max:2,rest:"none",counter:true,fill:{es:"Reponer",en:"Restock"}}
+      {id:"tono",name:{es:"Dial de tono",en:"Tone Dial"},max:5,rest:"none",counter:true,dawn:"1d4+1"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:{es:"Sable",en:"Saber"},note:{es:"Cuerpo a cuerpo · arma sutil",en:"Melee · finesse weapon"}},
@@ -494,7 +497,7 @@ const CHARS = {
       {cost:"accion",kind:"pool",name:{es:"Voluntad de Kami",en:"Kami's Will"},res:"kami",note:{es:"Al tocar. 5 PV de la reserva curan una enfermedad o neutralizan un veneno",en:"By touch. 5 hit points from the pool cure one disease or neutralize one poison"}},
       {cost:"accion",kind:"use",haki:true,name:{es:"Detección de aura",en:"Aura Detection"},note:{es:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies",en:"Observation Haki: you detect Haki and Devil Fruit users within 120 feet"}},
       {cost:"reaccion",kind:"dash",onHit:1,name:{es:"Golpe atronador de dial",en:"Thunderous Dial Strike"},res:"dial",dc:"=8+prof+SAB",save:"DES",dmg:"2d8",type:"trueno o rayo",half:true,note:{es:"Cuando una criatura a 5 pies que ves te golpea. Eliges trueno o rayo",en:"When a creature within 5 feet that you can see hits you. You choose thunder or lightning"}},
-      {cost:"accion",role:true,kind:"use",name:{es:"Estabilizar con kit",en:"Stabilize with Kit"},res:"kits",note:{es:"Kit de sanación: una criatura moribunda queda estable y con 1 PV · gasta 1 kit",en:"Healer's kit: a dying creature becomes stable with 1 hit point · uses 1 kit"}},
+      {cost:"accion",role:true,kind:"use",name:{es:"Estabilizar con kit",en:"Stabilize with Kit"},inv:"kits",note:{es:"Kit de sanación: una criatura moribunda queda estable y con 1 PV · gasta 1 kit",en:"Healer's kit: a dying creature becomes stable with 1 hit point · uses 1 kit"}},
       {cost:"accion",role:true,kind:"firstaid",name:{es:"Primeros auxilios",en:"First Aid"},heal:"1d6+4",note:{es:"cura 1d6 + 4 + el nivel (dados de golpe) de una criatura herida. Una vez por criatura hasta un descanso corto o largo",en:"Heals an injured creature 1d6 + 4 + its level (Hit Dice). Once per creature until a short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Disruptor de lanzadores",en:"Spellcaster Disruptor"},note:{es:"Una criatura a 5 pies lanza un conjuro: la atacas con el sable. Si la dañas, tiene desventaja para mantener la concentración",en:"A creature within 5 feet casts a spell: you attack it with your saber. If you damage it, it has disadvantage to maintain concentration"}},
       {cost:"reaccion",kind:"use",haki:true,name:{es:"Predecir el resultado",en:"Predict Outcome"},res:"predecir",note:{es:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado",en:"You or an ally within 30 feet rerolls the d20 of an attack roll, ability check or saving throw after seeing the result"}},
@@ -506,6 +509,7 @@ const CHARS = {
   },
   kalgo:{
     name:"Kalgo", bounty:"", sub:{es:"Bruiser · Black Fist · Nivel {lvl} · Mink · Arqueólogo",en:"Bruiser · Black Fist Style · Level {lvl} · Mink · Archaeologist"},
+    inv:{money:8000000,items:[{w:"main",eq:1},{w:"pistol",eq:1},{k:"balas",n:{es:"Balas de pistola",en:"Pistol bullets"},q:20},{n:{es:"Sombrero",en:"Hat"},q:1},{n:{es:"Log pose",en:"Log Pose"},q:1},{n:{es:"Herramientas de cartógrafo",en:"Cartographer's tools"},q:1},{n:{es:"Herramientas de navegante",en:"Navigator's tools"},q:1}]},
     cls:"bruiser", sc:"blackFist", furyKnown:["bruteForce","brace","focused","redirect"], scores:{FUE:19,DES:16,CON:18,INT:12,SAB:12,CAR:12}, tags:["race:mink","bg:archaeologist","fruit"],
     level:7, prof:3, ac:17, maxHp:75, init:3, speed:{es:"40 pies · trepar 20",en:"40 feet · climb 20"},
     critMin:20, attacksPerAction:"=apa",
@@ -558,8 +562,7 @@ const CHARS = {
     resources:[
       {id:"emocion",name:{es:"Emoción del combate",en:"Thrill of the Fight"},max:"=prof",rest:"long"},
       {id:"furia",name:{es:"Puntos de furia",en:"Fury Points"},max:"=fury",rest:"short"},
-      {id:"sulong",name:"Sulong",max:1,rest:"long"},
-      {id:"balas",name:{es:"Balas de pistola",en:"Pistol Bullets"},max:20,rest:"none",counter:true,fill:{es:"Recargar",en:"Reload"}}
+      {id:"sulong",name:"Sulong",max:1,rest:"long"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:{es:"Puños del Cosmos",en:"Fists of the Cosmos"},note:{es:"Atacar: 2 golpes por acción · mágicos · al impactar, Pulse Wave gratis",en:"Attack: 2 attacks per action · magical · on a hit, free Pulse Wave"}},
@@ -581,6 +584,7 @@ const CHARS = {
   },
   sungsopp:{
     name:"Sungsopp", bounty:"", sub:{es:"Rogue · Duelista Danzante · Nivel {lvl} · Humano · Ladrón",en:"Rogue · Dancing Duelist · Level {lvl} · Human · Thief"},
+    inv:{money:8125,items:[{w:"main",eq:1},{w:"ojo",eq:1},{w:"espada",eq:1},{w:"ballesta",eq:1},{k:"virotes",n:{es:"Virotes",en:"Bolts"},q:20},{w:"daga",n:{es:"Dagas",en:"Daggers"},q:2,eq:1},{n:{es:"Herramientas de ladrón",en:"Thieves' tools"},q:1},{n:{es:"Paquete de ladrón",en:"Burglar's pack"},q:1},{n:{es:"Libros",en:"Books"},q:1},{n:{es:"Comidas",en:"Meals"},q:2},{n:{es:"Joyas",en:"Jewels"},q:4}]},
     cls:"rogue", sc:"dancingDuelist", scores:{FUE:11,DES:18,CON:13,INT:11,SAB:11,CAR:18}, tags:["race:human","fruit","armor:light","feat:slingKing"],
     level:7, prof:3, ac:15, acDex:true, maxHp:42, init:4, speed:{es:"30 pies",en:"30 feet"},
     critMin:20, attacksPerAction:1,
@@ -646,7 +650,6 @@ const CHARS = {
       {id:"predecir",name:{es:"Predecir el resultado",en:"Predict Outcome"},max:"=prof",rest:"short"},
       {id:"bestia",name:{es:"Forma bestia",en:"Beast Form"},max:2,rest:"long"},
       {id:"hibrida",name:{es:"Forma híbrida",en:"Hybrid Form"},max:"=prof",rest:"long"},
-      {id:"virotes",name:{es:"Virotes",en:"Bolts"},max:20,rest:"none",counter:true,fill:{es:"Recargar",en:"Reload"}},
       {id:"aliento",name:{es:"Aliento de fuego (Fluffy)",en:"Fire Breath (Fluffy)"},max:3,rest:"short"}
     ],
     actions:[
@@ -683,6 +686,7 @@ const CHARS = {
   /* Solo para probar la subida de nivel: Guerrero sin subclase, características en 10, sin acciones y un garrote (Contraataque necesita arma principal) */
   ryuga:{
     name:"Ryuga", bounty:"", sub:{es:"Bruiser · Eastern Dragon · Nivel {lvl} · Oni · Ermitaño",en:"Bruiser · Eastern Dragon Style · Level {lvl} · Oni · Hermit"},
+    inv:{money:50000,items:[{w:"main",eq:1},{w:"axe",eq:1},{w:"bow",eq:1},{k:"flechas",n:{es:"Flechas",en:"Arrows"},q:15},{n:{es:"Paquete de pirata",en:"Pirate's pack"},q:1},{n:{es:"Útiles de cervecero",en:"Brewer's supplies"},q:1},{n:{es:"Kit de herborista",en:"Herbalism kit"},q:1},{n:"Bitecore",q:1,note:{es:"Sin descripción todavía",en:"No description yet"}}]},
     cls:"bruiser", sc:"easternDragon", furyKnown:["brace","focused","unbending"], scores:{FUE:20,DES:18,CON:20,INT:10,SAB:11,CAR:14}, tags:["race:oni","bg:hermit","armor:heavy"],
     level:7, prof:3, ac:19, maxHp:89, init:4, speed:{es:"45 pies",en:"45 feet"},
     critMin:20, attacksPerAction:"=apa",
@@ -691,7 +695,6 @@ const CHARS = {
     skills:{atletismo:1,intimidacion:1,persuasion:1,medicina:1,religion:1},
     passive:{es:"Oni, tamaño Grande. Resiliencia demoníaca: resistencia al fuego y al veneno. Alcance de gigante: en tu turno, tus ataques cuerpo a cuerpo tienen 5 pies más de alcance. CD de furia {8+prof+CON}; con al menos 1 punto de furia, ventaja en salvaciones de CON contra trampas, conjuros, veneno, enfermedad y alientos. Asalto espiritual: tus golpes sin arma y armas de Bruiser son mágicos. Honestidad duradera: +{ceil(lvl/4)} a Persuasión al decir la verdad sobre tus motivos.",
       en:"Oni, Large size. Demonic Resilience: resistance to fire and poison. Giant's Reach: on your turn, your melee attacks have 5 more feet of reach. Fury save DC {8+prof+CON}; with at least 1 fury point, advantage on CON saving throws against traps, spells, poison, disease and breath attacks. Spirit Assault: your unarmed strikes and bruiser weapons are magical. Enduring Honesty: +{ceil(lvl/4)} to Persuasion when telling the truth about your motives."},
-    gear:{es:"Kanabo, gran arco y gran hacha · flechas (en Recursos) · paquete de pirata · útiles de cervecero · kit de herborista · Bitecore (sin descripción todavía) · ฿50.000",en:"Kanabo, greatbow and greataxe · arrows (in Resources) · pirate's pack · brewer's supplies · herbalism kit · Bitecore (no description yet) · ฿50,000"},
     def:[{k:"res",on:"fuego veneno",src:{es:"Resiliencia demoníaca",en:"Demonic Resilience"}},{k:"res",on:"contundente perforante cortante",only:"frenzy",src:{es:"Emoción del combate",en:"Thrill of the Fight"}}],
     frenzy:{name:{es:"Emoción del combate",en:"Thrill of the Fight"},label:{es:"En frenesí",en:"Frenzied"},res:"emocion",dmg:"=prof",fury:"furia",dmgNote:{es:"Kanabo y golpes sin arma",en:"Kanabo and unarmed strikes"},
       bar:{es:"+{prof} de daño (kanabo y sin arma) · resiste contundente, perforante y cortante · ventaja en FUE",en:"+{prof} damage (kanabo and unarmed) · resistance to bludgeoning, piercing and slashing · advantage on STR"},
@@ -708,8 +711,7 @@ const CHARS = {
       {id:"emocion",name:{es:"Emoción del combate",en:"Thrill of the Fight"},max:"=prof",rest:"long"},
       {id:"furia",name:{es:"Puntos de furia",en:"Fury Points"},max:"=fury",rest:"short"},
       {id:"nube",name:{es:"Paso de nube",en:"Cloud Walk"},max:"=prof",rest:"short"},
-      {id:"presencia",name:{es:"Presencia aterradora",en:"Terrifying Presence"},max:1,rest:"long"},
-      {id:"flechas",name:{es:"Flechas",en:"Arrows"},max:15,rest:"none",counter:true,fill:{es:"Recoger flechas",en:"Gather arrows"}}
+      {id:"presencia",name:{es:"Presencia aterradora",en:"Terrifying Presence"},max:1,rest:"long"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:"Kanabo",note:{es:"Atacar: 2 golpes por acción · arma de Bruiser, mágica · pesada, a dos manos · al impactar, Postura del dragón",en:"Attack: 2 attacks per action · bruiser weapon, magical · heavy, two-handed · on a hit, Dragon Stance"}},
@@ -854,7 +856,8 @@ function cleanProg(k,v){const b=CHARS_SRC[k];if(!b||!v||typeof v!=="object")retu
     feats:Array.isArray(v.feats)?v.feats.map(cleanFeat).filter(Boolean).slice(0,20):[],picks:cleanPicks(v.picks),ok:cleanIds(v.ok,x=>x.length<40),
     hist:Array.isArray(v.hist)?v.hist.map(cleanStep).filter(Boolean).slice(-20).map(h=>({from:h.from,to:h.to,at:isInt(h.at,0,1e13)?h.at:0,die:isInt(h.die,0,20)?h.die:0,hp:isInt(h.hp,-20,40)?h.hp:0,
       asi:cleanAsi(h.asi),feat:cleanFeat(h.feat),picks:cleanPicks(h.picks),fury:cleanFury(h.fury),ok:cleanIds(h.ok,x=>x.length<40)})):[],
-    prestige:isInt(v.prestige,0,9999)?v.prestige:0,furyOpen:isInt(v.furyOpen,0,1e13)?v.furyOpen:0,
+    prestige:isInt(v.prestige,0,9999)?v.prestige:0,
+    grants:Array.isArray(v.grants)?v.grants.filter(g=>g&&typeof g.id==="string"&&Number.isSafeInteger(g.m||0)&&Number.isInteger(g.q||0)).slice(0,30).map(g=>({id:g.id.slice(0,20),at:isInt(g.at,0,1e13)?g.at:0,m:Math.max(-1e12,Math.min(1e12,g.m||0)),n:typeof g.n==="string"?g.n.slice(0,60):"",q:Math.max(-999,Math.min(999,g.q||0)),note:typeof g.note==="string"?g.note.slice(0,80):""})):[],furyOpen:isInt(v.furyOpen,0,1e13)?v.furyOpen:0,
     plog:Array.isArray(v.plog)?v.plog.filter(o=>o&&isInt(o.n,-99,99)).slice(0,30).map(o=>({at:isInt(o.at,0,1e13)?o.at:0,n:o.n,r:isInt(o.r,1,4)?o.r:0,note:typeof o.note==="string"?o.note.slice(0,80):""})):[],
     event:ev&&typeof ev.id==="string"?{id:ev.id.slice(0,20),from:ev.from,to:ev.to,rej:!!ev.rej}:null,
     pending:pd&&typeof pd.eventId==="string"?{eventId:pd.eventId.slice(0,20),from:pd.from,to:pd.to,die:isInt(pd.die,1,12)?pd.die:1,mode:pd.mode==="avg"?"avg":"roll",
@@ -866,7 +869,7 @@ localize();
 /* ===================== ESTADO ===================== */
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let cur=store.get("mc:cur"); if(!CHARS[cur]) cur=Object.keys(CHARS)[0];
-let mode="normal", armed=null, prOpen=null, book=false, skillsOpen=false, S, T=null;
+let mode="normal", armed=null, prOpen=null, book=false, skillsOpen=false, invOpen=false, S, T=null;
 const C=()=>CHARS[cur];
 /* Imágenes de personaje: imagenes/<id>-retrato.jpg (384 px), -mini.jpg (96 px) y -cartel.jpg (cartel completo).
    Si falta una, onerror la quita (queda la inicial) y NOIMG la recuerda para no volver a pedirla */
@@ -914,7 +917,7 @@ function fresh(c){return{lvl:CHARS_SRC[cur]?Math.min(c.level,CHARS_SRC[cur].leve
   sr:Object.fromEntries(SPECIALS.map(s=>[s.id,c.prof])),dream:c.level,
   conds:[],hard:0,turn:newTurn(c),ds:{ok:0,ko:0},dead:false,log:[],hurt:false,
   slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,comp:c.companion?{hp:c.companion.hp,temp:0,heads:c.companion.heads||0,tf:false,turnDmg:0}:{},frenzy:false,muscle:"",trans:false,exh:0,form:"",formOpts:[],humanHp:c.maxHp,stageAC:false,
-  items:Object.fromEntries((c.items||[]).map(x=>[x.id,x.start])),used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
+  inv:invSeed(keyOf(c)),ilog:[],gotG:[],used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
   fore:c.foretell?[{v:phys()?0:d(20),u:false},{v:phys()?0:d(20),u:false}]:[],
   fury:[...(c.furyKnown||[])],furyDone:0,float:0,advNext:false}} // en modo físico el jugador anota los presagios
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
@@ -931,14 +934,16 @@ function merge(c,s){
     slots:f.slots.map((x,i)=>pick(x,s.slots&&s.slots[i])),spells:{c:ids(sp.c,true,k?k.cantrips:0),p:ids(sp.p,false,k?k.prepared:0)},
     conc:typeof cc.id==="string"&&(typeof SPELLS!=="undefined"&&Object.hasOwn(SPELLS,cc.id)||c.fruit&&c.fruit.tech.some(t=>"f:"+t.id===cc.id))?{id:cc.id,lvl:pick(0,cc.lvl)}:{id:"",lvl:0},
     form:c.forms&&Object.hasOwn(c.forms,s.form)?s.form:"",formOpts:Array.isArray(s.formOpts)?s.formOpts.filter(o=>typeof o==="string").slice(0,4):[],
-    humanHp:pick(f.humanHp,s.humanHp),stageAC:pick(false,s.stageAC),items:obj(f.items,s.items),
+    humanHp:pick(f.humanHp,s.humanHp),stageAC:pick(false,s.stageAC),inv:invClean(c,s,f.inv),
+    ilog:Array.isArray(s.ilog)?s.ilog.slice(0,60).filter(x=>x&&typeof x==="object").map(x=>({at:pick(0,x.at),by:String(x.by||"").slice(0,30),t:String(x.t||"").slice(0,160),note:String(x.note||"").slice(0,80)})):[],
+    gotG:Array.isArray(s.gotG)?s.gotG.filter(x=>typeof x==="string").slice(0,40):[],
     comp:obj(f.comp,s.comp),
     sea:pick(false,s.sea),frenzy:pick(false,s.frenzy),muscle:["def","atk"].includes(s.muscle)?s.muscle:"",trans:pick(false,s.trans),exh:Math.min(6,Math.max(0,pick(0,s.exh))),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(0,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)})),
     fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext)};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===CHARS.udon.maxHp&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
-function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P)}
+function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P);if(P&&!admin)invGrants(P)}
 function save(){store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}}
 
 /* ===================== DADOS ===================== */
@@ -1108,7 +1113,8 @@ function render(){
   const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
   if(free.length)h+=`<section><h2>${COST.gratis}</h2><div class="list">${free.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role);
-  if(out.length||c.gear)h+=`<section><h2>${COST.fuera}</h2>${c.gear?`<p class="note"><b>${tx("Equipo","Equipment")}</b>: ${c.gear}</p>`:""}<div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
+  if(out.length)h+=`<section><h2>${COST.fuera}</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
+  h+=invSec(c);
 
   h+=`<section><h2>${tx("Salvaciones","Saving Throws")}</h2><div class="saves">${Object.entries(c.saves).map(([k,[,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${abT(k)}<span>${sgn(sv(c,k))}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
   if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>${tx("Habilidades","Skills")}</span><small>${tx("Percepción pasiva","Passive Perception")} ${10+skillBonus(c,"percepcion")} · ${tx("Perspicacia pasiva","Passive Insight")} ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
@@ -1143,7 +1149,7 @@ function render(){
 const formShows=(c,a)=>{const f=formOf(c);return a.form?S.form===a.form&&(!a.opt||S.formOpts.includes(a.opt)):!(f&&f.hideAttacks&&a.kind==="attack")};
 /* on: el efecto está activo (tocar lo termina) · out: no se puede usar ahora (sin usos, ya usado, requisito) */
 function actState(a){return{
-  out:a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0)||a.once&&S.used[a.once]||a.perTurn&&S.turn[a.perTurn]||a.kind==="stay1"&&S.hp>0||a.needs&&!S.turn[a.needs]||a.kind==="form"&&(S.sea||S.form&&S.form!==a.form),
+  out:a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0)||a.inv&&invQ(a.inv)<=0||a.once&&S.used[a.once]||a.perTurn&&S.turn[a.perTurn]||a.kind==="stay1"&&S.hp>0||a.needs&&!S.turn[a.needs]||a.kind==="form"&&(S.sea||S.form&&S.form!==a.form),
   on:a.kind==="haki"&&S.hard>0||a.kind==="frenzy"&&S.frenzy||a.kind==="transform"&&S.trans||a.kind==="toggle"&&S.turn[a.flag]||a.kind==="form"&&S.form===a.form}}
 function actBtn(a,i){
   const c=C();let big="",tags="";
@@ -1159,7 +1165,7 @@ function actBtn(a,i){
   else if(a.kind==="group")big=a.temp?`+${a.temp}<small>${tx(`PV temp. · ${a.t} criaturas`,`temp. HP · ${a.t} creatures`)}</small>`:a.heal?`+${a.heal}<small>${tx("PV a aliados","HP to allies")}</small>`:"";
   else if(a.kind==="firstaid")big=`${a.heal}+${tx("nivel","level")}<small>${tx("PV","HP")}</small>`;
   const {out,on}=actState(a);
-  const left=a.res?` · ${tx(`te quedan ${S.res[a.res]}`,`${S.res[a.res]} left`)}`:a.once&&S.used[a.once]?tx(" · ya lo usaste desde el último descanso"," · already used since the last rest"):"";
+  const left=a.res?` · ${tx(`te quedan ${S.res[a.res]}`,`${S.res[a.res]} left`)}`:a.inv?" · "+invLeft(a.inv):a.once&&S.used[a.once]?tx(" · ya lo usaste desde el último descanso"," · already used since the last rest"):"";
   const d=a.kind==="haki"&&S.hard>0?tx("Activo · toca para terminarlo","Active · tap to end it"):a.kind==="frenzy"&&S.frenzy?tx("Activa · toca para terminarla (acción adicional)","Active · tap to end it (bonus action)"):a.kind==="transform"&&S.trans?tx(`Activo · toca para terminarlo (acción adicional; ganas ${c.transform.exh} de agotamiento)`,`Active · tap to end it (bonus action; you gain ${c.transform.exh} level of exhaustion)`):a.note;
   const ico=a.companion?"companion":a.kind==="haki"||a.haki?"haki":a.kind==="attack"?"weapon":"";
   return `<button class="act ${on?"on":""}" data-act="${i}" ${out&&!on?'aria-disabled="true"':""}><span class="n">${ico?sico(ico):""}${a.name}${tags}</span><span class="big">${big}</span><span class="d">${d}${left}</span></button>`;
@@ -1174,13 +1180,97 @@ function formPicker(c,i){const a=c.actions[i],f=c.forms[a.form],sel=T.fsel;
     <div class="trayact"><button class="btn gold" data-do="fgo" ${sel.length===f.pick?"":"disabled"}>${tx("Transformarse","Transform")} (${sel.length}/${f.pick})</button></div>`}
 /* Inventario de munición especial (items): cada uno se dispara con su coste y CD propia, y gasta una unidad */
 function itemSec(c){
-  return`<section><h2>${c.itemsName} <small>${tx("CD","DC")} ${c.itemsDc} · ${c.itemsNote}</small></h2><div class="list">${c.items.map(x=>{const n=S.items[x.id];
+  return`<section><h2>${c.itemsName} <small>${tx("CD","DC")} ${c.itemsDc} · ${c.itemsNote}</small></h2><div class="list">${c.items.map(x=>{const n=invQ("pg:"+x.id);
     return`<button class="act" data-item="${x.id}" ${n>0?"":'aria-disabled="true"'}><span class="n">${x.n}<span class="tag">${n}/${x.max}</span></span><span class="big">${x.sv?`${tx("CD","DC")} ${c.itemsDc}<small>${tx(`salv. ${x.sv}`,`${x.sv} save`)}${x.dmg?" · "+x.dmg:""}</small>`:x.dmg?`${x.dmg}<small>${x.ty}</small>`:""}</span><span class="d">${COST[x.c]||x.c} · ${x.sum}</span></button>`}).join("")}
     <button class="btn gold" data-do="harvest">${c.itemsFill}</button></div></section>`}
 
 /* ===================== MASCOTA ===================== */
 /* companion: name, kind, hp, ac, dc, atk, heads (cabezas) y headDmg (daño en un turno que puede matar una cabeza), tfName (transformación), attacks.
    Ataque con multi:"heads": un ataque por cabeza viva. Estado en S.comp: hp, temp, heads, tf, turnDmg. La mascota actúa en su propio turno: no gasta acciones del personaje */
+/* ===================== INVENTARIO ===================== */
+/* Vive en el estado del personaje (S.inv: dinero y objetos; S.ilog: historial), así lo cambian solo su jugador y el DM (reglas de state).
+   El DM da o quita con entregas (progress.grants) que el teléfono del jugador aplica una sola vez (S.gotG), como el prestigio.
+   Objetos: w = arma enlazada a su ataque; k = consumible que se gasta solo en combate (balas, virotes, flechas, kits, "pg:" Pop Greens); eq = equipado */
+function keyOf(c){return Object.keys(CHARS).find(k=>CHARS[k]===c)||cur} // declarada (no const): merge la usa al cargar
+const fmtB=n=>String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g,".");
+const nmOf=x=>tl(x.n)||"";
+function invSeed(k){const b=CHARS_SRC[k]||{},v=b.inv||{money:0,items:[]};
+  return{money:v.money,items:[...v.items.map((x,i)=>({id:"s"+i,...(x.k?{k:x.k}:{}),...(x.w?{w:x.w}:{}),n:x.n||b.weapons[x.w].name,q:x.q??1,note:x.note||"",eq:!!x.eq})),
+    ...(b.items||[]).map(x=>({id:"pg"+x.id,k:"pg:"+x.id,n:x.n,q:x.start,note:"",eq:false}))]}}
+/* Del estado de la nube (lo escribe otro teléfono): solo campos y valores conocidos. Sin inventario (versión anterior): los contadores sueltos pasan a él */
+function invClean(c,s,def){const v=s.inv;
+  if(!v||typeof v!=="object"||!Array.isArray(v.items)){const d=structuredClone(def);
+    for(const x of d.items)if(x.k){const r=x.k.startsWith("pg:")?s.items&&s.items[x.k.slice(3)]:s.res&&s.res[x.k];if(Number.isInteger(r))x.q=Math.max(0,r)}return d}
+  const txt=(x,n)=>typeof x==="string"?x.slice(0,n):isTxt(x)?{es:x.es.slice(0,n),en:x.en.slice(0,n)}:"";
+  return{money:Number.isSafeInteger(v.money)&&v.money>=0?v.money:0,items:v.items.filter(x=>x&&typeof x==="object").slice(0,100).map((x,i)=>({id:typeof x.id==="string"?x.id.slice(0,24):"x"+i,
+    ...(typeof x.k==="string"?{k:x.k.slice(0,24)}:{}),...(c.weapons&&typeof x.w==="string"&&Object.hasOwn(c.weapons,x.w)?{w:x.w}:{}),
+    n:txt(x.n,60)||"?",q:Number.isInteger(x.q)?Math.min(9999,Math.max(0,x.q)):0,note:txt(x.note,80),eq:x.eq===true}))}}
+const invItem=k=>S.inv.items.find(x=>x.k===k);
+const invQ=k=>S.inv.items.reduce((a,x)=>a+(x.k===k?x.q:0),0);
+const invName=k=>{const x=invItem(k);return x?nmOf(x):k};
+const invLeft=k=>tx(`te quedan ${invQ(k)} en el inventario`,`${invQ(k)} left in your inventory`);
+/* Gasta 1 en combate y avisa si se acabó */
+function invUse(k){const x=S.inv.items.find(y=>y.k===k&&y.q>0);if(!x)return;x.q--;
+  if(!invQ(k)){const n=k.startsWith("pg:")?nmOf(x):nmOf(x).toLowerCase();cbToast(`<b>${tx(`Te quedaste sin ${esc(n)}`,`You ran out of ${esc(n)}`)}</b>`)}}
+function ilogAdd(t,note=""){S.ilog=[{at:Date.now(),by:admin?"DM":C().name,t,note},...S.ilog].slice(0,60)}
+const ilogRow=x=>`<p class="note">${x.at?new Date(x.at).toLocaleDateString(look.lang)+" · ":""}<b>${esc(x.by)}</b>: ${esc(x.t)}${x.note?` · <i>${esc(x.note)}</i>`:""}</p>`;
+function invSec(c){const I=S.inv,ai=w=>c.actions.findIndex(a=>a.kind==="attack"&&a.w===w);
+  return`<section id="sec-inv"><details class="skills inv" ${invOpen?"open":""}><summary><h2><span>${tx("Inventario","Inventory")}</span><small>฿${fmtB(I.money)} · ${I.items.length} ${tx("objetos","items")}</small></h2></summary>
+   <div class="invit"><div><small class="tip">${tx("Dinero","Money")}</small><br><b class="money">฿${fmtB(I.money)}</b></div><div class="cnt"><button class="btn" data-do="money" data-s="1">${tx("Ganar","Earn")}</button><button class="btn" data-do="money" data-s="-1" ${I.money?"":"disabled"}>${tx("Gastar","Spend")}</button></div></div>
+   ${I.items.map(x=>{const i=x.w?ai(x.w):-1,n=esc(nmOf(x));return`<div class="invit"><div><b>${n}</b> ×${x.q}${x.eq?` <span class="tag">${tx("Equipado","Equipped")}</span>`:""}${x.k&&!x.q?` <span class="tag">${tx("Agotado","Out")}</span>`:""}${x.note?`<br><small class="tip">${esc(tl(x.note))}</small>`:""}</div>
+     <div class="cnt"><button class="btn" data-invq="${x.id}" data-n="-1" ${x.q?"":"disabled"} aria-label="${tx("Quitar 1:","Remove 1:")} ${n}">−</button><button class="btn" data-invq="${x.id}" data-n="1" aria-label="${tx("Sumar 1:","Add 1:")} ${n}">+</button>${i>=0?`<button class="btn" data-act="${i}" data-peek>${tx("Ataque","Attack")}</button>`:""}<button class="btn" data-inved="${x.id}">${tx("Editar","Edit")}</button></div></div>`}).join("")}
+   <div class="trayact"><button class="btn" data-inved="">${tx("Agregar objeto","Add item")}</button></div>
+   ${S.ilog.length?`<details class="lvhist"><summary>${tx("Historial","History")} (${S.ilog.length})</summary>${S.ilog.slice(0,20).map(ilogRow).join("")}</details>`:""}
+  </details></section>`}
+const txtIn=(id,label,v,n)=>`<label class="tip" for="${id}">${label}</label><input class="hpin" id="${id}" type="text" maxlength="${n}" value="${v}" style="width:100%;text-align:left;font-size:15px">`;
+function moneyForm(s){show({title:s>0?tx("Ganar dinero","Earn money"):tx("Gastar dinero","Spend money"),sheet:true,inv:{op:"money",s},
+  html:`<p class="note">${tx("Tienes","You have")} ฿${fmtB(S.inv.money)}</p><div class="hp"><label class="tip" for="invm" style="flex:1">${tx("Cantidad (฿)","Amount (฿)")}</label><input class="hpin" id="invm" type="number" inputmode="numeric" min="1" placeholder="฿" style="width:130px"></div>
+   ${txtIn("invn",tx("Nota (opcional)","Note (optional)"),"",80)}<div class="warn" id="invw" hidden></div>
+   <button class="btn primary use" data-do="invgo">${s>0?tx("Ganar","Earn"):tx("Gastar","Spend")}</button><button class="btn" data-do="close">${tx("Cancelar","Cancel")}</button>`});$("invm").focus()}
+function invForm(id){const x=id?S.inv.items.find(y=>y.id===id):null;if(id&&!x)return;
+  show({title:x?tx("Editar objeto","Edit item"):tx("Agregar objeto","Add item"),sheet:true,inv:{op:x?"edit":"add",id},
+  html:`${txtIn("invname",tx("Nombre","Name"),x?esc(nmOf(x)):"",60)}<div class="hp"><label class="tip" for="invqty" style="flex:1">${tx("Cantidad","Quantity")}</label><input class="hpin" id="invqty" type="number" inputmode="numeric" min="0" max="9999" value="${x?x.q:1}"></div>
+   ${txtIn("invnote",tx("Nota (opcional)","Note (optional)"),x?esc(tl(x.note)):"",80)}<label class="lvck"><input type="checkbox" id="inveq" ${x&&x.eq?"checked":""}><span>${tx("Equipado","Equipped")}</span></label><div class="warn" id="invw" hidden></div>
+   <button class="btn primary use" data-do="invgo">${tx("Guardar","Save")}</button>${x?`<button class="btn" data-do="invdel">${tx("Quitar del inventario","Remove from inventory")}</button>`:""}<button class="btn" data-do="close">${tx("Cancelar","Cancel")}</button>`});$("invname").focus()}
+function invGo(c){const o=T.inv,w=$("invw"),bad=m=>{w.textContent=m;w.hidden=false};
+  if(o.op==="money"){const n=parseInt($("invm").value,10),note=$("invn").value.trim().slice(0,80);
+    if(!(n>0&&n<=1e12))return bad(tx("Escribe una cantidad.","Enter an amount."));
+    if(o.s<0&&n>S.inv.money)return bad(tx(`No te alcanza: tienes ฿${fmtB(S.inv.money)}.`,`Not enough: you have ฿${fmtB(S.inv.money)}.`));
+    S.inv.money+=o.s*n;const t=o.s>0?tx(`Ganaste ฿${fmtB(n)}`,`You earned ฿${fmtB(n)}`):tx(`Gastaste ฿${fmtB(n)}`,`You spent ฿${fmtB(n)}`);ilogAdd(t,note);log(esc(t+(note?" · "+note:"")))}
+  else{const name=$("invname").value.trim().slice(0,60),q=parseInt($("invqty").value,10),note=$("invnote").value.trim().slice(0,80),eq=$("inveq").checked;
+    if(!name)return bad(tx("Escribe el nombre.","Enter the name."));if(!(q>=0&&q<=9999))return bad(tx("La cantidad va de 0 a 9999.","The quantity goes from 0 to 9999."));
+    if(o.op==="add"){S.inv.items.push({id:"u"+Date.now().toString(36),n:name,q,note,eq});ilogAdd(tx(`Agregaste ${name} ×${q}`,`You added ${name} ×${q}`),note)}
+    else{const x=S.inv.items.find(y=>y.id===o.id);if(!x)return;const old=`${nmOf(x)} ×${x.q}`;if(name!==nmOf(x))x.n=name;if(note!==tl(x.note))x.note=note;x.q=q;x.eq=eq;
+      ilogAdd(tx(`Editaste ${old} → ${name} ×${q}`,`You edited ${old} → ${name} ×${q}`),note)}}
+  $("tray").classList.add("hide");save();render()}
+/* Entregas del DM: se aplican una sola vez en el teléfono del jugador, con aviso en segunda persona */
+const grantTxt=g=>[g.m?`${g.m>0?"+":"−"}฿${fmtB(g.m)}`:"",g.n?`${g.q>0?"+":"−"}${esc(g.n)} x${Math.abs(g.q)}`:""].filter(Boolean).join(" · ");
+function invGrants(P){const gs=(P.grants||[]).filter(g=>!S.gotG.includes(g.id)).reverse();if(!gs.length)return;const L=[];
+  for(const g of gs){const p=[];
+    if(g.m){S.inv.money=Math.max(0,S.inv.money+g.m);p.push(g.m>0?tx(`El DM te dio ฿${fmtB(g.m)}`,`The DM gave you ฿${fmtB(g.m)}`):tx(`El DM te quitó ฿${fmtB(g.m)}`,`The DM took ฿${fmtB(g.m)} from you`))}
+    if(g.n&&g.q){const low=g.n.trim().toLowerCase(),x=S.inv.items.find(y=>(isTxt(y.n)?[y.n.es,y.n.en]:[y.n]).some(z=>z.toLowerCase()===low));
+      if(x){x.q=Math.max(0,x.q+g.q);if(!x.q&&!x.k&&g.q<0)S.inv.items=S.inv.items.filter(y=>y!==x)}else if(g.q>0)S.inv.items.push({id:"g"+g.id,n:g.n,q:g.q,note:"",eq:false});
+      p.push(g.q>0?tx(`Recibiste: ${g.n} x${g.q}`,`You received: ${g.n} x${g.q}`):tx(`El DM se llevó: ${g.n} x${-g.q}`,`The DM took: ${g.n} x${-g.q}`))}
+    S.gotG=[g.id,...S.gotG].slice(0,40);
+    if(p.length){S.ilog=[{at:g.at||Date.now(),by:"DM",t:p.join(" · "),note:g.note},...S.ilog].slice(0,60);L.push(p.join(" · ")+(g.note?" · "+g.note:""))}}
+  if(L.length){log(esc(L.join(" · ")));cbToast(`<b>${esc(L.join(" · "))}</b>`);buzz(120)}save()}
+/* Mesa: dinero, objetos e historial de cada personaje; el DM da o quita (botín, compras) */
+const invDmOpen={};
+function invDm(k,s){const P=PROG[k]||{},pend=(P.grants||[]).filter(g=>!s.gotG.includes(g.id)),I=s.inv;
+  return`<details class="lvhist invdm" data-k="${k}" ${invDmOpen[k]?"open":""}><summary>${tx("Inventario","Inventory")} · ฿${fmtB(I.money)}${pend.length?" · "+tx(`${pend.length} por entregar`,`${pend.length} pending`):""}</summary>
+   <p class="note">${I.items.map(x=>`${esc(nmOf(x))} ×${x.q}${x.eq?" ("+tx("equipado","equipped")+")":""}`).join(" · ")||tx("Sin objetos","No items")}</p>
+   ${pend.length?`<p class="note">${tx("Por entregar (se aplica cuando el jugador abre la app)","Pending (applied when the player opens the app)")}: ${pend.map(grantTxt).join(" · ")}</p>`:""}
+   <div class="hp" style="flex-wrap:wrap"><input class="hpin" id="gm-${k}" type="number" inputmode="numeric" min="0" placeholder="฿" aria-label="${tx("Berries","Berries")}" style="width:110px">
+    <input class="hpin" id="gi-${k}" type="text" maxlength="60" placeholder="${tx("Objeto (opcional)","Item (optional)")}" aria-label="${tx("Objeto (opcional)","Item (optional)")}" style="flex:1;min-width:120px;width:auto;text-align:left;font-size:15px">
+    <input class="hpin" id="gq-${k}" type="number" inputmode="numeric" min="1" max="999" value="1" aria-label="${tx("Cantidad","Quantity")}" style="width:64px"></div>
+   <input class="hpin" id="gn-${k}" type="text" maxlength="80" placeholder="${tx("Nota (opcional): botín, compra…","Note (optional): loot, purchase…")}" aria-label="${tx("Nota (opcional)","Note (optional)")}" style="width:100%;text-align:left;font-size:15px">
+   <div class="trayact"><button class="btn primary" data-give="${k}" data-s="1">${tx("Dar","Give")}</button><button class="btn" data-give="${k}" data-s="-1">${tx("Quitar","Take")}</button></div>
+   ${s.ilog.length?`<p class="note"><b>${tx("Historial","History")}</b></p>${s.ilog.slice(0,8).map(ilogRow).join("")}`:""}</details>`}
+function invGive(k,s){const v=id=>(($(id+"-"+k)||{}).value||"").trim(),m=parseInt(v("gm"),10)||0,n=v("gi").slice(0,60),q=Math.min(999,parseInt(v("gq"),10)||1),note=v("gn").slice(0,80);
+  if(m<0||m>1e12||q<1||!m&&!n)return show({title:tx("Nada que entregar","Nothing to send"),tip:tx("Escribe una cantidad de berries, un objeto o las dos cosas.","Enter an amount of berries, an item or both.")});
+  const P=PROG[k]||{},g={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),at:Date.now(),m:s*m,n,q:n?s*q:0,note};
+  for(const id of ["gm","gi","gn"])$(id+"-"+k).value="";$("gq-"+k).value="1";
+  progWrite(k,{grants:[g,...(P.grants||[])].slice(0,30)});cbToast(tx(`Enviado a ${CHARS[k].name}: ${grantTxt(g)}`,`Sent to ${CHARS[k].name}: ${grantTxt(g)}`))}
 function compSec(c){
   const cp=c.companion,k=S.comp,pct=Math.max(0,k.hp/cp.hp*100),down=k.hp<=0;
   return`<section id="sec-mascota"><h2><span class="h2t">${sico("companion")}${tx("Mascota","Companion")}</span> <small>${cp.name} · ${cp.kind} · ${tx("CA","AC")} ${cp.ac}</small></h2><div class="box2">
@@ -1404,10 +1494,10 @@ function fxRows(e,dc,atk,dm,hl){const R=[];
   if(e.fix)R.push([e.fixL,"+"+e.fix]);
   return R}
 const useBtn=(attr,off,l=USE_())=>`<button class="btn primary use" ${attr} ${off?"disabled":""}>${l}</button>`;
-function actRows(c,a){const r=a.res&&c.resources.find(x=>x.id===a.res),w=(a.kind==="attack"||a.kind==="deflect")&&c.weapons[a.w],am=w&&w.ammo&&c.resources.find(x=>x.id===w.ammo);
+function actRows(c,a){const r=a.res&&c.resources.find(x=>x.id===a.res),w=(a.kind==="attack"||a.kind==="deflect")&&c.weapons[a.w],am=w&&w.ammo&&invItem(w.ammo);
   let cost=a.kind==="attack"&&a.cost==="accion"&&!a.cast?tx(`Acción de Atacar · 1 de tus ${apa(c)} golpes`,`Attack action · 1 of your ${apa(c)} attacks`):COST[a.cost]||"";
-  if(r)cost+=tx(` · gasta 1 de ${r.name}`,` · uses 1 ${r.name}`);if(am)cost+=tx(` · gasta 1 de ${am.name}`,` · uses 1 ${am.name}`);
-  const R=[["what",a.note],["cost",cost],["uses",r?usesTxt(S.res[a.res],r.max,r.rest):am?`${usesTxt(S.res[w.ammo],am.max,am.rest)} (${am.name})`
+  if(r)cost+=tx(` · gasta 1 de ${r.name}`,` · uses 1 ${r.name}`);if(am)cost+=tx(` · gasta 1 de ${nmOf(am)}`,` · uses 1 ${nmOf(am)}`);if(a.inv)cost+=tx(` · gasta 1 de ${invName(a.inv)}`,` · uses 1 ${invName(a.inv)}`);
+  const R=[["what",a.note],["cost",cost],["uses",r?usesTxt(S.res[a.res],r.max,r.rest):am||a.inv?invLeft(am?w.ammo:a.inv)
     :a.once?(a.long?tx("Una vez por descanso largo","Once per long rest"):tx("Una vez por descanso corto o largo","Once per short or long rest"))+" · "+(S.used[a.once]?tx("ya la usaste","already used"):tx("disponible","available"))
     :a.perTurn?tx("Una vez por turno","Once per turn")+(S.turn[a.perTurn]?tx(" · ya la usaste este turno"," · already used this turn"):""):UNL_()]];
   if(w){const st=wStats(w),b=w.dice+"+"+st.mod;R.push(["roll",atkRoll(st.hit,c.critMin)],["dmg",`${recipe(b)} ${w.type}${w.extra?` + ${recipe(w.extra)} ${w.extraType}`:""} · ${tx("crítico","critical")}: ${recipe(b,true)}`])}
@@ -1431,8 +1521,8 @@ function openSheet(k,v){const c=C();let title="",R=[],warn="",extra="",btn="";
     if(s.kind==="flash")R.push(["roll",tx(`Salvación de DES: tira 1d20 ${sgnS(sv(c,"DES"))}`,`DEX saving throw: roll 1d20 ${sgnS(sv(c,"DES"))}`)+advW()]);
     if(S.turn.sr<=0)warn=tx("Ya usaste tus 2 reacciones especiales esta ronda.","You already used your 2 special reactions this round.");
     btn=useBtn(`data-sr="${v}"`,S.sr[v]<=0)}
-  else if(k==="item"){const x=c.items.find(y=>y.id===v),n=S.items[v];title=x.n;warn=econWarn(x.c);
-    R=[["what",x.sum],["cost",COST[x.c]||x.c],["uses",tx(`Te quedan ${n} de ${x.max} · se reponen al cosechar`,`You have ${n} of ${x.max} left · refilled by harvesting`)],...fxRows(x,c.itemsDc,0,x.dmg,"")];
+  else if(k==="item"){const x=c.items.find(y=>y.id===v),n=invQ("pg:"+v);title=x.n;warn=econWarn(x.c);
+    R=[["what",x.sum],["cost",COST[x.c]||x.c],["uses",tx(`Te quedan ${n} en el inventario · cosechar los lleva a ${x.max}`,`You have ${n} left in your inventory · harvesting brings them to ${x.max}`)],...fxRows(x,c.itemsDc,0,x.dmg,"")];
     btn=useBtn(`data-item="${v}"`,n<=0)}
   else if(k==="cact"){const cp=c.companion,a=cp.attacks.find(y=>y.id===v),kk=S.comp,n=a.multi?kk.heads:0,r=a.res&&c.resources.find(y=>y.id===a.res);title=`${cp.name}: ${a.n}`;
     R=[["what",a.sum],["cost",tx(`En el turno de ${cp.name}: no gasta tus acciones`,`On ${cp.name}'s turn: doesn't use your actions`)],["uses",r?usesTxt(S.res[a.res],r.max,r.rest):UNL_()],["range",a.r],...fxRows({...a,hits:n,atk:a.multi?0:a.atk},cp.dc,cp.atk,a.dmg,"")];
@@ -1457,7 +1547,7 @@ function quickOk(c,k,v){if(!look.quick)return false;
 /* ===================== DESHACER ===================== */
 /* Antes de cada toque se copia el estado; si el toque usó algo (cambió el estado), aparece "Deshacer" unos segundos y lo vuelve todo atrás:
    usos, cargas, espacios, munición, economía del turno, PV, efectos e historial. No se ofrece en las correcciones a mano (círculos, contadores, estados) */
-const NO_UNDO=["res","slot","cnt","dreamp","cond","exh","prep","chead","undo"];
+const NO_UNDO=["invq","res","slot","cnt","dreamp","cond","exh","prep","chead","undo"];
 let preU=null;
 document.addEventListener("click",()=>{preU=S&&view==="char"?{s:JSON.stringify(S),cur,fa:foreArm,dp:dropPrev,lh:lastHit}:null},true);
 function offerUndo(p){let d=$("undo");if(!d){d=document.createElement("div");d.id="undo";d.className="undo";d.setAttribute("role","status");document.body.append(d)}
@@ -1525,15 +1615,15 @@ function doAct(i){
   if(a.kind==="haki"&&S.hard>0){S.hard=0;log(tx("Endurecimiento terminado","Weapon Hardening ended"));$("tray").classList.add("hide");save();render();return}
   if(a.kind==="attack"){
     const w=c.weapons[a.w];
-    if(w.ammo&&S.res[w.ammo]<=0){show({title:a.name,warn:tx("Sin munición. Recarga en Recursos.","Out of ammo. Reload in Resources.")});return}
+    if(w.ammo&&invQ(w.ammo)<=0){show({title:a.name,warn:tx("No te queda munición en el inventario.","You have no ammo left in your inventory.")});return}
     if(a.cost==="accion"&&!a.cast)warn=spendAttack();
     else{if(a.offhand&&!S.turn.attacked)warn=(a.req||tx("Recuerda: la segunda arma requiere haber usado la acción de Atacar.","Remember: the second weapon requires having taken the Attack action."))+" ";warn+=spend(a.cost)}
-    if(w.ammo)S.res[w.ammo]--;
+    if(w.ammo)invUse(w.ammo);
     if(a.perTurn)S.turn[a.perTurn]=true;
-    weaponAttack(w,a.name,warn,(w.ammo?tx(`Quedan ${S.res[w.ammo]} de munición.`,`${S.res[w.ammo]} ammo left.`):"")+(a.vortex?tx(" Usa esta tirada contra cada criatura a 5 pies."," Use this roll against each creature within 5 feet."):""),{dis:!!a.vortex});
+    weaponAttack(w,a.name,warn,(w.ammo?tx(`Te quedan ${invQ(w.ammo)} de munición.`,`You have ${invQ(w.ammo)} ammo left.`):"")+(a.vortex?tx(" Usa esta tirada contra cada criatura a 5 pies."," Use this roll against each creature within 5 feet."):""),{dis:!!a.vortex});
   } else if(a.kind==="use"){
-    warn=spend(a.cost);if(a.res)S.res[a.res]--;if(a.once)S.used[a.once]=true;
-    show({title:a.name,warn,tip:a.note+(a.res?` · ${tx(`te quedan ${S.res[a.res]}`,`${S.res[a.res]} left`)}`:"")});log(`<b>${a.name}</b>`);
+    warn=spend(a.cost);if(a.res)S.res[a.res]--;if(a.inv)invUse(a.inv);if(a.once)S.used[a.once]=true;
+    show({title:a.name,warn,tip:a.note+(a.inv?" · "+invLeft(a.inv):"")+(a.res?` · ${tx(`te quedan ${S.res[a.res]}`,`${S.res[a.res]} left`)}`:"")});log(`<b>${a.name}</b>`);
   } else if(a.kind==="form"){const f=c.forms[a.form];
     if(S.form===a.form){warn=spend(f.endCost);endForm(c);show({title:f.name+tx(" terminada"," ended"),warn,boxes:f.hp?[{l:tx("PV","HP"),v:S.hp,s:tx("vuelves a tus PV de antes","back to your previous HP")}]:[]});log(tx(`Termina ${f.name}`,`${f.name} ends`))}
     else if(f.pick){show({title:f.name,fact:i,fform:a.form,fsel:[],html:"",tip:tx(`Elige ${f.pick} opciones. ${a.note}`,`Choose ${f.pick} options. ${a.note}`)});T.html=formPicker(c,i);drawTray();return}
@@ -1720,7 +1810,7 @@ function gate(){
       ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${mhp(c,s)} ${tx("PV","HP")}${s.temp?` (+${s.temp} temp.)`:""}${s.hp<=0?tx(" · inconsciente"," · unconscious"):""}</span><span>${s.conds.map(condT).join(", ")||tx("Sin estados","No conditions")}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
       <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · ${tx("Sueño","Dream")} ${s.dream}/${c.level}${s.hard>0?` · ${tx("Haki activo","Haki active")} (${s.hard} t.)`:""}${c.caster?` · ${tx("Espacios","Slots")} ${s.slots.map((v,i)=>`${tx("N","L")}${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · ${tx("Concentrado en","Concentrating on")} ${concOf(c,s.conc.id).n}`:""}${s.sea?tx(" · Sin fruta (agua o kairoseki)"," · No fruit (water or seastone)"):""}${s.form&&c.forms?" · "+c.forms[s.form].name:""}${c.companion?` · ${c.companion.name} ${s.comp.hp}/${c.companion.hp} ${tx("PV","HP")}${c.companion.heads?tx(`, ${s.comp.heads} cabezas`,`, ${s.comp.heads} heads`):""}`:""}${s.frenzy?" · "+c.frenzy.label:""}${s.trans&&c.transform?" · "+c.transform.name:""}${s.exh?` · ${tx("Agotamiento","Exhaustion")} ${s.exh}`:""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
-      ${s.log[0]?`<p class="note">${tx("Último","Latest")}: ${s.log[0]}</p>`:""}`:`<p class="note">${tx("Sin datos todavía: aparecerán cuando su jugador abra la app.","No data yet: it will show up when their player opens the app.")}</p>`}${prestDm(k)}${lvDmCard(k,c)}</div>`}).join("")}</div></section>
+      ${s.log[0]?`<p class="note">${tx("Último","Latest")}: ${s.log[0]}</p>`:""}`:`<p class="note">${tx("Sin datos todavía: aparecerán cuando su jugador abra la app.","No data yet: it will show up when their player opens the app.")}</p>`}${prestDm(k)}${invDm(k,s)}${lvDmCard(k,c)}</div>`}).join("")}</div></section>
     <section><h2>${tx("Jugadores","Players")} <small>${tx("un personaje por cuenta","one character per account")}</small></h2><div class="box2">${mesa.players.some(p=>p.id!==user.uid)?mesa.players.filter(p=>p.id!==user.uid).map(p=>`<div class="resrow"><span>${esc(p.name||p.email)}<br><small style="font-weight:400">${esc(p.email)}</small></span>
       <select data-assign="${esc(p.id)}" aria-label="${tx("Personaje de","Character for")} ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">${tx("Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.","No player has signed in yet. Ask them to open the app and sign in with Google.")}</p>`}</div></section>
     <p class="note">${tx("Conectado como DM","Signed in as DM")}: ${esc(user.email)}</p>${outBtn()}`;
@@ -1735,7 +1825,7 @@ document.addEventListener("input",e=>{const t=e.target;if(t.id==="in-d20")setD20
 let lastLang=look.lang;
 function onLook(){if(look.lang!==lastLang){lastLang=look.lang;localize();$("tray").classList.add("hide")}if(S)render()}
 addEventListener("resize",()=>{if(view==="char")document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px")});
-document.addEventListener("toggle",e=>{if(e.target.classList&&e.target.classList.contains("skills"))skillsOpen=e.target.open},true);
+document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="lvtarget")lvTarget=t.value;if(t.dataset.rvdie)render();
   if(t.dataset.rvck){const e2=RV[t.dataset.rvck],f=t.dataset.f;if(e2){if(f==="ok")e2.ok=t.checked?[...e2.ok,t.dataset.id]:e2.ok.filter(x=>x!==t.dataset.id);else e2[f]=t.checked}render()}});
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
@@ -1920,6 +2010,7 @@ function onProg(k,raw){if(!CHARS_SRC[k])return;
   PROG[k]=P;if(k===cur&&!admin&&P.prestige!==old)prestToast(P,P.prestige-old);store.set("mc:prog",PROG);localize();
   if(W&&W.k===k&&(!P.event||P.event.id!==W.ev.id||P.pending)){W=null;lvDraw()}
   if(k===cur&&S&&!admin&&P.level>S.lvl)lvApplied(buildChar(k,progAt(P,S.lvl)),CHARS[k],P);
+  if(k===cur&&S&&!admin)invGrants(P);
   if(k===cur)lvCheck();
   render()}
 /* Progreso al nivel L, rearmado con el historial (lo que tenía la ficha antes de las subidas que este teléfono todavía no aplicó) */
@@ -2230,9 +2321,13 @@ document.addEventListener("click",e=>{
     useFx("c:"+a.id,{...a,l:0,hits:a.multi?k.heads:0,atk:a.multi?0:a.atk},0,{dc:cp.dc,atk:cp.atk,atkL:tx("Ataque de "+cp.name,cp.name+"'s attack"),storm:false,ally:true,unit:"",upTxt:"",pay:()=>{if(a.res)S.res[a.res]--}},{noEcon:true,title:`${cp.name}: ${a.n}`});return}
 
   if(ds.fpick&&T&&T.fury){const n=furyN(c),s=T.fury;T.fury=s.includes(ds.fpick)?s.filter(x=>x!==ds.fpick):s.length<n?[...s,ds.fpick]:s;T.html=furyHtml();drawTray();return}
+  if(ds.invq){const x=S.inv.items.find(y=>y.id===ds.invq);if(!x)return;const o=x.q;x.q=Math.max(0,Math.min(9999,x.q+(+ds.n)));if(x.q===o)return;
+    ilogAdd(tx(`${nmOf(x)}: ${o} → ${x.q}`,`${nmOf(x)}: ${o} → ${x.q}`));save();render();return}
+  if(ds.inved!==undefined){invForm(ds.inved);return}
+  if(ds.give){invGive(ds.give,+ds.s);return}
   if(ds.chead){const cp=c.companion;S.comp.heads=Math.min(cp.heads,Math.max(0,S.comp.heads+(+ds.chead)));save();render();return}
-  if(ds.item){const x=c.items.find(y=>y.id===ds.item);armed=null;if(S.items[x.id]<=0)return;
-    useFx("i:"+x.id,{l:0,...x},0,{dc:c.itemsDc,atk:0,atkL:"",storm:false,unit:"",upTxt:"",pay:()=>{S.items[x.id]--}},{});return}
+  if(ds.item){const x=c.items.find(y=>y.id===ds.item);armed=null;if(invQ("pg:"+x.id)<=0)return;
+    useFx("i:"+x.id,{l:0,...x},0,{dc:c.itemsDc,atk:0,atkL:"",storm:false,unit:"",upTxt:"",pay:()=>invUse("pg:"+x.id)},{});return}
   if(ds.tech){armed=null;const t=c.fruit.tech.find(x=>x.id===ds.tech);if(!t.l&&!t.pw)useTech(t.id,0);else techOpen(ds.tech);return}
   if(ds.techn){useTech(ds.techn,+ds.n);return}
   if(ds.fxopt!==undefined){useTech(T.tech.id,T.tech.lvl,{pick:+ds.fxopt});return}
@@ -2320,7 +2415,8 @@ document.addEventListener("click",e=>{
   if(act==="stage"){S.turn.stage=true;if(ds.m==="dmg"){const v=trayDice(c.stage.name,c.stage.dmg,"ex");log(v==null?`${c.stage.name} (+${c.stage.dmg})`:`${c.stage.name}: +${v} ${tx("de daño","damage")}`)}
     else{S.stageAC=true;T.tip=(T.tip||"")+` ${c.stage.name}: +${c.stage.ac} ${tx("CA hasta el inicio de tu siguiente turno.","AC until the start of your next turn.")}`;log(`${c.stage.name}: +${c.stage.ac} ${tx("CA","AC")}`)}drawTray();save();render();return}
   if(act==="flow"){const f=c.flow[+ds.i],w=spend("adicional");T.flowUsed=true;if(w)T.warn=w;T.tip=(T.tip||"")+` ${f.name}: ${f.note}`;log(`<b>${f.name}</b>`);drawTray();save();render();return}
-  if(act==="harvest"){c.items.forEach(x=>S.items[x.id]=x.max);show({title:c.itemsName+tx(": cosecha",": harvest"),tip:tx(`Todos quedan en ${c.items[0].max}.`,`All of them are now at ${c.items[0].max}.`)});log(tx(`<b>Cosecha</b> de ${c.itemsName}`,`<b>Harvest</b> of ${c.itemsName}`))}
+  if(act==="harvest"){c.items.forEach(x=>{const it=invItem("pg:"+x.id)||(S.inv.items.push({id:"pg"+x.id,k:"pg:"+x.id,n:CHARS_SRC[cur].items.find(y=>y.id===x.id).n,q:0,note:"",eq:false}),invItem("pg:"+x.id));it.q=Math.max(it.q,x.max)});
+    ilogAdd(tx(`Cosechaste ${c.itemsName}: ${c.items[0].max} de cada uno`,`You harvested ${c.itemsName}: ${c.items[0].max} of each`));show({title:c.itemsName+tx(": cosecha",": harvest"),tip:tx(`Todos quedan en ${c.items[0].max}.`,`All of them are now at ${c.items[0].max}.`)});log(tx(`<b>Cosecha</b> de ${c.itemsName}`,`<b>Harvest</b> of ${c.itemsName}`))}
   if(act==="fpick"){const o=ds.o,sel=T.fsel;if(sel.includes(o))T.fsel=sel.filter(x=>x!==o);else if(sel.length<c.forms[T.fform].pick)sel.push(o);T.html=formPicker(c,T.fact);drawTray();return}
   if(act==="fgo"){const a=c.actions[T.fact],f=c.forms[a.form],sel=T.fsel,names=sel.map(o=>f.opts.find(x=>x.id===o).n);if(sel.length!==f.pick)return;
     const warn=spend(a.cost);S.res[a.res]--;startForm(c,a.form,sel);show({title:f.name,warn,tip:f.bar+" · "+names.join(" · ")});log(`<b>${f.name}</b>: ${names.join(", ")}`)}
@@ -2338,6 +2434,10 @@ document.addEventListener("click",e=>{
     if(pre)preU=pre;save();render();return}
   if(act==="dragon"&&T&&T.dragon){const y=ds.ty,el=y!==DRAGON_TY[0],b=T.boxes.find(x=>x.dragon),v={dragon:1,l:`${c.dragon.name} · ${dmgT(y)}`,v:el?"+"+c.dragon.bonus:"+0",s:el?tx(`todo el daño del golpe es de ${dmgT(y)}`,`all of the hit's damage is ${dmgT(y)}`):tx("sin bono","no bonus"),cls:"ex",fixed:true};
     if(b)Object.assign(b,v);else if(el)T.boxes.push(v);T.dty=y;log(`${c.dragon.name}: ${dmgT(y)}${el?" +"+c.dragon.bonus:""}`);drawTray();save();return}
+  if(act==="money"){moneyForm(+ds.s);return}
+  if(act==="invgo"&&T&&T.inv){invGo(c);return}
+  if(act==="invdel"&&T&&T.inv){const x=S.inv.items.find(y=>y.id===T.inv.id);if(!x||!confirm(tx(`¿Quitar ${nmOf(x)} del inventario?`,`Remove ${nmOf(x)} from your inventory?`)))return;
+    S.inv.items=S.inv.items.filter(y=>y!==x);ilogAdd(tx(`Quitaste ${nmOf(x)} ×${x.q}`,`You removed ${nmOf(x)} ×${x.q}`));$("tray").classList.add("hide");save();render();return}
   if(act==="furypick"){furyPick();return}
   if(act==="furysave"&&T&&T.fury){if(T.fury.length!==furyN(c))return;const u=furyUnlock();S.fury=[...T.fury];if(u)S.furyDone=u;
     log(tx("Técnicas de furia: ","Fury features: ")+furyNames(S.fury));$("tray").classList.add("hide");save();render();return}
@@ -2368,7 +2468,7 @@ document.addEventListener("click",e=>{
   if(act==="short"||act==="long"){
     if(armed!==act){armed=act;render();return}
     armed=null;
-    if(act==="long"){const keep={lvl:S.lvl,dream:S.dream,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),items:S.items},
+    if(act==="long"){const keep={lvl:S.lvl,dream:S.dream,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),inv:S.inv,ilog:S.ilog,gotG:S.gotG,fury:S.fury,furyDone:S.furyDone},
         manual=c.resources.filter(r=>r.rest==="none").map(r=>[r.id,S.res[r.id]]);
       S=Object.assign(fresh(c),keep);manual.forEach(([k,v])=>S.res[k]=v);foreArm=null;log(tx("<b>Descanso largo</b>: PV y usos recuperados","<b>Long rest</b>: HP and uses recovered"));
       if(S.fore.length&&phys()){S.fore.forEach(f=>{f.v=0;f.u=false});
