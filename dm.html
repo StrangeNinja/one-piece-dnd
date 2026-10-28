@@ -124,6 +124,12 @@ h1{font-family:var(--f-display);font-size:26px;margin:0;line-height:1.05}
 /* Símbolo además del color: en las paletas rojas el daño no depende solo del tono */
 .ctrl .d::before{content:"− "} .ctrl .h::before{content:"+ "}
 .conds{display:flex;gap:5px;flex-wrap:wrap}
+.fxs{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.fxc{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--ink)}
+.fxc button{background:none;border:0;color:var(--muted);font-weight:800;padding:0 2px;cursor:pointer}
+.fxadd{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px}
+.fxadd input,.fxadd select{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.advt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin-top:6px}
 .conds b{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bad);color:var(--bg)}
 .more{display:flex;flex-direction:column;gap:8px;padding-top:6px;border-top:1px dashed var(--line)}
 .chips{display:flex;gap:5px;flex-wrap:wrap}
@@ -154,7 +160,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 10:27";
+const APP_VERSION="2026-10-28 14:15";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -295,7 +301,7 @@ function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx
   const pub=c=>{if(!c)return null;if(c.type==="foe")return{kind:"foe",char:null,name:""};const l=linkOf(c);return{kind:l?l.kind:"ally",char:l?l.char:null,name:c.name}};
   /* Caídos y avisos: solo jugadores y mascotas (nombre, tipo y estado; nada privado) */
   const fallen=Object.entries(S.fall||{}).map(([k,st])=>{const c=S.list.find(x=>{const l=linkOf(x);return l&&fallKey(l)===k});return c&&{...linkOf(c),name:c.name,st}}).filter(Boolean);
-  return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],at:Date.now()}}
+  return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,at:Date.now()}}
 function syncOut(){if(typeof sorted!=="function")return;store.set("mc:live",liveOf());
   if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
     F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
@@ -353,7 +359,8 @@ function render(){
       :!user?`<button class="btn" data-do="login">${tx("Entrar con Google para avisar los turnos","Sign in with Google to announce turns")}</button>`
       :isDM?tx("en la nube: los jugadores ven los turnos","in the cloud: players see the turns"):`${tx("esta cuenta no es del DM","this account isn't the DM's")} <button class="btn" data-do="logout">${tx("Cerrar sesión","Sign out")}</button>`}</div>`;
   put($("list"),L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`);
- $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["reset",tx("Vaciar combate","Clear combat")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("");
+ $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["reset",tx("Vaciar combate","Clear combat")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("")
+   +`<div class="advt"><b>${tx("Avanzar tiempo","Advance time")}</b>${[1,10,60].map(m=>`<button class="btn" data-do="adv" data-m="${m}">+${m===60?"1 h":m+" min"}</button>`).join("")}</div>`;
 }
 /* ===== Caídos: aviso a todo el grupo =====
    Solo este panel publica (es el único que lee los PV de todos): compara los PV de cada jugador y de Fluffy con los de antes (FALLPREV)
@@ -392,12 +399,14 @@ function card(c0){
    </div>
    ${pend?`<p class="note">${tx("Su hoja llega más adelante. Puedes ponerle CA y PV máx. tocando su nombre.","Their sheet comes later. You can set AC and max HP by tapping their name.")}</p>`:`<div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>`}
    ${c.conds.length?`<div class="conds">${c.conds.map(x=>`<b>${condT(x)}</b>`).join("")}</div>`:""}
+   ${fxHtml(c0,lv)}
    ${canDie(c0)?`<div class="row"><button class="btn ${armed==="dead"+c.id?"arm":""}" data-dead="${c.id}">${armed==="dead"+c.id?tx("Toca para confirmar: avisa a todos","Tap to confirm: tells everyone"):tx("Confirmar muerte","Confirm death")}</button></div>`:""}
    ${pend?"":lv?`<p class="note">${own?tx("PV y estados en vivo desde la app del jugador: los cambia el jugador.","Live HP and conditions from the player's app: the player changes them."):tx("PV en vivo desde la app de su dueño.","Live HP from the owner's app.")}</p>`:`<div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="${tx(`Cantidad para ${esc(c.name)}`,`Amount for ${esc(c.name)}`)}">
      <select id="ty-${c.id}" aria-label="${tx(`Tipo de daño para ${esc(c.name)}`,`Damage type for ${esc(c.name)}`)}"><option value="">${tx("Daño sin tipo","Untyped damage")}</option>${DMG.map(t=>`<option value="${t}">${tx(t[0].toUpperCase()+t.slice(1),DMG_EN[t][0].toUpperCase()+DMG_EN[t].slice(1))}</option>`).join("")}</select>
      <button class="btn d" data-dmg="${c.id}">${tx("Daño","Damage")}</button><button class="btn h" data-heal="${c.id}">${tx("Curar","Heal")}</button><button class="btn tb" data-temp="${c.id}">Temp.</button></div>`}
    ${isOpen?`<div class="more">
      ${own?"":`<div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>`}
+     ${own?"":fxForm(c0)}
      <div class="edit">
        <label>${tx("Nombre","Name")}<input id="e-name-${c.id}" value="${esc(c.name)}"></label>
        <label>${tx("Iniciativa","Initiative")}<input id="e-init-${c.id}" type="number" inputmode="numeric" value="${c.init??""}"></label>
@@ -409,6 +418,26 @@ function card(c0){
    </div>`:""}
   </div>`;
 }
+/* ===== Efectos con duración (enemigos y aliados) =====
+   c.fx: {id, n, t ("r" rondas, "start" hasta el inicio de su próximo turno, "end" hasta el final de su próximo turno, "txt" sin límite), left, ends, own (en el turno de quién cuenta), cond (estado que se quita al terminar)}.
+   Las rondas bajan al empezar el turno de own; "end" baja cuando termina el turno de own. Avanzar tiempo descuenta minutos (1 minuto = 10 rondas) y avisa a los jugadores (combat/live.adv).
+   Los efectos de los jugadores los maneja su app: aquí se ven en vivo (state.fx) */
+const fxLeftDm=x=>x.t==="r"?(x.left>=10&&x.left%10===0?`${x.left/10} min`:tx(`${x.left} r.`,`${x.left} rd.`)):x.t==="end"?(x.ends>1?tx("fin de su próximo turno","end of its next turn"):tx("fin de este turno","end of this turn"))
+  :x.t==="start"?tx("inicio de su próximo turno","start of its next turn"):x.t==="long"?(x.min>=60?`${Math.round(x.min/6)/10} h`:`${x.min} min`):x.t==="conc"?tx("concentración","concentration"):x.t==="until"?tx("mientras dure","while it lasts"):tx("sin límite","no limit");
+function fxDrop(L){for(const [c,x] of L){c.fx=(c.fx||[]).filter(y=>y!==x);if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond)}
+  if(L.length)dmToast("t",L.map(([c,x])=>tx(`Terminó <b>${esc(x.n)}</b> en ${esc(c.name)}`,`<b>${esc(x.n)}</b> ended on ${esc(c.name)}`)).join("<br>"))}
+function fxTurn(prevId,newId){const L=[];
+  for(const c of S.list)for(const x of c.fx||[]){if(x.t==="end"&&x.own===prevId&&--x.ends<=0)L.push([c,x]);else if(x.own===newId&&(x.t==="start"||x.t==="r"&&--x.left<=0))L.push([c,x])}fxDrop(L)}
+function fxHtml(c0,lv){const l=lv&&linkOf(c0),pfx=l&&l.kind==="pc"&&Array.isArray((LIVE.state[l.char]||{}).fx)?LIVE.state[l.char].fx:[];
+  const L=[...(c0.fx||[]).map(x=>[x,true]),...pfx.map(x=>[x,false])];
+  return L.length?`<div class="fxs">${L.map(([x,mine])=>`<span class="fxc">${esc(x.n||"?")} · ${fxLeftDm(x)}${mine?` <button data-fxdel="${c0.id}" data-x="${x.id}" aria-label="${tx(`Quitar ${esc(x.n)}`,`Remove ${esc(x.n)}`)}">×</button>`:""}</span>`).join("")}</div>`:""}
+function fxForm(c){return`<div class="fxadd"><b>${tx("Agregar efecto o estado","Add effect or condition")}</b>
+  <input id="fxn-${c.id}" maxlength="40" placeholder="${tx("Ej.: Asustado, Bendecido, Quemándose","E.g.: Frightened, Blessed, Burning")}" aria-label="${tx("Nombre del efecto","Effect name")}">
+  <select id="fxd-${c.id}" aria-label="${tx("Duración","Duration")}"><option value="r1">${tx("1 ronda","1 round")}</option><option value="r10" selected>${tx("1 minuto (10 rondas)","1 minute (10 rounds)")}</option><option value="r100">${tx("10 minutos","10 minutes")}</option>
+    <option value="start">${tx("Hasta el inicio de su próximo turno","Until the start of its next turn")}</option><option value="end">${tx("Hasta el final de su próximo turno","Until the end of its next turn")}</option><option value="txt">${tx("Sin límite (lo quitas tú)","No limit (you remove it)")}</option></select>
+  <select id="fxo-${c.id}" aria-label="${tx("Cuenta en el turno de","Counts on the turn of")}">${sorted().map(o=>`<option value="${o.id}" ${o.id===c.id?"selected":""}>${tx("cuenta en el turno de","counts on the turn of")} ${esc(o.name)}</option>`).join("")}</select>
+  <button class="btn" data-fxadd="${c.id}">${tx("Agregar","Add")}</button>
+  <p class="note">${tx("Si el nombre es un estado (Asustado, Aturdido…), también se marca y se quita solo al terminar.","If the name is a condition (Frightened, Stunned…), it's also marked and removed by itself when it ends.")}</p></div>`}
 function num(id){const v=parseInt($(id).value,10);return isNaN(v)?null:v}
 
 document.addEventListener("click",e=>{
@@ -420,10 +449,15 @@ document.addEventListener("click",e=>{
     if(d.dmg){const ty=$("ty-"+id).value;applyDamage(c,n);dmToast("d",tx(`${nm} recibió <b>${n}</b> de ${dmgName(ty)}`,`${nm} took <b>${n}</b> ${dmgName(ty)}`)+" · "+left())}
     else if(d.heal){const h0=c.hp;applyHeal(c,n);dmToast("h",tx(`${nm} recuperó <b>${c.hp-h0}</b> PV · Ahora tiene ${c.hp} / ${c.max} PV`,`${nm} regained <b>${c.hp-h0}</b> HP · Now at ${c.hp} / ${c.max} HP`))}
     else{c.temp=n;dmToast("t",tx(`${nm} tiene <b>${n}</b> PV temporales`,`${nm} has <b>${n}</b> temporary HP`))}save();render();return}
+  if(d.fxadd){const c=find(d.fxadd),n=$("fxn-"+c.id).value.trim().slice(0,40),v=$("fxd-"+c.id).value,own=$("fxo-"+c.id).value;if(!n)return;
+    const cond=CONDS.find(x=>x.toLowerCase()===n.toLowerCase()||(CONDS_EN[x]||"").toLowerCase()===n.toLowerCase());
+    const x={id:nid(),n,own,...(v[0]==="r"?{t:"r",left:+v.slice(1)}:v==="end"?{t:"end",ends:S.cur===own?2:1}:{t:v}),...(cond?{cond}:{})};
+    c.fx=[...(c.fx||[]),x];if(cond&&!c.conds.includes(cond))c.conds.push(cond);$("fxn-"+c.id).value="";save();render();return}
+  if(d.fxdel){const c=find(d.fxdel),x=c&&(c.fx||[]).find(y=>y.id===d.x);if(x){c.fx=c.fx.filter(y=>y!==x);if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond)}save();render();return}
   if(d.cond){const c=find(d.cond);c.conds=c.conds.includes(d.c)?c.conds.filter(x=>x!==d.c):[...c.conds,d.c];save();render();return}
   if(d.save){const c=find(d.save);const nm=$("e-name-"+c.id).value.trim();if(nm)c.name=nm;c.init=num("e-init-"+c.id);c.ac=num("e-ac-"+c.id);
     const mx=num("e-max-"+c.id);if(mx>0){c.hp=c.max==null?mx:Math.min(c.hp,mx);c.max=mx}open=null;save();render();return}
-  if(d.turn){S.cur=d.turn;S.turnId=(S.turnId||0)+1;S.active=true;open=null;save();render();return}
+  if(d.turn){fxTurn(S.cur,d.turn);S.cur=d.turn;S.turnId=(S.turnId||0)+1;S.active=true;open=null;save();render();return}
   if(d.dead){if(armed!=="dead"+d.dead){armed="dead"+d.dead;render();return}
     const c=find(d.dead),l=linkOf(c);armed=null;if(c&&l){S.fall[fallKey(l)]="dead";addAlert(c,l,"dead");save()}render();return}
   if(d.del){if(armed!=="del"+d.del){armed="del"+d.del;render();return}
@@ -437,12 +471,16 @@ document.addEventListener("click",e=>{
     for(let k=0;k<L.length;k++){i+=act==="next"?1:-1;
       if(i>=L.length){i=0;S.round++}if(i<0){i=L.length-1;S.round=Math.max(1,S.round-1)}
       if(L[i].hp>0||L[i].type==="pc")break}
-    S.cur=L[i].id;S.turnId=(S.turnId||0)+1;S.active=true;armed=null;save();render();return}
+    if(act==="next")fxTurn(S.cur,L[i].id);S.cur=L[i].id;S.turnId=(S.turnId||0)+1;S.active=true;armed=null;save();render();return}
+  /* Avanzar tiempo: descuenta los efectos del DM y avisa a los teléfonos de los jugadores (combat/live.adv) */
+  if(act==="adv"){const m=+d.m,L=[];for(const c of S.list)for(const x of c.fx||[]){if(x.t==="r"){x.left-=10*m;if(x.left<=0)L.push([c,x])}else if(x.t==="start"||x.t==="end")L.push([c,x])}
+    fxDrop(L);S.adv={id:Date.now(),min:m};if(!L.length)dmToast("h",tx(`Pasaron ${m===60?"1 hora":m+(m===1?" minuto":" minutos")}: los jugadores descuentan sus efectos`,`${m===60?"1 hour":m+(m===1?" minute":" minutes")} passed: players count down their effects`));save();render();return}
   if(["end","heal","foes","reset"].includes(act)){
     if(armed!==act){armed=act;render();return}armed=null;
     if(act==="heal")S.list.forEach(c=>{c.hp=c.max;c.temp=0;c.conds=[]});
     if(act==="foes"){S.list=S.list.filter(c=>c.type!=="foe");S.round=1;S.cur=sorted()[0]?.id||null}
-    if(act==="end"){S.active=false;S.round=1}
+    if(act==="end"){S.active=false;S.round=1;
+      if(S.list.some(c=>(c.fx||[]).length)&&confirm(tx("¿Borrar también los efectos de enemigos y aliados? (Cancelar: se conservan)","Also clear the effects on enemies and allies? (Cancel: keep them)")))S.list.forEach(c=>{for(const x of c.fx||[])if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond);c.fx=[]})}
     if(act==="reset"){S={round:1,cur:null,list:[],v:S.v,active:false,turnId:S.turnId}} // v: que no vuelvan a correr las migraciones
     save();render();return}
 });

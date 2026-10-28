@@ -267,6 +267,8 @@ section h2 .h2t{display:inline-flex;align-items:center}
 .charges{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
 .charges b{font-size:20px} .charges small{color:var(--muted);font-weight:600} .charges .track{height:8px}
 .stat.condon b{color:var(--bad)}
+.sandbox{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;padding:8px 12px;border-radius:10px;background:var(--warn);color:var(--bg);font-weight:800;letter-spacing:.04em}
+.sandbox .btn{background:var(--bg);color:var(--ink)}
 .expl p{margin:0 0 10px;line-height:1.55;font-size:15px} .expl ul{margin:0 0 10px;padding-left:18px;font-size:14px;line-height:1.5}
 .condrow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:var(--chip);color:var(--ink)}
 .condrow[aria-pressed="true"]{background:var(--bad);color:var(--bg)} .condrow small{font-size:13px;line-height:1.4;opacity:.9}
@@ -329,7 +331,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 10:27";
+const APP_VERSION="2026-10-28 14:15";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -381,6 +383,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 <script src="conjuros.js"></script>
 <script src="progresion.js"></script>
 <script src="explicaciones.js"></script>
+<script src="haki.js"></script>
 <script>
 /* ===================== PERSONAJES ===================== */
 /* Armas: hit y mod SIN Haki; el Endurecimiento suma su bono cuando está activo.
@@ -390,6 +393,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 const CHARS = {
   udon:{
     name:"Udon", bounty:"", sub:{es:"Guerrero · Black Weapon · Nivel {lvl} · Humano · Samurái",en:"Warrior · Black Weapon · Level {lvl} · Human · Samurai"},
+    haki:["weaponHardening"],
     inv:{money:1000,items:[{w:"main",eq:1},{w:"sc",eq:1}]},
     cls:"warrior", sc:"blackWeapon", scores:{FUE:20,DES:13,CON:16,INT:8,SAB:10,CAR:10}, tags:["race:human","armor:light","armor:medium","armor:heavy"],
     level:7, prof:3, ac:15, maxHp:66, init:1, speed:{es:"30 pies",en:"30 feet"},
@@ -429,13 +433,14 @@ const CHARS = {
       {cost:"gratis",kind:"surge",name:{es:"Oleada de acción",en:"Action Surge"},res:"oleada",note:{es:"Una acción extra este turno (2 golpes más)",en:"One extra action this turn (2 more attacks)"}},
       {cost:"fuera",role:true,kind:"group",name:{es:"Presencia de comandante",en:"Commanding Presence"},temp:"=lvl",t:"=prof",note:{es:"1 minuto de palabras motivadoras: hasta {prof} criaturas ganan {lvl} PV temporales hasta el siguiente descanso largo",en:"1 minute of motivating words: up to {prof} creatures gain {lvl} temporary hit points until the next long rest"}},
       {cost:"gratis",kind:"info",res:"ejecutar",name:{es:"Ejecutar",en:"Execute"},note:{es:"Una vez por turno, al impactar cuerpo a cuerpo: +{exec} de trueno; CD {8+prof+FUE} de FUE o empujado 10 pies y derribado. Aparece en la bandeja del ataque",en:"Once per turn, on a melee hit: +{exec} thunder; DC {8+prof+FUE} STR save or pushed 10 feet and knocked prone. It shows up in the attack tray"}},
-      {cost:"accion",role:true,kind:"group",name:{es:"Grito de batalla",en:"Rallying Cry"},once:"grito",heal:"=prof",
+      {cost:"accion",role:true,kind:"group",dur:10,name:{es:"Grito de batalla",en:"Rallying Cry"},once:"grito",heal:"=prof",
         msg:{es:"Aliados a 60 pies: ventaja en su próxima tirada durante 1 minuto y recuperan {prof} PV.",en:"Allies within 60 feet: advantage on their next roll within 1 minute, and they regain {prof} hit points."},
         note:{es:"aliados a 60 pies tienen ventaja en su próxima tirada de ataque, salvación o prueba durante 1 minuto y recuperan {prof} PV. Una vez por descanso corto o largo",en:"Allies within 60 feet have advantage on their next attack roll, saving throw or ability check within 1 minute and regain {prof} hit points. Once per short or long rest"}}
     ]
   },
   codel:{
     name:"Codel", bounty:"", sub:{es:"Sacerdote · Sky Domain · Nivel {lvl} · Birkan · Mercenario",en:"Priest · Sky Domain · Level {lvl} · Birkan · Mercenary"},
+    haki:["auraDetection","predictOutcome","glimpse"],
     inv:{money:124000,items:[{w:"main",eq:1},{w:"pistol",eq:1},{k:"balas",n:{es:"Balas de pistola",en:"Pistol bullets"},q:20},{n:{es:"Escudo",en:"Shield"},q:1,eq:1},{n:{es:"Símbolo sagrado",en:"Holy symbol"},q:1,eq:1},{k:"kits",n:{es:"Kits de sanación",en:"Healer's kits"},q:2},{n:{es:"Dial de tono",en:"Tone Dial"},q:1,eq:1}]},
     cls:"priest", sc:"skyDomain", scores:{FUE:8,DES:15,CON:16,INT:8,SAB:18,CAR:9}, tags:["race:skyIslander","caster","fruit","armor:light","armor:medium","armor:heavy","feat:spellcasterDisruptor"],
     level:7, prof:3, ac:18, maxHp:62, init:2, speed:{es:"30 pies",en:"30 feet"},
@@ -513,7 +518,7 @@ const CHARS = {
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:{es:"Sable",en:"Saber"},note:{es:"Cuerpo a cuerpo · arma sutil",en:"Melee · finesse weapon"}},
       {cost:"accion",kind:"attack",w:"pistol",name:{es:"Pistola",en:"Pistol"},note:{es:"Alcance 30/120 pies · recarga · gasta 1 bala",en:"Range 30/120 feet · loading · uses 1 bullet"}},
-      {cost:"accion",kind:"dash",name:{es:"Voluntad de lo Divino",en:"Will of Divine"},res:"canal",dc:"=8+prof+SAB",save:"SAB",note:{es:"Canalizar divinidad. Cada humanoide enemigo a 30 pies que te vea u oiga: si falla, queda expulsado 1 minuto (huye y no usa reacciones; repite la salvación al final de sus turnos; termina si recibe daño). Voluntad Abrumadora: si su VD es {cr} o menos, queda inconsciente",
+      {cost:"accion",kind:"dash",dur:10,name:{es:"Voluntad de lo Divino",en:"Will of Divine"},res:"canal",dc:"=8+prof+SAB",save:"SAB",note:{es:"Canalizar divinidad. Cada humanoide enemigo a 30 pies que te vea u oiga: si falla, queda expulsado 1 minuto (huye y no usa reacciones; repite la salvación al final de sus turnos; termina si recibe daño). Voluntad Abrumadora: si su VD es {cr} o menos, queda inconsciente",
         en:"Channel Divinity. Each hostile humanoid within 30 feet that can see or hear you: on a failure, it is turned for 1 minute (it flees and can't take reactions; it repeats the save at the end of its turns; it ends if it takes damage). Overwhelming Willpower: if its CR is {cr} or lower, it falls unconscious"}},
       {cost:"accion",kind:"pool",name:{es:"Voluntad de Kami",en:"Kami's Will"},res:"kami",note:{es:"Al tocar. 5 PV de la reserva curan una enfermedad o neutralizan un veneno",en:"By touch. 5 hit points from the pool cure one disease or neutralize one poison"}},
       {cost:"accion",kind:"use",haki:true,name:{es:"Detección de aura",en:"Aura Detection"},note:{es:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies",en:"Observation Haki: you detect Haki and Devil Fruit users within 120 feet"}},
@@ -530,6 +535,7 @@ const CHARS = {
   },
   kalgo:{
     name:"Kalgo", bounty:"", sub:{es:"Bruiser · Black Fist · Nivel {lvl} · Mink · Arqueólogo",en:"Bruiser · Black Fist Style · Level {lvl} · Mink · Archaeologist"},
+    haki:[],hakiCls:{arm:1}, // Músculos recubiertos de Haki (subclase) cuenta para los niveles
     inv:{money:8000000,items:[{w:"main",eq:1},{w:"pistol",eq:1},{k:"balas",n:{es:"Balas de pistola",en:"Pistol bullets"},q:20},{n:{es:"Sombrero",en:"Hat"},q:1},{n:{es:"Log pose",en:"Log Pose"},q:1},{n:{es:"Herramientas de cartógrafo",en:"Cartographer's tools"},q:1},{n:{es:"Herramientas de navegante",en:"Navigator's tools"},q:1}]},
     cls:"bruiser", sc:"blackFist", furyKnown:["bruteForce","brace","focused","redirect"], scores:{FUE:19,DES:16,CON:18,INT:12,SAB:12,CAR:12}, tags:["race:mink","bg:archaeologist","fruit"],
     level:7, prof:3, ac:17, maxHp:75, init:3, speed:{es:"40 pies · trepar 20",en:"40 feet · climb 20"},
@@ -594,7 +600,7 @@ const CHARS = {
       {cost:"accion",kind:"transform",name:"Sulong",note:{es:"1 vez por descanso largo, solo con luna llena. Dura 10 minutos o hasta que lo termines con acción adicional; al terminar ganas 1 nivel de agotamiento",en:"Once per long rest, only under a full moon. Lasts 10 minutes or until you end it as a bonus action; when it ends you gain 1 level of exhaustion"}},
       {cost:"adicional",kind:"attack",w:"main",offhand:true,req:{es:"Recuerda: Scrapper requiere haber usado la acción de Atacar.",en:"Remember: Scrapper requires having taken the Attack action."},name:{es:"Scrapper: Puños del Cosmos",en:"Scrapper: Fists of the Cosmos"},note:{es:"Tras la acción de Atacar: un golpe con los guanteletes (cuenta para Pulse Wave) o un agarre",en:"After the Attack action: one strike with the gauntlets (counts for Pulse Wave) or a grapple"}},
       {cost:"adicional",kind:"frenzy",name:{es:"Emoción del combate",en:"Thrill of the Fight"},note:{es:"Frenesí de 1 minuto: +{prof} de daño con Puños y golpes sin arma, resistencia a contundente, perforante y cortante, ventaja en pruebas y salvaciones de FUE. Al entrar recuperas 1 punto de furia",en:"1-minute frenzy: +{prof} damage with Fists and unarmed strikes, resistance to bludgeoning, piercing and slashing, advantage on STR checks and saving throws. When you enter it you regain 1 fury point"}},
-      {cost:"adicional",kind:"use",name:{es:"Hazlo caer",en:"Bring Him Down"},only:"frenzy",once:"caer",perFrenzy:true,note:{es:"Black Fist: los enemigos a 15 pies tienen desventaja al atacar a otros que no seas tú, hasta que termine la Emoción del combate. 1 vez por Emoción",en:"Black Fist Style: enemies within 15 feet have disadvantage on attacks against anyone but you until Thrill of the Fight ends. Once per Thrill of the Fight"}},
+      {cost:"adicional",kind:"use",dur:"until:frenzy",name:{es:"Hazlo caer",en:"Bring Him Down"},only:"frenzy",once:"caer",perFrenzy:true,note:{es:"Black Fist: los enemigos a 15 pies tienen desventaja al atacar a otros que no seas tú, hasta que termine la Emoción del combate. 1 vez por Emoción",en:"Black Fist Style: enemies within 15 feet have disadvantage on attacks against anyone but you until Thrill of the Fight ends. Once per Thrill of the Fight"}},
       {cost:"adicional",kind:"muscle",haki:true,onHit:1,name:{es:"Músculos recubiertos de Haki",en:"Armament-Coated Muscles"},only:"frenzy",note:{es:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−{CON} al daño de cada golpe, salvo fuerza y psíquico) o ataque (+{ceil(CON/2)} al ataque y +{ceil(CON/2)} al daño con Puños y golpes sin arma)",en:"Black Fist Style: until the start of your next turn, choose defense (−{CON} to each hit's damage, except force and psychic) or attack (+{ceil(CON/2)} to attack and +{ceil(CON/2)} to damage with Fists and unarmed strikes)"}},
       {cost:"reaccion",kind:"temproll",name:{es:"Sangre por músculo",en:"Blood for Brawn"},once:"sangre",trigger:"half",temp:"{scrap}+{lvl}",refill:"furia",note:{es:"Al quedar con la mitad de tus PV o menos: ganas PV temporales y recuperas todos los puntos de furia. 1 vez por descanso corto o largo",en:"When you drop to half your hit points or less: you gain temporary hit points and regain all fury points. Once per short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
@@ -606,6 +612,7 @@ const CHARS = {
   },
   sungsopp:{
     name:"Sungsopp", bounty:"", sub:{es:"Rogue · Duelista Danzante · Nivel {lvl} · Humano · Ladrón",en:"Rogue · Dancing Duelist · Level {lvl} · Human · Thief"},
+    haki:["focusedHit","auraDetection","farSight","predictOutcome"],
     inv:{money:8125,items:[{w:"main",eq:1},{w:"ojo",eq:1},{w:"espada",eq:1},{w:"ballesta",eq:1},{k:"virotes",n:{es:"Virotes",en:"Bolts"},q:20},{w:"daga",n:{es:"Dagas",en:"Daggers"},q:2,eq:1},{n:{es:"Herramientas de ladrón",en:"Thieves' tools"},q:1},{n:{es:"Paquete de ladrón",en:"Burglar's pack"},q:1},{n:{es:"Libros",en:"Books"},q:1},{n:{es:"Comidas",en:"Meals"},q:2},{n:{es:"Joyas",en:"Jewels"},q:4}]},
     cls:"rogue", sc:"dancingDuelist", scores:{FUE:11,DES:18,CON:13,INT:11,SAB:11,CAR:18}, tags:["race:human","fruit","armor:light","feat:slingKing"],
     level:7, prof:3, ac:15, acDex:true, maxHp:42, init:4, speed:{es:"30 pies",en:"30 feet"},
@@ -699,7 +706,7 @@ const CHARS = {
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"still",name:{es:"No me he movido",en:"I Haven't Moved"},note:{es:"Activa Puntería firme y el Impacto calculado del Ojo del Horizonte (+2 al ataque y +1d6 en el primer disparo). Se reinicia con Nuevo turno",en:"Enables Steady Aim and the Eye of the Horizon's Calculated Shot (+2 to attack and +1d6 on the first shot). Resets with New Turn"}},
       {cost:"gratis",kind:"toggle",haki:true,flag:"focus",perTurn:"focusUsed",name:{es:"Golpe enfocado",en:"Focused Hit"},note:{es:"Haki, una vez por turno: los dados de daño de tu siguiente ataque con arma suben un tamaño (máximo d8)",en:"Haki, once per turn: the damage dice of your next weapon attack go up one size (max d8)"}},
-      {cost:"accion",role:true,kind:"group",name:{es:"Orden del capitán",en:"Captain's Order"},once:"orden",temp:"=lvl+prof",
+      {cost:"accion",role:true,kind:"group",dur:10,name:{es:"Orden del capitán",en:"Captain's Order"},once:"orden",temp:"=lvl+prof",
         msg:{es:"Aliados a 60 pies que te vean u oigan: pueden moverse la mitad de su velocidad como reacción sin provocar ataques de oportunidad, y eligen entre un ataque de oportunidad si un enemigo entra en su alcance o +2 al daño de su siguiente ataque exitoso en el próximo minuto. Todos ganan {lvl+prof} PV temporales.",
           en:"Allies within 60 feet who can see or hear you: they can move half their speed as a reaction without provoking opportunity attacks, and they choose between an opportunity attack if an enemy enters their reach or +2 damage on their next successful attack within the next minute. Everyone gains {lvl+prof} temporary hit points."},
         note:{es:"aliados a 60 pies se mueven, eligen un beneficio y ganan {lvl+prof} PV temporales. Una vez por descanso corto o largo",en:"Allies within 60 feet move, choose a benefit and gain {lvl+prof} temporary hit points. Once per short or long rest"}}
@@ -708,6 +715,7 @@ const CHARS = {
   /* Solo para probar la subida de nivel: Guerrero sin subclase, características en 10, sin acciones y un garrote (Contraataque necesita arma principal) */
   ryuga:{
     name:"Ryuga", bounty:"", sub:{es:"Bruiser · Eastern Dragon · Nivel {lvl} · Oni · Ermitaño",en:"Bruiser · Eastern Dragon Style · Level {lvl} · Oni · Hermit"},
+    haki:[],
     inv:{money:50000,items:[{w:"main",eq:1},{w:"axe",eq:1},{w:"bow",eq:1},{k:"flechas",n:{es:"Flechas",en:"Arrows"},q:15},{n:{es:"Paquete de pirata",en:"Pirate's pack"},q:1},{n:{es:"Útiles de cervecero",en:"Brewer's supplies"},q:1},{n:{es:"Kit de herborista",en:"Herbalism kit"},q:1},{n:"Bitecore",q:1,note:{es:"Sin descripción todavía",en:"No description yet"}}]},
     cls:"bruiser", sc:"easternDragon", furyKnown:["brace","focused","unbending"], scores:{FUE:20,DES:18,CON:20,INT:10,SAB:11,CAR:14}, tags:["race:oni","bg:hermit","armor:heavy"],
     level:7, prof:3, ac:19, maxHp:89, init:4, speed:{es:"45 pies",en:"45 feet"},
@@ -742,7 +750,7 @@ const CHARS = {
       {cost:"accion",kind:"attack",w:"bow",name:{es:"Gran arco",en:"Greatbow"},note:{es:"150/600 pies · pesada, a dos manos · gasta 1 flecha",en:"150/600 feet · heavy, two-handed · uses 1 arrow"}},
       {cost:"accion",kind:"dash",atkSlot:true,name:{es:"Aliento oriental",en:"Eastern Breath"},dc:"=8+prof+CON",save:"DES",dmg:"{scrap}+{scrap}",type:"fuego, frío o rayo",half:true,note:{es:"Con la acción de Atacar: reemplaza uno de tus golpes. Línea de 30×5 pies; eliges fuego, frío o rayo",en:"With the Attack action: replaces one of your attacks. 30×5-foot line; you choose fire, cold or lightning"}},
       {cost:"accion",kind:"use",res:"nube",name:{es:"Paso de nube: 90 pies",en:"Cloud Walk: 90 feet"},note:{es:"Solo si no te has movido este turno: te teletransportas hasta 90 pies y tu velocidad queda en 0",en:"Only if you haven't moved this turn: you teleport up to 90 feet and your speed becomes 0"}},
-      {cost:"accion",kind:"dash",res:"presencia",name:{es:"Presencia aterradora",en:"Terrifying Presence"},dc:"=8+prof+CAR",save:"SAB",note:{es:"Criaturas que elijas a 30 pies: salvación de SAB o quedan asustadas 1 minuto; repiten la salvación al final de sus turnos. 1 vez por descanso largo",en:"Creatures of your choice within 30 feet: WIS save or frightened for 1 minute; they repeat the save at the end of their turns. Once per long rest"}},
+      {cost:"accion",kind:"dash",res:"presencia",dur:10,name:{es:"Presencia aterradora",en:"Terrifying Presence"},dc:"=8+prof+CAR",save:"SAB",note:{es:"Criaturas que elijas a 30 pies: salvación de SAB o quedan asustadas 1 minuto; repiten la salvación al final de sus turnos. 1 vez por descanso largo",en:"Creatures of your choice within 30 feet: WIS save or frightened for 1 minute; they repeat the save at the end of their turns. Once per long rest"}},
       {cost:"adicional",kind:"attack",w:"main",offhand:true,req:{es:"Recuerda: Scrapper requiere haber usado la acción de Atacar.",en:"Remember: Scrapper requires having taken the Attack action."},name:{es:"Scrapper: Kanabo",en:"Scrapper: Kanabo"},note:{es:"Tras la acción de Atacar: un golpe con el kanabo o un agarre",en:"After the Attack action: one kanabo strike or a grapple"}},
       {cost:"adicional",kind:"attack",w:"fist",offhand:true,req:{es:"Recuerda: Scrapper requiere haber usado la acción de Atacar.",en:"Remember: Scrapper requires having taken the Attack action."},name:{es:"Scrapper: sin arma",en:"Scrapper: unarmed"},note:{es:"Tras la acción de Atacar: un golpe sin arma o un agarre",en:"After the Attack action: one unarmed strike or a grapple"}},
       {cost:"adicional",kind:"frenzy",name:{es:"Emoción del combate",en:"Thrill of the Fight"},note:{es:"Frenesí de 1 minuto: +{prof} de daño con el kanabo y golpes sin arma, resistencia a contundente, perforante y cortante, ventaja en pruebas y salvaciones de FUE. Al entrar recuperas 1 punto de furia",en:"1-minute frenzy: +{prof} damage with the kanabo and unarmed strikes, resistance to bludgeoning, piercing and slashing, advantage on STR checks and saving throws. When you enter it you regain 1 fury point"}},
@@ -751,14 +759,6 @@ const CHARS = {
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"rampage",name:{es:"Ataque temerario",en:"Rampage"},note:{es:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno",en:"This turn you have advantage on melee weapon attack rolls; attack rolls against you have advantage until your next turn"}}
     ]
-  },
-  prueba:{
-    name:"Prueba", bounty:"", sub:{es:"Personaje de prueba · Guerrero · Nivel {lvl}",en:"Test character · Warrior · Level {lvl}"},
-    cls:"warrior", sc:"", scores:{FUE:10,DES:10,CON:10,INT:10,SAB:10,CAR:10}, tags:["race:human"],
-    level:7, prof:3, ac:10, maxHp:46, init:0, speed:{es:"30 pies",en:"30 feet"}, attacksPerAction:"=apa",
-    saves:{FUE:[3,1],DES:[0,0],CON:[3,1],INT:[0,0],SAB:[0,0],CAR:[0,0]},
-    abil:{FUE:0,DES:0,CON:0,INT:0,SAB:0,CAR:0}, skills:{},
-    weapons:{main:{name:{es:"Garrote",en:"Club"},hit:3,dice:"1d4",mod:0,type:"contundente",abil:"FUE"}}, resources:[], actions:[]
   }
 };
 
@@ -773,7 +773,8 @@ const SPECIALS_SRC=[
   {id:"proyectil",name:{es:"Desviar proyectil",en:"Deflect Projectile"},kind:"reduce",onHit:1,note:{es:"Te aciertan a distancia: reduces el daño",en:"A ranged attack hits you: you reduce the damage"}},
   {id:"paso",name:{es:"Paso relámpago",en:"Flash Step"},kind:"flash",onHit:1,note:{es:"Antes del daño: salvación de DES contra su tirada de ataque. Éxito = 0 daño y te mueves 10 pies",en:"Before damage: DEX saving throw against their attack roll. Success = 0 damage and you move 10 feet"}}
 ];
-const RARITY_SRC=[[{es:"Poco común",en:"Uncommon"},1],[{es:"Raro",en:"Rare"},2],[{es:"Muy raro",en:"Very Rare"},3],[{es:"Legendario",en:"Legendary"},4]];
+/* [nombre, costo en prestigio, código guardado en plog.r] */
+const RARITY_SRC=[[{es:"Común",en:"Common"},1,5],[{es:"Poco común",en:"Uncommon"},1,1],[{es:"Raro",en:"Rare"},2,2],[{es:"Muy raro",en:"Very Rare"},3,3],[{es:"Legendario",en:"Legendary"},5,4]];
 /* Estados: el id (en español) es lo que se guarda; CONDS_EN da el nombre en inglés */
 const CONDS=["Agarrado","Apresado","Asustado","Aturdido","Cegado","Derribado","Ensordecido","Envenenado","Hechizado","Incapacitado","Invisible","Paralizado"];
 const CONDS_EN={Agarrado:"Grappled",Apresado:"Restrained",Asustado:"Frightened",Aturdido:"Stunned",Cegado:"Blinded",Derribado:"Prone",Ensordecido:"Deafened",Envenenado:"Poisoned",Hechizado:"Charmed",Incapacitado:"Incapacitated",Invisible:"Invisible",Paralizado:"Paralyzed",Concentrado:"Concentrating"};
@@ -862,6 +863,12 @@ function levelSrc(k,P){
   for(const f of feats){const x=featById(f.id);c.gained.push({n:x.n,sum:{es:x.es,en:x.en},feat:1});
     if(x.fx&&x.fx.luck)c.resources.push({id:"suerte",name:{es:"Puntos de suerte (Lucky)",en:"Luck Points (Lucky)"},max:x.fx.luck,rest:"long"});
     if(x.fx&&x.fx.speed)c.speed={es:addFeet(c.speed.es,x.fx.speed),en:addFeet(c.speed.en,x.fx.speed)}}
+  /* Avances de Haki aprobados por el DM (tienda de prestigio): activos como tarjetas con usos y recarga; pasivos como rasgo (y sus competencias o Percepción pasiva) */
+  for(const id of P.haki||[]){const e=HAKI.find(x=>x.id===id);if(!e)continue;const n=(P.hakiN||{})[id]??hakiSug(e,L),sum=JSON.parse(JSON.stringify(e.sum).split("{HW}").join(String(n)));
+    if(e.repl)c.actions=c.actions.filter(a=>a.hakiId!==e.repl);
+    for(const [s,v] of Object.entries(e.sk||{}))c.skills[s]=Math.max(c.skills[s]||0,v);if(e.pp)c.ppB=(c.ppB||0)+e.pp;
+    if(e.u)c.resources.push({id:"h_"+id,name:e.n,max:e.u[0],rest:e.u[1]});
+    c.actions.push({cost:e.a||"gratis",kind:e.a?"use":"info",haki:true,hakiId:id,xid:"h:"+id,ex:"haki:"+id,name:e.n,note:sum,...(e.u?{res:"h_"+id}:{}),...(e.d!=null?{dur:e.d}:{})});c.gained.push({n:e.n,sum})}
   for(const a of c.actions)a.nes=typeof a.name==="string"?a.name:a.name.es; // nombre en español: clave de las explicaciones
   return[c,vars]}
 /* Ficha ya traducida y con las plantillas resueltas */
@@ -882,7 +889,9 @@ function cleanProg(k,v){const b=CHARS_SRC[k];if(!b||!v||typeof v!=="object")retu
       asi:cleanAsi(h.asi),feat:cleanFeat(h.feat),picks:cleanPicks(h.picks),fury:cleanFury(h.fury),ok:cleanIds(h.ok,x=>x.length<40)})):[],
     prestige:isInt(v.prestige,0,9999)?v.prestige:0,
     grants:Array.isArray(v.grants)?v.grants.filter(g=>g&&typeof g.id==="string"&&Number.isSafeInteger(g.m||0)&&Number.isInteger(g.q||0)).slice(0,30).map(g=>({id:g.id.slice(0,20),at:isInt(g.at,0,1e13)?g.at:0,m:Math.max(-1e12,Math.min(1e12,g.m||0)),n:typeof g.n==="string"?g.n.slice(0,60):"",q:Math.max(-999,Math.min(999,g.q||0)),note:typeof g.note==="string"?g.note.slice(0,80):""})):[],furyOpen:isInt(v.furyOpen,0,1e13)?v.furyOpen:0,
-    plog:Array.isArray(v.plog)?v.plog.filter(o=>o&&isInt(o.n,-99,99)).slice(0,30).map(o=>({at:isInt(o.at,0,1e13)?o.at:0,n:o.n,r:isInt(o.r,1,4)?o.r:0,note:typeof o.note==="string"?o.note.slice(0,80):""})):[],
+    haki:cleanIds(v.haki,x=>HAKI.some(e=>e.id===x)),hakiN:Object.fromEntries(Object.entries(v.hakiN&&typeof v.hakiN==="object"?v.hakiN:{}).filter(([a,b])=>HAKI.some(e=>e.id===a)&&isInt(b,0,40))),king:v.king===true,
+    buy:v.buy&&typeof v.buy==="object"&&HAKI.some(e=>e.id===v.buy.id)&&["pend","ok","no"].includes(v.buy.st)?{id:v.buy.id,st:v.buy.st,at:isInt(v.buy.at,0,1e13)?v.buy.at:0,note:typeof v.buy.note==="string"?v.buy.note.slice(0,120):""}:null,
+    plog:Array.isArray(v.plog)?v.plog.filter(o=>o&&isInt(o.n,-99,99)).slice(0,30).map(o=>({at:isInt(o.at,0,1e13)?o.at:0,n:o.n,r:isInt(o.r,1,5)?o.r:0,note:typeof o.note==="string"?o.note.slice(0,80):""})):[],
     event:ev&&typeof ev.id==="string"?{id:ev.id.slice(0,20),from:ev.from,to:ev.to,rej:!!ev.rej}:null,
     pending:pd&&typeof pd.eventId==="string"?{eventId:pd.eventId.slice(0,20),from:pd.from,to:pd.to,die:isInt(pd.die,1,12)?pd.die:1,mode:pd.mode==="avg"?"avg":"roll",
       asi:cleanAsi(pd.asi),feat:cleanFeat(pd.feat),picks:cleanPicks(pd.picks),fury:cleanFury(pd.fury),at:isInt(pd.at,0,1e13)?pd.at:0}:null}}
@@ -943,7 +952,7 @@ function fresh(c){return{lvl:CHARS_SRC[cur]?Math.min(c.level,CHARS_SRC[cur].leve
   slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,comp:c.companion?{hp:c.companion.hp,temp:0,heads:c.companion.heads||0,tf:false,turnDmg:0}:{},frenzy:false,muscle:"",trans:false,exh:0,form:"",formOpts:[],humanHp:c.maxHp,stageAC:false,
   inv:invSeed(keyOf(c)),ilog:[],gotG:[],used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
   fore:c.foretell?[{v:phys()?0:d(20),u:false},{v:phys()?0:d(20),u:false}]:[],
-  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],float:0,advNext:false}} // en modo físico el jugador anota los presagios
+  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],fx:[],turnEnded:false,float:0,advNext:false}} // en modo físico el jugador anota los presagios
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
   const f=fresh(c);if(!s||typeof s!=="object")return f;
@@ -964,11 +973,11 @@ function merge(c,s){
     comp:obj(f.comp,s.comp),
     sea:pick(false,s.sea),frenzy:pick(false,s.frenzy),muscle:["def","atk"].includes(s.muscle)?s.muscle:"",trans:pick(false,s.trans),exh:Math.min(6,Math.max(0,pick(0,s.exh))),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(0,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)})),
-    fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),hid:Array.isArray(s.hid)?s.hid.filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,80):[],float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext)};
+    fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),fx:fxClean(s),turnEnded:pick(false,s.turnEnded),hid:Array.isArray(s.hid)?s.hid.filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,80):[],float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext)};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===CHARS.udon.maxHp&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
 function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P);if(P&&!admin)invGrants(P)}
-function save(){store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}}
+function save(){if(SANDBOX)return;store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}}
 
 /* ===================== DADOS ===================== */
 const d=n=>1+Math.floor(Math.random()*n);
@@ -1069,13 +1078,14 @@ function chip(k,off,label){const c=C(),has=!(c.caster&&book)&&(k==="especial"||c
   return has?`<button class="econ${off?" spent":""}" data-jump="sec-${k}"><i></i>${label}</button>`:`<span class="econ${off?" spent":""}"><i></i>${label}</span>`}
 function render(){
   document.title=tx("Mesa de Combate","Combat Table");
+  if(view==="char"&&S)fxSweep(C());
   const c=C(),t=S.turn,pct=Math.max(0,S.hp/mhp(c)*100);
   const keys=user&&!admin?[]:Object.keys(CHARS);
   put($("pick"),(admin?`<button data-pick="mesa" aria-pressed="${view==="mesa"}">${tx("Mesa","Table")}</button>`:"")+
     (keys.length>1||admin?keys.map(k=>`<button data-pick="${k}" aria-pressed="${k===cur&&view==="char"}">${pic(k,"mini",24)}${CHARS[k].name}</button>`).join(""):""));
   $("hero").hidden=view!=="char";
   if(view!=="char"){put($("main"),cbBar()+`<div style="display:flex;justify-content:flex-end;padding-top:12px"><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></div>`+gate());return}
-  put($("hero"),cbBar()+`
+  put($("hero"),(SANDBOX?`<div class="sandbox" role="status"><span>${tx("MODO PRUEBA · nada se guarda","TEST MODE · nothing is saved")}</span><button class="btn" data-do="sbexit">${tx("Salir","Exit")}</button></div>`:"")+cbBar()+`
    <div class="hdr"><button class="portrait" data-do="poster" aria-label="${tx(`Ver el cartel de ${c.name}`,`See ${c.name}'s poster`)}">${pic(cur,"retrato",60)}${c.bounty?`<small class="bounty">฿ ${esc(c.bounty)}</small>`:""}</button>
     <h1 title="${c.name}">${c.name}</h1>
     <div class="stats">
@@ -1093,7 +1103,7 @@ function render(){
      ${chip("adicional",t.b<=0,tx("Acción adicional","Bonus Action"))}
      ${chip("reaccion",t.r<=0,tx("Reacción","Reaction"))}<span class="brk" aria-hidden="true"></span>${cbBadge()}
      ${chip("especial",t.sr<=0,`${tx("Especial","Special")} ${t.sr}/2`)}
-     ${S.hard>0?`<span class="econ haki"><i></i>Haki +${c.hardening.bonus} · ${S.hard} t.</span>`:""}
+     ${fxChips(c)}
      ${S.exh?`<span class="econ"><i></i>${tx("Agotamiento","Exhaustion")} ${S.exh}</span>`:""}
      ${S.fore.map((f,i)=>`<button class="econ${f.u?" spent":""}" data-fore="${i}" ${f.u?"disabled":""} aria-label="${tx("Presagio","Foretelling roll")} ${f.v||tx("sin anotar","not entered")}"><i></i>${tx("Presagio","Foretelling")} ${f.v||"?"}${foreArm===i?tx(" · próxima tirada"," · next roll"):""}</button>`).join("")}
      <button class="newturn" data-do="turn">${tx("Nuevo turno","New Turn")}</button></div>
@@ -1149,7 +1159,7 @@ function render(){
   h+=invSec(c);
 
   h+=`<section><h2>${tx("Salvaciones","Saving Throws")}</h2><div class="saves">${Object.entries(c.saves).map(([k,[,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${abT(k)}<span>${sgn(sv(c,k))}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
-  if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>${tx("Habilidades","Skills")}</span><small>${tx("Percepción pasiva","Passive Perception")} ${10+skillBonus(c,"percepcion")} · ${tx("Perspicacia pasiva","Passive Insight")} ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
+  if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>${tx("Habilidades","Skills")}</span><small>${tx("Percepción pasiva","Passive Perception")} ${10+skillBonus(c,"percepcion")+(c.ppB||0)} · ${tx("Perspicacia pasiva","Passive Insight")} ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
     ${["FUE","DES","INT","SAB","CAR"].map(ab=>`<div class="lvlhead" data-x="abil:${ab}"><b>${abT(ab)}</b><span class="tip">${sgn(abilOf(c)[ab])}</span></div><div class="sk">${SKILLS.filter(s=>s[3]===ab).map(([id,n,en])=>{const p=(c.skills||{})[id]||0;
       return`<button data-skill="${id}"><span>${tx(n,en)}${hint(en)}</span><b>${p?`<i class="dot" aria-label="${p>1?tx("pericia","expertise"):tx("competente","proficient")}">${p>1?"●●":"●"}</i>`:""}${sgn(skillBonus(c,id))}</b></button>`}).join("")}</div>`).join("")}
     <p class="note" style="margin-top:8px">${tx("● competente · ●● pericia (competencia doble)","● proficient · ●● expertise (double proficiency)")}</p></details></section>`;
@@ -1158,6 +1168,7 @@ function render(){
     <div class="resrow"><span><button class="linkbtn" data-x="dream">${tx("Puntos de sueño","Dream Points")}</button></span><div class="pips">${Array.from({length:c.level},(_,j)=>`<button class="pip gold ${j<S.dream?"":"used"}" data-dreamp="${j}" aria-label="${tx("Punto de sueño","Dream point")}"></button>`).join("")}</div></div>
     <p class="note">${tx("+1d6 a un ataque, prueba o salvación (tras tirar), o convierte una salvación de muerte fallida en éxito. Se renuevan al subir de nivel.","+1d6 to an attack roll, ability check or saving throw (after rolling), or turn a failed death saving throw into a success. They renew when you level up.")}</p>
     <div class="prest" data-x="prestige"><span class="num">${prestOf(cur)}</span><span class="lbl">${tx("Puntos de prestigio. Te los da el DM por acciones épicas o divertidas, y solo él los cambia o los gasta en avances.","Prestige Points. The DM awards them for epic or fun actions, and only the DM changes them or spends them on advancements.")}</span></div>
+    <div class="trayact"><button class="btn gold" data-do="shop">${tx("Gastar prestigio","Spend prestige")}</button></div>
     ${plogHtml(cur,5)}
   </div></section>`;
 
@@ -1576,6 +1587,139 @@ function openSheet(k,v,ex){const c=C();let title="",R=[],warn="",extra="",btn=""
   if((k==="mwatk"||k==="free")&&S.sea)warn=c.fruit.seaNote;
   if(ex)return explainView(title,key,cost,R,()=>openSheet(k,v),ix);
   show({title,warn,sheet:true,html:dl(R)+extra+btn+sheetFoot(k,v)});T.reopen=()=>openSheet(k,v)}
+/* ===================== EFECTOS CON DURACIÓN ===================== */
+/* S.fx: efectos activos del personaje. t: "r" (left rondas; bajan al inicio de tu turno; 1 minuto = 10), "start" (hasta el inicio de tu
+   siguiente turno), "end" (ends finales de turno; 2 si empieza en tu turno), "conc" (mientras te concentres), "long" (min minutos: se ven
+   como texto y terminan a mano, con un descanso o con "Avanzar tiempo" del DM) o "until" (mientras dure otro estado).
+   Los rasgos que ya guardan su estado (Endurecimiento, frenesí, Sulong, Paso de nube, formas, posturas, concentración) crean su efecto
+   solos (fxSweep); las acciones con dur lo crean al usarlas (fxAdd). Al vencer, FXOFF apaga el estado y el jugador ve un aviso */
+const fxId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const FXON={hard:()=>S.hard>0,frenzy:()=>S.frenzy,trans:()=>S.trans,float:()=>S.float>0,stage:()=>S.stageAC,muscle:()=>!!S.muscle,rampage:()=>S.turn.rampage,form:()=>!!S.form,
+  conc:x=>S.conc.id===x.cid,"until:frenzy":()=>S.frenzy};
+const FXOFF={hard:()=>{S.hard=0},frenzy:()=>{S.frenzy=false;S.muscle=""},trans:c=>{S.trans=false;S.exh=Math.min(6,S.exh+c.transform.exh)},float:()=>{S.float=0},
+  stage:()=>{S.stageAC=false},muscle:()=>{S.muscle=""},rampage:()=>{S.turn.rampage=false},form:c=>{endForm(c)},conc:()=>{S.conc={id:"",lvl:0}}};
+/* "1 minuto" = 10 rondas, "10 minutos" = 100, "1 hora" = 60 minutos (largo), "1 ronda" = 1 */
+function parseDur(d){const m=String(d||"").match(/(\d+)\s*(ronda|round|minut|hora|hour)/i);if(!m)return null;const n=+m[1],u=m[2].toLowerCase();
+  return/^(ronda|round)/.test(u)?{t:"r",left:n}:/^minut/.test(u)?(n>=60?{t:"long",min:n}:{t:"r",left:n*10}):{t:"long",min:n*60}}
+console.assert(parseDur("10 minutos").left===100&&parseDur("1 hour").min===60&&parseDur("1 ronda").left===1&&!parseDur("Instantáneo"),"duraciones");
+function durRule(d,cost){if(typeof d==="number")return{t:"r",left:d};if(d==="start")return{t:"start"};if(d==="end")return{t:"end",ends:cost==="reaccion"?1:2};
+  if(String(d).startsWith("long:"))return{t:"long",min:+d.slice(5)};if(String(d).startsWith("until:"))return{t:"until",k:d};return{t:"r",left:10}}
+function fxAdd(c,a){S.fx=S.fx.filter(x=>x.src!=="a:"+a.xid);S.fx.push({id:fxId(),src:"a:"+a.xid,...durRule(a.dur,a.cost)})}
+function fxName(c,x){const act=k=>(c.actions.find(a=>a.kind===k)||{}).name;
+  if(x.src){const a=c.actions.find(y=>"a:"+y.xid===x.src);return a?a.name:x.n||"?"}
+  return({hard:act("haki"),frenzy:c.frenzy&&c.frenzy.name,trans:c.transform&&c.transform.name,float:act("float"),stage:c.stage&&c.stage.name+tx(" (+CA)"," (+AC)"),
+    muscle:act("muscle"),rampage:(c.actions.find(a=>a.flag==="rampage")||{}).name,form:S.form&&formOf(c)&&formOf(c).name,conc:x.cid&&concOf(c,x.cid)&&concOf(c,x.cid).n})[x.k]||x.n||"?"}
+const fxLeft=x=>x.t==="r"?(x.left>=10&&x.left%10===0?tx(`${x.left/10} min`,`${x.left/10} min`):tx(`${x.left} ${x.left===1?"ronda":"rondas"}`,`${x.left} ${x.left===1?"round":"rounds"}`))
+  :x.t==="long"?(x.min>=60?`${Math.round(x.min/6)/10} h`:`${x.min} min`):x.t==="start"?tx("hasta tu próximo turno","until your next turn")
+  :x.t==="end"?(x.ends>1?tx("hasta el final de tu próximo turno","until the end of your next turn"):tx("hasta el final de este turno","until the end of this turn"))
+  :x.t==="conc"?tx("mientras te concentres","while you concentrate"):tx("mientras dure","while it lasts");
+function fxSweep(c){const has=k=>S.fx.some(x=>x.k===k);
+  const auto=[["hard",{t:"r",left:S.hard}],["frenzy",{t:"r",left:10}],["trans",{t:"r",left:100}],["float",{t:"end",ends:2}],["stage",{t:"start"}],["muscle",{t:"start"}],["rampage",{t:"start"}],
+    ["form",{t:"long",min:60*Math.ceil(c.level/2)}]];
+  for(const [k,r] of auto)if(FXON[k]()&&!has(k))S.fx.push({id:fxId(),k,...r});
+  if(S.conc.id&&!S.fx.some(x=>x.k==="conc"&&x.cid===S.conc.id)){const s=concOf(c,S.conc.id);S.fx.push({id:fxId(),k:"conc",cid:S.conc.id,...(parseDur(s&&s.d)||{t:"conc"})})}
+  S.fx=S.fx.filter(x=>!x.k||!FXON[x.k]||FXON[x.k](x));for(const x of S.fx)x.n=fxName(c,x)} // n: el nombre viaja con el estado para el panel del DM
+let FXN=[];
+function fxEnd(c,x,time){const n=fxName(c,x);S.fx=S.fx.filter(y=>y!==x);if(FXOFF[x.k])FXOFF[x.k](c,x);
+  if(time){log(tx(`Se te terminó <b>${n}</b>`,`Your <b>${n}</b> ended`));if(x.t!=="start")FXN.push(n)}}
+function fxNotice(){if(FXN.length){cbToast(`<b>${tx("Se te terminó","Ended")}:</b> ${FXN.map(esc).join(", ")}`);FXN=[]}}
+/* Inicio de tu turno: bajan las rondas y vencen los "hasta tu próximo turno" */
+function fxTick(c){fxSweep(c);for(const x of [...S.fx]){if(x.t==="r"){x.left--;if(x.k==="hard")S.hard=Math.max(0,x.left);if(x.left<=0)fxEnd(c,x,true)}else if(x.t==="start")fxEnd(c,x,true)}}
+/* Final de tu turno (cambio de turno del DM, o al empezar el siguiente si no hay combate en línea) */
+function fxEndTurn(c){fxSweep(c);for(const x of [...S.fx])if(x.t==="end"&&--x.ends<=0)fxEnd(c,x,true)}
+/* Pasa el tiempo (Avanzar tiempo del DM o descanso corto = 60 minutos) */
+function fxAdvance(c,min){fxSweep(c);for(const x of [...S.fx]){
+  if(x.t==="r"){x.left-=10*min;if(x.k==="hard")S.hard=Math.max(0,x.left);if(x.left<=0)fxEnd(c,x,true)}
+  else if(x.t==="long"){x.min-=min;if(x.min<=0)fxEnd(c,x,true)}else if(x.t==="start"||x.t==="end")fxEnd(c,x,true)}}
+/* Emoción del combate: al final de tu turno pregunta si atacaste o recibiste daño */
+function thrillAsk(c,hint){if(!S.frenzy||S.hp<=0)return;
+  show({title:c.frenzy.name,html:`<div class="trayact"><button class="btn primary" data-do="thrill" data-y="1">${tx("Sí: sigue","Yes: it continues")}</button><button class="btn" data-do="thrill" data-y="0">${tx("No: termina","No: it ends")}</button></div>`,
+    tip:tx("¿Atacaste o recibiste daño desde tu último turno? ","Did you attack or take damage since your last turn? ")+(hint?tx("La app registró que sí.","The app recorded that you did."):tx("La app no registró ataques ni daño.","The app didn't record attacks or damage."))})}
+function endTurn(c){if(S.turnEnded)return;const hint=S.turn.attacked||S.turn.hurt||S.hurt;fxEndTurn(c);S.turnEnded=true;thrillAsk(c,hint);fxNotice()}
+function fxOpen(id){const c=C(),x=S.fx.find(y=>y.id===id);if(!x)return;const n=fxName(c,x);
+  const why={r:tx("Las rondas bajan al inicio de cada uno de tus turnos (1 minuto = 10 rondas). Avanzar tiempo del DM y los descansos también lo descuentan.","Rounds go down at the start of each of your turns (1 minute = 10 rounds). The DM's Advance time and rests also count it down."),
+    start:tx("Termina al empezar tu próximo turno.","It ends when your next turn starts."),end:tx("Termina al final de tu próximo turno (cuando el DM pasa el turno, o al tocar Nuevo turno).","It ends at the end of your next turn (when the DM passes the turn, or when you tap New Turn)."),
+    conc:tx("Dura mientras mantengas la concentración.","It lasts while you keep concentrating."),long:tx("Duración larga: termínalo a mano, con un descanso o cuando el DM avance el tiempo.","Long duration: end it by hand, with a rest or when the DM advances time."),
+    until:tx("Dura mientras siga activo el rasgo del que depende.","It lasts while the feature it depends on stays active.")}[x.t];
+  show({title:n,sheet:true,fx:id,html:`<div class="expl"><p><b>${tx("Te queda","Remaining")}:</b> ${fxLeft(x)}</p><p>${why}</p>${x.k==="trans"?`<p>${tx("Al terminar ganas 1 nivel de agotamiento.","When it ends you gain 1 level of exhaustion.")}</p>`:""}</div>
+    <div class="trayact"><button class="btn" data-do="fxend" data-id="${id}">${tx("Terminarlo ahora","End it now")}</button></div>`})}
+const fxChips=c=>S.fx.map(x=>`<button class="econ fx" data-fx="${x.id}"><i></i>${esc(fxName(c,x))} · ${fxLeft(x)}</button>`).join("");
+function fxClean(s){return Array.isArray(s.fx)?s.fx.filter(x=>x&&typeof x==="object"&&["r","start","end","conc","long","until"].includes(x.t)).slice(0,24).map(x=>({id:String(x.id||fxId()).slice(0,16),t:x.t,
+  ...(typeof x.k==="string"?{k:x.k.slice(0,20)}:{}),...(typeof x.src==="string"?{src:x.src.slice(0,40)}:{}),...(typeof x.cid==="string"?{cid:x.cid.slice(0,40)}:{}),...(typeof x.n==="string"?{n:x.n.replace(/[<>]/g,"").slice(0,60)}:{}),
+  ...(Number.isInteger(x.left)?{left:x.left}:{}),...(Number.isInteger(x.ends)?{ends:x.ends}:{}),...(Number.isInteger(x.min)?{min:x.min}:{})})):[]}
+
+/* ===================== TIENDA DE PRESTIGIO (HAKI) ===================== */
+/* El jugador elige un avance y deja una solicitud (progress.buy, lo único de progress que puede escribir además de su propuesta de nivel);
+   el DM la aprueba o la rechaza en Mesa. Solo al aprobar se descuentan los puntos y se agrega el avance (progress.haki y hakiN). */
+const HKR=[5,1,2,3,4]; // rareza del catálogo (0 Común … 4 Legendario) → código de RARITY
+const rarOf=r=>RARITY.find(x=>x[2]===HKR[r]);
+const hakiE=id=>HAKI.find(x=>x.id===id);
+const hakiName=id=>{const e=hakiE(id);return e?tl(e.n):id};
+function hakiSug(e,L){return{q:Math.ceil(L/4),h:Math.ceil(L/2),w:L}[e.wf]} // declarada: levelSrc la usa al cargar
+const hakiSum=(e,n)=>tl(e.sum).split("{HW}").join(n==null?tx("? (revisar)","? (review)"):String(n));
+const hakiOwned=k=>[...((CHARS_SRC[k]||{}).haki||[]),...((PROG[k]||{}).haki||[])];
+function hakiCount(k,col){return hakiOwned(k).filter(id=>{const e=hakiE(id);return e&&e.c===col&&e.r>0}).length+(((CHARS_SRC[k]||{}).hakiCls||{})[col]||0)}
+/* Motivo por el que no se puede pedir (vacío = se puede) */
+function hakiWhy(k,e){const P=PROG[k]||{},o=hakiOwned(k),cost=rarOf(e.r)[1],p=prestOf(k);
+  if(o.includes(e.id)||HAKI.some(x=>x.repl===e.id&&o.includes(x.id)))return tx("Ya lo tienes","You already have it");
+  if(P.buy&&P.buy.st==="pend")return tx("Ya tienes una solicitud pendiente","You already have a pending request");
+  if(e.r===0&&CHARS[k].level>4)return tx("Solo para niveles 1 a 4 (aficionado)","Levels 1 to 4 only (amateur)");
+  if(e.c==="king"&&!((CHARS_SRC[k]||{}).king||P.king))return tx("Necesitas Cualidades de un rey (lo decide el DM)","You need Qualities of a King (the DM decides)");
+  const need=e.t===2?4:e.t===3?6:0,have=hakiCount(k,e.c);
+  if(have<need)return tx(`Nivel ${e.t}: necesitas ${need} rasgos de este color (tienes ${have})`,`Tier ${e.t}: you need ${need} features of this color (you have ${have})`);
+  if(e.req){const miss=e.req.filter(r=>!o.includes(r));if(e.reqAny?miss.length===e.req.length:miss.length)return tx("Necesitas ","You need ")+miss.map(hakiName).join(e.reqAny?tx(" o "," or "):", ")}
+  if(cost>p)return tx(`Te falta${cost-p>1?"n":""} ${cost-p} punto${cost-p>1?"s":""}`,`You need ${cost-p} more point${cost-p>1?"s":""}`);
+  return""}
+function hakiRows(k,e){const [rn,cost]=rarOf(e.r),L=CHARS[k].level,n=((PROG[k]||{}).hakiN||{})[e.id];
+  return[[tx("Rareza","Rarity"),`${rn} · ${cost} ${tx(cost===1?"punto":"puntos",cost===1?"point":"points")}`],[tx("Nivel de Haki","Haki tier"),e.t?String(e.t):tx("Aficionado (sin nivel)","Amateur (no tier)")],
+    [tx("Requisitos","Prerequisites"),[e.c==="king"?tx("Cualidades de un rey","Qualities of a King"):"",e.r===0?tx("nivel 1 a 4","level 1 to 4"):"",e.t>1?tx(`${e.t===2?4:6} rasgos de este color`,`${e.t===2?4:6} features of this color`):"",...(e.req||[]).map(hakiName)].filter(Boolean).join(e.reqAny?tx(" o "," or "):" · ")||tx("Ninguno","None")],
+    e.a?[tx("Uso","Use"),(COST[e.a]||e.a)+(e.u?` · ${String(e.u[0]).startsWith("=")?tx("tantos usos como tu competencia","as many uses as your proficiency"):e.u[0]+" "+tx(e.u[0]===1?"uso":"usos",e.u[0]===1?"use":"uses")} · ${RESTN(e.u[1])}`:"")]:[tx("Uso","Use"),tx("Pasivo","Passive")],
+    e.wf?[tx("Voluntad","Willpower"),tx(`Revisar: el Haki no usa Voluntad; número fijo sugerido ${hakiSug(e,L)} (lo fija el DM al aprobar)`,`Review: Haki doesn't use Willpower; suggested fixed number ${hakiSug(e,L)} (the DM sets it when approving)`)+(n!=null?tx(` · fijado en ${n}`,` · set to ${n}`):"")]:null,
+    e.repl?[tx("Reemplaza a","Replaces"),hakiName(e.repl)]:null,e.up?[tx("Al nivel 5","At level 5"),tx("se convierte en ","becomes ")+hakiName(e.up)]:null].filter(Boolean)}
+let SHOPTAB="arm";
+function shopOpen(col){if(col)SHOPTAB=col;const k=cur,P=PROG[k]||{},p=prestOf(k),b=P.buy&&P.buy.st==="pend"?P.buy:null;
+  const item=e=>{const why=hakiWhy(k,e),[rn,cost]=rarOf(e.r),n=(P.hakiN||{})[e.id];
+    return`<button class="act" data-hbuy="${e.id}" ${why?'aria-disabled="true"':""}><span class="n">${tl(e.n)}${hint(e.n.en)}<span class="tag">${rn} · ${cost}</span>${e.wf?`<span class="tag">${tx("Revisar","Review")}</span>`:""}</span>
+      <span class="d">${hakiSum(e,n??hakiSug(e,CHARS[k].level))}${e.req?` · ${tx("Requiere","Requires")} ${e.req.map(hakiName).join(e.reqAny?tx(" o "," or "):", ")}`:""}${why?`<br><b class="spent">${why}</b>`:""}</span></button>`};
+  show({title:tx("Gastar prestigio","Spend prestige"),sheet:true,shop:1,html:`<p class="note"><b>${tx(`Tienes ${p} ${p===1?"punto":"puntos"} de prestigio`,`You have ${p} Prestige ${p===1?"Point":"Points"}`)}</b> · ${["arm","obs","king"].map(c=>`${tl(HAKI_COLORS[c])}: ${hakiCount(k,c)}`).join(" · ")}</p>
+    <p class="note">${tx("Costos","Costs")}: ${RARITY.map(([n,v])=>`${n} ${v}`).join(" · ")}. ${tx("Nivel 2 pide 4 rasgos de ese color y nivel 3, 6.","Tier 2 needs 4 features of that color and tier 3, 6.")}</p>
+    ${b?`<div class="warn">${tx("Solicitud enviada al DM","Request sent to the DM")}: <b>${hakiName(b.id)}</b> · <button class="linkbtn" data-do="buycancel">${tx("Cancelar solicitud","Cancel request")}</button></div>`:""}
+    ${!(CHARS_SRC[k]||{}).fruit?`<p class="note">${tx("Purista del Haki: como no tienes fruta, en los niveles 4, 10 y 16 eliges una mejora (Calidad, Cantidad o Resistencia de tu Haki). La aplica el DM; la pierdes si comes una fruta.","Haki Purist: since you have no fruit, at levels 4, 10 and 16 you choose an improvement (Quality, Quantity or Stamina of your Haki). The DM applies it; you lose it if you eat a fruit.")}</p>`:""}
+    <div class="adv" role="group" aria-label="${tx("Color de Haki","Haki color")}">${["arm","obs","king"].map(c=>`<button data-do="shoptab" data-c="${c}" aria-pressed="${SHOPTAB===c}">${tl(HAKI_COLORS[c]).replace(/^Color (de |del |of the |of )/,"")}</button>`).join("")}</div>
+    ${[0,1,2,3].map(t=>{const L=HAKI.filter(e=>e.c===SHOPTAB&&e.t===t);return L.length?`<h3 class="lvh">${t?tx(`Nivel ${t}`,`Tier ${t}`):tx("Aficionado (sin nivel)","Amateur (no tier)")}</h3><div class="list">${L.map(item).join("")}</div>`:""}).join("")}`})}
+function hakiOpen(id,ex){const k=cur,e=hakiE(id),why=hakiWhy(k,e),cost=rarOf(e.r)[1],R=hakiRows(k,e),n=((PROG[k]||{}).hakiN||{})[id]??hakiSug(e,CHARS[k].level);
+  if(ex)return explainView(tl(e.n),"haki:"+id,e.a||"",[["what",hakiSum(e,n)],...R],()=>hakiOpen(id));
+  show({title:tl(e.n),sheet:true,warn:why,html:`${dl([["what",hakiSum(e,n)],...R])}<button class="btn primary use" data-do="hreq" data-id="${id}" ${why?"disabled":""}>${tx(`Pedir al DM · ${cost} ${cost===1?"punto":"puntos"}`,`Ask the DM · ${cost} ${cost===1?"point":"points"}`)}</button>
+    <div class="trayact"><button class="btn" data-do="shop">${tx("Volver a la tienda","Back to the shop")}</button></div>`})}
+/* Avisos al jugador cuando el DM responde (una vez por respuesta, mc:buyseen) */
+function buyNotice(P){const b=P.buy;if(!b||b.st==="pend"||!b.at)return;const key=b.at+b.st;if(store.get("mc:buyseen")===key)return;store.set("mc:buyseen",key);
+  cbToast(b.st==="ok"?`<b>${tx(`El DM aprobó tu compra: ${esc(hakiName(b.id))}`,`The DM approved your purchase: ${esc(hakiName(b.id))}`)}</b> · ${tx(`Te quedan ${P.prestige} de prestigio`,`You have ${P.prestige} prestige left`)}${b.note?" · "+esc(b.note):""}`
+    :`<b>${tx(`El DM rechazó tu solicitud: ${esc(hakiName(b.id))}`,`The DM rejected your request: ${esc(hakiName(b.id))}`)}</b>${b.note?" · "+esc(b.note):""}`);buzz(120)}
+/* Mesa: el DM revisa la solicitud (y fija el número de los avances que usaban Voluntad) */
+function buyDm(k){const P=PROG[k]||{},b=P.buy;let h=`<label class="lvck"><input type="checkbox" data-king="${k}" ${P.king||(CHARS_SRC[k]||{}).king?"checked":""}><span>${tx("Cualidades de un rey (puede comprar Haki del Rey Supremo)","Qualities of a King (can buy Supreme King Haki)")}</span></label>`;
+  if(!b||b.st!=="pend")return h;const e=hakiE(b.id);if(!e)return h;const [rn,cost]=rarOf(e.r),p=prestOf(k),sug=hakiSug(e,CHARS[k].level),why=hakiWhy(k,e).replace(tx("Ya tienes una solicitud pendiente","You already have a pending request"),"");
+  return h+`<div class="lvrv"><b>${tx("Solicitud de Haki","Haki request")}: ${tl(e.n)}${hint(e.n.en)}</b><p class="note">${tl(HAKI_COLORS[e.c])} · ${rn} · ${cost} ${tx("puntos","points")} · ${tx(`tiene ${p}`,`has ${p}`)}</p>
+    <p class="note">${hakiSum(e,sug)}</p>${why?`<div class="warn">${why}</div>`:""}
+    ${e.wf?`<div class="hp"><label class="tip" for="hw-${k}" style="flex:1">${tx(`Revisar: el Haki no usa Voluntad. Número fijo para {HW} (sugerido ${sug})`,`Review: Haki doesn't use Willpower. Fixed number for {HW} (suggested ${sug})`)}</label><input class="hpin" id="hw-${k}" type="number" inputmode="numeric" min="0" max="40" value="${sug}"></div>`:""}
+    <input class="hpin" id="hn-${k}" type="text" maxlength="120" placeholder="${tx("Nota para el jugador (opcional)","Note for the player (optional)")}" style="width:100%;text-align:left;font-size:15px">
+    <div class="trayact"><button class="btn primary" data-hok="${k}" ${p<cost?"disabled":""}>${tx("Aprobar","Approve")}</button><button class="btn" data-hno="${k}">${tx("Rechazar","Reject")}</button></div></div>`}
+function buyDecide(k,ok){const P=PROG[k]||{},b=P.buy,e=b&&hakiE(b.id);if(!e)return;const note=(($("hn-"+k)||{}).value||"").trim().slice(0,120);
+  if(!ok)return progWrite(k,{buy:{...b,st:"no",note,at:Date.now()}});
+  const [,cost,code]=rarOf(e.r),p=prestOf(k);if(p<cost)return;const n=e.wf?Math.max(0,Math.min(40,parseInt(($("hw-"+k)||{}).value,10)||hakiSug(e,CHARS[k].level))):null;
+  progWrite(k,{prestige:p-cost,plog:[{at:Date.now(),n:-cost,r:code,note:tl(e.n)},...(P.plog||[])].slice(0,30),haki:[...(P.haki||[]),e.id],hakiN:{...(P.hakiN||{}),...(n!=null?{[e.id]:n}:{})},buy:{...b,st:"ok",note,at:Date.now()}})}
+
+/* ===================== MODO PRUEBA (DM) ===================== */
+/* Ver como jugador: copia del estado que se descarta al salir (save, push y progWrite no escriben). Probar subida: el asistente completo sin guardar */
+let SANDBOX=null,TESTW=null;
+function sandboxOpen(k){SANDBOX={admin,view};admin=false;cur=k;S=merge(CHARS[k],JSON.parse(JSON.stringify(mesa.state[k]||null)));lastHit=null;view="char";T=null;$("tray").classList.add("hide");render();scrollTo(0,0)}
+function sandboxExit(){const s=SANDBOX;SANDBOX=null;const u=$("undo");if(u){u.hidden=true;u._p=null}admin=s.admin;view="mesa";W=null;lvDraw();$("tray").classList.add("hide");render();scrollTo(0,0)}
+function lvTest(k,to){const b=CHARS_SRC[k],from=Math.max(b.level,Math.min(19,to-1));to=from+1;const st=merge(CHARS[k],JSON.parse(JSON.stringify(mesa.state[k]||null)));
+  TESTW={k,ev:{id:"test",from,to},test:true,P:{level:from},c:buildChar(k,{level:from}),s:st,step:0,die:null,mode:"",kind:"asi",asi:{},feat:null,picks:{cantrips:[],fury:[]},fury:[...st.fury]};
+  lvCelebrate({id:"test"+Date.now(),from,to})}
+function testPanel(){return`<section><h2>${tx("Modo prueba","Test mode")} <small>${tx("nada se guarda ni se avisa a los jugadores","nothing is saved and players aren't notified")}</small></h2><div class="box2">
+  <div class="hp"><select id="tm-k" aria-label="${tx("Personaje","Character")}">${Object.entries(CHARS).map(([k,c])=>`<option value="${k}">${c.name} (${tx("nivel","level")} ${c.level})</option>`).join("")}</select>
+    <label class="tip" for="tm-l">${tx("a nivel","to level")}</label><input class="hpin" id="tm-l" type="number" inputmode="numeric" min="2" max="20" value="8" style="width:64px"></div>
+  <div class="trayact"><button class="btn" data-do="tmlv">${tx("Probar subida de nivel","Test level-up")}</button><button class="btn" data-do="tmview">${tx("Ver como jugador","View as player")}</button><button class="btn" data-do="tmturn">${tx("Simular turno","Simulate turn")}</button></div></div></section>`}
 /* ===================== CONTADORES, OCULTAS Y EXPLICACIONES ===================== */
 /* Cada tarjeta con usos limitados muestra su contador (círculos o "n/máx") y cuándo se recupera; en su ficha se corrige a mano */
 const hid=k=>S.hid.includes(k);
@@ -1676,8 +1820,8 @@ function condsOpen(){show({title:tx("Estados","Conditions"),sheet:true,conds:1,h
   <div class="resrow" style="margin-top:12px"><span>${tx("Agotamiento","Exhaustion")}<br><small style="font-weight:400">${tx("baja 1 con descanso largo","drops 1 with a long rest")}</small></span><div class="cnt"><b>${S.exh}<small>/6</small></b><button class="btn" data-exh="-1" aria-label="${tx("Quitar 1 nivel","Remove 1 level")}">−1</button><button class="btn" data-exh="1" aria-label="${tx("Sumar 1 nivel","Add 1 level")}">+1</button></div></div>
   <p class="note">${tl(EXPL["stat:exh"])}</p>`})}
 /* Mantener pulsado (medio segundo) una tarjeta, estadística o número abre su explicación detallada; el toque normal sigue igual */
-const LP_SEL="[data-act],[data-sr],[data-spell],[data-tech],[data-item],[data-cact],[data-free],[data-mwatk],[data-x],[data-save],[data-skill],[data-cond],[data-jump],[data-do=init],[data-do=conds]";
-function lpOpen(el){const d=el.dataset;
+const LP_SEL="[data-hbuy],[data-fx],[data-act],[data-sr],[data-spell],[data-tech],[data-item],[data-cact],[data-free],[data-mwatk],[data-x],[data-save],[data-skill],[data-cond],[data-jump],[data-do=init],[data-do=conds]";
+function lpOpen(el){const d=el.dataset;if(d.hbuy)return hakiOpen(d.hbuy,true);if(d.fx)return fxOpen(d.fx);
   for(const k of ["act","sr","spell","tech","item","cact","free","mwatk"])if(d[k]!==undefined)return openSheet(k,d[k],true);
   if(d.x)return explainStat(d.x);if(d.save)return explainStat("save:"+d.save);if(d.skill)return explainStat("skill:"+d.skill);if(d.cond)return explainStat("cond:"+d.cond);
   if(d.jump)return explainStat(d.jump==="sec-especial"?"special":"econ");if(d.do==="init")return explainStat("init");if(d.do==="conds")return condsOpen()}
@@ -1686,7 +1830,6 @@ function lpOpen(el){const d=el.dataset;
     lp=setTimeout(()=>{lp=null;fired=true;buzz(15);lpOpen(el)},500)},{passive:true});
   document.addEventListener("pointermove",e=>{if(lp&&Math.hypot(e.clientX-px,e.clientY-py)>10)stop()},{passive:true});
   for(const ev of ["pointerup","pointercancel"])document.addEventListener(ev,stop,{passive:true});
-  addEventListener("scroll",stop,{passive:true,capture:true});
   document.addEventListener("click",e=>{if(fired){fired=false;e.preventDefault();e.stopImmediatePropagation()}},true);
   document.addEventListener("contextmenu",e=>{if(e.target.closest(LP_SEL))e.preventDefault()})}
 /* Uso rápido: solo ataques sin límite (sin recurso, sin munición, sin "una vez") y trucos */
@@ -1766,6 +1909,7 @@ function weaponAttack(w,title,warn,tip,o={}){
 }
 function doAct(i){
   const c=C(),a=c.actions[i];let warn="";
+  if(a.dur!=null&&a.kind!=="group"&&!(a.res&&S.res[a.res]<=0)&&!(a.once&&S.used[a.once]))fxAdd(c,a);
   if(a.kind==="haki"&&S.hard>0){S.hard=0;log(tx("Endurecimiento terminado","Weapon Hardening ended"));$("tray").classList.add("hide");save();render();return}
   if(a.kind==="attack"){
     const w=c.weapons[a.w];
@@ -1937,7 +2081,7 @@ function openChar(k){
   cur=k;load();view="char";store.set("mc:cur",cur);render();
   if(progUnsub)progUnsub();progUnsub=fb.F.onSnapshot(fb.F.doc(fb.db,"progress",k),d=>onProg(k,d.exists()?d.data():{}));
   stateUnsub=fb.F.onSnapshot(fb.F.doc(fb.db,"state",k),d=>{
-    if(cur!==k||pushT||d.metadata.hasPendingWrites)return;
+    if(SANDBOX||cur!==k||pushT||d.metadata.hasPendingWrites)return;
     if(!d.exists()){if(!d.metadata.fromCache)push();return}
     const s=merge(C(),d.data());
     if(JSON.stringify(s)!==JSON.stringify(S)){S=s;store.set("mc2:"+cur,S);render()}
@@ -1945,7 +2089,7 @@ function openChar(k){
 }
 /* La apariencia viaja en el documento del jugador (o del DM) para seguirlo a otros dispositivos */
 function lookToCloud(v){if(fb&&user)fb.F.setDoc(fb.F.doc(fb.db,"players",user.uid),{look:v},{merge:true}).catch(e=>console.warn("No se pudo guardar la apariencia",e))}
-function push(){clearTimeout(pushT);pushT=null;if(!fb||!user)return;
+function push(){clearTimeout(pushT);pushT=null;if(!fb||!user||SANDBOX)return;
   fb.F.setDoc(fb.F.doc(fb.db,"state",cur),{...S,maxHp:C().maxHp,by:user.uid,at:fb.F.serverTimestamp()}).catch(e=>console.warn("No se pudo guardar en la nube",e))}
 
 function gate(){
@@ -1958,13 +2102,13 @@ function gate(){
     <p class="note">${tx("Tu cuenta todavía no tiene personaje. Pídele al DM que te asigne uno; esta pantalla se actualiza sola.","Your account doesn't have a character yet. Ask the DM to assign you one; this screen updates by itself.")}</p>
     <p class="note">${tx("Tu ID de usuario","Your user ID")}: <code>${esc(user.uid)}</code></p>${outBtn()}</section>`;
   const opts=sel=>`<option value="">${tx("Sin asignar","Unassigned")}</option>`+Object.entries(CHARS).map(([k,c])=>`<option value="${k}" ${k===sel?"selected":""}>${c.name}</option>`).join("");
-  return lvPanel()+`<section><h2>${tx("Mesa","Table")} <small>${tx("en vivo","live")}</small></h2><div class="list">${Object.entries(CHARS).map(([k,c])=>{
+  return lvPanel()+testPanel()+`<section><h2>${tx("Mesa","Table")} <small>${tx("en vivo","live")}</small></h2><div class="list">${Object.entries(CHARS).map(([k,c])=>{
     const s=merge(c,mesa.state[k]),pct=Math.max(0,s.hp/mhp(c,s)*100);
-    return`<div class="box2"><div class="who"><b style="font-size:18px;display:inline-flex;align-items:center;gap:8px">${pic(k,"mini",32)}${c.name}</b><button class="btn" data-pick="${k}">${tx("Abrir","Open")}</button></div>
+    return`<div class="box2"><div class="who"><b style="font-size:18px;display:inline-flex;align-items:center;gap:8px">${pic(k,"mini",32)}${c.name}</b><button class="btn" data-sbview="${k}">${tx("Ver como jugador","View as player")}</button><button class="btn" data-pick="${k}">${tx("Editar ficha real","Edit real sheet")}</button></div>
       ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${mhp(c,s)} ${tx("PV","HP")}${s.temp?` (+${s.temp} temp.)`:""}${s.hp<=0?tx(" · inconsciente"," · unconscious"):""}</span><span>${s.conds.map(condT).join(", ")||tx("Sin estados","No conditions")}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
       <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · ${tx("Sueño","Dream")} ${s.dream}/${c.level}${s.hard>0?` · ${tx("Haki activo","Haki active")} (${s.hard} t.)`:""}${c.caster?` · ${tx("Espacios","Slots")} ${s.slots.map((v,i)=>`${tx("N","L")}${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · ${tx("Concentrado en","Concentrating on")} ${concOf(c,s.conc.id).n}`:""}${s.sea?tx(" · Sin fruta (agua o kairoseki)"," · No fruit (water or seastone)"):""}${s.form&&c.forms?" · "+c.forms[s.form].name:""}${c.companion?` · ${c.companion.name} ${s.comp.hp}/${c.companion.hp} ${tx("PV","HP")}${c.companion.heads?tx(`, ${s.comp.heads} cabezas`,`, ${s.comp.heads} heads`):""}`:""}${s.frenzy?" · "+c.frenzy.label:""}${s.trans&&c.transform?" · "+c.transform.name:""}${s.exh?` · ${tx("Agotamiento","Exhaustion")} ${s.exh}`:""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
-      ${s.log[0]?`<p class="note">${tx("Último","Latest")}: ${s.log[0]}</p>`:""}`:`<p class="note">${tx("Sin datos todavía: aparecerán cuando su jugador abra la app.","No data yet: it will show up when their player opens the app.")}</p>`}${prestDm(k)}${invDm(k,s)}${lvDmCard(k,c)}</div>`}).join("")}</div></section>
+      ${s.log[0]?`<p class="note">${tx("Último","Latest")}: ${s.log[0]}</p>`:""}`:`<p class="note">${tx("Sin datos todavía: aparecerán cuando su jugador abra la app.","No data yet: it will show up when their player opens the app.")}</p>`}${prestDm(k)}${buyDm(k)}${invDm(k,s)}${lvDmCard(k,c)}</div>`}).join("")}</div></section>
     <section><h2>${tx("Jugadores","Players")} <small>${tx("un personaje por cuenta","one character per account")}</small></h2><div class="box2">${mesa.players.some(p=>p.id!==user.uid)?mesa.players.filter(p=>p.id!==user.uid).map(p=>`<div class="resrow"><span>${esc(p.name||p.email)}<br><small style="font-weight:400">${esc(p.email)}</small></span>
       <select data-assign="${esc(p.id)}" aria-label="${tx("Personaje de","Character for")} ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">${tx("Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.","No player has signed in yet. Ask them to open the app and sign in with Google.")}</p>`}</div></section>
     <p class="note">${tx("Conectado como DM","Signed in as DM")}: ${esc(user.email)}</p>${outBtn()}`;
@@ -1974,6 +2118,7 @@ document.addEventListener("input",e=>{const t=e.target;if(t.id==="in-d20")setD20
   /* Dado de PV del asistente: se actualiza en el lugar (sin redibujar, para no perder el foco) */
   if(t.id==="lv-die"&&W){const hd=lvCl(W.k).hd,n=parseInt(t.value,10),con=CHARS[W.k].abil.CON;W.die=n>=1&&n<=hd?n:null;W.mode="roll";
     $("lv-gain").textContent=W.die?"+"+(W.die+con):"—";$("lv-gs").textContent=W.die?`d${hd} ${W.die} ${sgn(con)}`:"";const nb=document.querySelector('[data-lv="next"]');if(nb)nb.disabled=!W.die}
+  if(t.dataset.king!==undefined){progWrite(t.dataset.king,{king:t.checked});return}
   if(t.dataset.rvdie){const n=parseInt(t.value,10),k=t.dataset.rvdie;if(RV[k]&&n>=1&&n<=lvCl(k).hd)RV[k].die=n}});
 /* Cambiar Dados o la paleta vuelve a dibujar la ficha; cambiar el idioma rearma los datos y cierra la bandeja (su texto quedó en el idioma anterior) */
 let lastLang=look.lang;
@@ -2154,15 +2299,16 @@ function tempHp(c,who,n){const cp=who==="comp"&&c.companion,k=cp?S.comp:S,old=k.
    Sin cuenta (solo este teléfono) el progreso se guarda en localStorage (mc:prog). W: asistente abierto. RV: lo que el DM editó de cada propuesta */
 let W=null,RV={},progUnsub=null,lvTarget="all";
 const lvSeen=()=>store.get("mc:lvseen")||[];
-function progWrite(k,data,full){
+function progWrite(k,data,full){if(SANDBOX){cbToast(tx("Modo prueba: no se guardó nada","Test mode: nothing was saved"));return Promise.resolve()}
   if(fb&&user){const ref=fb.F.doc(fb.db,"progress",k);
     return(full?fb.F.setDoc(ref,data):fb.F.setDoc(ref,data,{merge:true})).catch(e=>show({title:tx("No se pudo guardar el nivel","Couldn't save the level"),warn:e.code||String(e)}))}
   onProg(k,full?data:{...(PROG[k]||{}),...data});return Promise.resolve()}
 /* Llega un progreso nuevo (de la nube o de este teléfono): rearma las fichas y, si el DM aprobó una subida del personaje abierto, actualiza su estado */
 function onProg(k,raw){if(!CHARS_SRC[k])return;
   const P=cleanProg(k,raw),old=(PROG[k]||{}).prestige||0;
-  PROG[k]=P;if(k===cur&&!admin&&P.prestige!==old)prestToast(P,P.prestige-old);store.set("mc:prog",PROG);localize();
-  if(W&&W.k===k&&(!P.event||P.event.id!==W.ev.id||P.pending)){W=null;lvDraw()}
+  PROG[k]=P;if(k===cur&&!admin&&P.prestige!==old&&!(P.buy&&P.buy.st==="ok"&&P.plog[0]&&P.plog[0].at>=P.buy.at-5000))prestToast(P,P.prestige-old);
+  if(k===cur&&S&&!admin)buyNotice(P);store.set("mc:prog",PROG);localize();
+  if(W&&!W.test&&W.k===k&&(!P.event||P.event.id!==W.ev.id||P.pending)){W=null;lvDraw()}
   if(k===cur&&S&&!admin&&P.level>S.lvl)lvApplied(buildChar(k,progAt(P,S.lvl)),CHARS[k],P);
   if(k===cur&&S&&!admin)invGrants(P);
   if(k===cur)lvCheck();
@@ -2193,7 +2339,7 @@ const lvReviews=(k,to)=>{const b=CHARS_SRC[k];return[PCLASS[b.cls],PSUB[b.sc]].f
 function lvChoices(k,from,to){const cl=lvCl(k),out=[...((cl.choice||{})[to]||[])];
   if(cl.col.cantrips&&cl.col.cantrips[to]>cl.col.cantrips[from]&&!out.some(x=>x.type==="cantrip"))out.push({type:"cantrip",n:cl.col.cantrips[to]-cl.col.cantrips[from]});return out}
 /* Opciones de una elección: trucos de la lista que no conoce o rasgos de furia que no tiene */
-const lvOpts=(c,x)=>x.type==="cantrip"?c.caster.list.filter(id=>SPELLS[id].l===0&&!S.spells.c.includes(id)).map(id=>({id,n:SPELLS[id].n,sum:SPELLS[id].sum}))
+const lvOpts=(c,x)=>x.type==="cantrip"?c.caster.list.filter(id=>SPELLS[id].l===0&&!(W&&W.s||S).spells.c.includes(id)).map(id=>({id,n:SPELLS[id].n,sum:SPELLS[id].sum}))
   :FURY.filter(f=>!c.actions.some(a=>a.name===tl(f.n))).map(f=>({id:f.id,n:tl(f.n),sum:tl(f.sum)}));
 const lvSteps=()=>["hp",...(lvCl(W.k).asi.includes(W.ev.to)?["asi"]:[]),...(lvChoices(W.k,W.ev.from,W.ev.to).length?["pick"]:[]),...(furyN(CHARS[W.k])?["fury"]:[]),"auto","sum"];
 function featOk(k,f){const b=CHARS_SRC[k],c=CHARS[k],tags=b.tags||[],mine=(PROG[k]&&PROG[k].feats)||[];
@@ -2237,7 +2383,7 @@ function lvOpen(){const P=PROG[cur];if(admin||!P||!P.event||P.pending)return;$("
   W={k:cur,ev:P.event,step:0,die:null,mode:"",kind:"asi",asi:{},feat:null,picks:{cantrips:[],fury:[]},fury:[...S.fury]};lvDraw()}
 function lvDraw(){let d=$("wz");if(!d){d=document.createElement("div");d.id="wz";d.className="wz";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");document.body.append(d)}
   if(!W){d.hidden=true;return}
-  const k=W.k,c=CHARS[k],cl=lvCl(k),P=PROG[k]||{},steps=lvSteps(),st=steps[W.step],ch=lvChoices(k,W.ev.from,W.ev.to),pd=lvProposal();
+  const k=W.k,c=W.c||CHARS[k],cl=lvCl(k),P=W.P||PROG[k]||{},steps=lvSteps(),st=steps[W.step],ch=lvChoices(k,W.ev.from,W.ev.to),pd=lvProposal();
   const names={hp:tx("Puntos de golpe","Hit points"),asi:tx("Mejora de característica o dote","Ability Score Improvement or feat"),pick:tx("Elecciones","Choices"),fury:tx("Cambiar técnicas de furia","Change fury features"),auto:tx("Cambios automáticos","Automatic changes"),sum:tx("Esto cambia en tu ficha","This changes on your sheet")};
   let body="",ready=true;
   if(st==="hp"){const con=c.abil.CON;ready=W.die>=1;
@@ -2262,7 +2408,7 @@ function lvDraw(){let d=$("wz");if(!d){d=document.createElement("div");d.id="wz"
     body=`<p class="note">${tx(`En nivel ${W.ev.to} conoces ${n} técnicas de furia (tu bono de competencia). Puedes cambiar las que quieras.`,`At level ${W.ev.to} you know ${n} fury features (your proficiency bonus). You can change any of them.`)} (${W.fury.length}/${n})</p>${furyList(W.fury,"lv")}`}
   if(st==="auto"){const nx=buildChar(k,lvApply(P,{...pd,die:W.die||0,asi:{},feat:null,picks:{cantrips:[],fury:[]}}));
     body=`<p class="note">${tx("Según las tablas de progresión de los libros y las decisiones del DM:","From the books' progression tables and the DM's decisions:")}</p><ul class="lvsum">${lvDiff(c,nx).map(l=>`<li>${l}</li>`).join("")}</ul>${lvRevHtml(k,W.ev.to)}`}
-  if(st==="sum"){const nx=buildChar(k,lvApply(P,pd)),pr=ch.some(x=>x.review)?tx("Rasgo de furia elegido: lo revisa el DM.","Chosen fury feature: the DM reviews it."):"",fc=furyChange(S.fury,W.fury);
+  if(st==="sum"){const nx=buildChar(k,lvApply(P,pd)),pr=ch.some(x=>x.review)?tx("Rasgo de furia elegido: lo revisa el DM.","Chosen fury feature: the DM reviews it."):"",fc=furyChange((W.s||S).fury,W.fury);
     body=`<ul class="lvsum">${[...lvDiff(c,nx),...(fc?[fc]:[])].map(l=>`<li>${l}</li>`).join("")}</ul>${lvRevHtml(k,W.ev.to,pr)}
       <p class="note">${tx("Al enviarlo, el DM lo revisa: puede aprobarlo, cambiarlo o rechazarlo. Tu ficha no cambia hasta que lo apruebe.","When you send it, the DM reviews it and can approve, change or reject it. Your sheet won't change until it's approved.")}</p>`}
   const last=W.step===steps.length-1;
@@ -2272,7 +2418,7 @@ function lvDraw(){let d=$("wz");if(!d){d=document.createElement("div");d.id="wz"
     <div class="wz-nav"><button class="btn" data-lv="back" ${W.step?"":"disabled"}>${tx("Atrás","Back")}</button>${last?`<button class="btn gold" data-lv="send">${tx("Enviar al DM","Send to the DM")}</button>`:`<button class="btn primary" data-lv="next" ${ready?"":"disabled"}>${tx("Siguiente","Next")}</button>`}</div></div>`;
   d.hidden=false}
 function lvClick(ds){const v=ds.lv;
-  if(v==="go"){$("lvc").hidden=true;lvOpen();return}
+  if(v==="go"){$("lvc").hidden=true;if(TESTW){W=TESTW;TESTW=null;lvDraw();return}lvOpen();return}
   if(v==="open"){lvOpen();return}
   if(v==="close"){W=null;lvDraw();render();return}
   if(!W)return;const k=W.k,cl=lvCl(k),c=CHARS[k];
@@ -2288,6 +2434,7 @@ function lvClick(ds){const v=ds.lv;
   if(v==="fury"){const n=pb(W.ev.to),s=W.fury;W.fury=s.includes(ds.id)?s.filter(x=>x!==ds.id):s.length<n?[...s,ds.id]:s}
   if(v==="pick"){const arr=W.picks[ds.t],n=(lvChoices(k,W.ev.from,W.ev.to).find(x=>(x.type==="cantrip"?"cantrips":"fury")===ds.t)||{n:0}).n;
     if(arr.includes(ds.id))W.picks[ds.t]=arr.filter(x=>x!==ds.id);else if(arr.length<n)arr.push(ds.id)}
+  if(v==="send"&&(W.test||SANDBOX)){W=null;lvDraw();show({title:tx("Prueba terminada","Test finished"),tip:tx("Esto fue una prueba: no se guardó nada.","This was a test: nothing was saved.")});render();return}
   if(v==="send"){const pd=lvProposal();W=null;lvDraw();progWrite(k,{pending:pd});
     show({title:tx("Enviado al DM","Sent to the DM"),tip:tx("Cuando lo apruebe, tu ficha se actualiza sola.","Once approved, your sheet updates by itself.")});render();return}
   lvDraw()}
@@ -2332,7 +2479,7 @@ function lvDmClick(ds){const k=ds.k,P=k&&(PROG[k]||{});
 /* ===================== PRESTIGIO ===================== */
 /* Solo el DM lo cambia: vive en progress/{k} (prestige y plog, el más nuevo primero), donde el jugador solo puede escribir su propuesta de nivel */
 const prestOf=k=>(PROG[k]||{}).prestige||0;
-const rarN=r=>(RARITY.find(x=>x[1]===r)||[""])[0];
+const rarN=r=>(RARITY.find(x=>x[2]===r)||[""])[0];
 function plogT(o){const s=o.n>0?"+"+o.n:"−"+(-o.n);
   return(o.at?new Date(o.at).toLocaleDateString(tx("es","en"))+" · ":"")+(o.r?tx(`Avance ${rarN(o.r).toLowerCase()}`,`${rarN(o.r)} advancement`)+" "+s:s)+(o.note?" · "+esc(o.note):"")}
 const plogHtml=(k,n)=>{const L=(PROG[k]||{}).plog||[];return L.length?`<div class="log">${L.slice(0,n).map(o=>`<div>${plogT(o)}</div>`).join("")}</div>`:""};
@@ -2343,7 +2490,7 @@ function prestDm(k){const p=prestOf(k);
   return`<div class="prest"><span class="num">${p}</span><span class="lbl">${tx("Puntos de prestigio","Prestige Points")}</span>
     <button class="btn gold" data-pr="${k}" data-n="1">+1</button><button class="btn" data-pr="${k}" data-n="-1" ${p?"":"disabled"}>−1</button><button class="btn" data-prbuy="${k}" aria-expanded="${prOpen===k}">${tx("Comprar avance","Buy advancement")}</button></div>
     ${prOpen===k?`<div class="hp"><input class="hpin" id="pn-${k}" type="text" maxlength="80" placeholder="${tx("Nota: qué avance","Note: which advancement")}" aria-label="${tx("Nota del avance","Advancement note")}" style="flex:1;width:auto;text-align:left"></div>
-    <div class="costs">${RARITY.map(([n,v])=>`<button data-pr="${k}" data-n="${-v}" data-r="${v}" ${p<v?"disabled":""}>${n} · ${v}</button>`).join("")}</div>`:""}${plogHtml(k,3)}`}
+    <div class="costs">${RARITY.map(([n,v,r])=>`<button data-pr="${k}" data-n="${-v}" data-r="${r}" ${p<v?"disabled":""}>${n} · ${v}</button>`).join("")}</div>`:""}${plogHtml(k,3)}`}
 function prestToast(P,d){const o=P.plog[0];
   cbToast(`<b>${d>0?tx(`El DM te dio ${d} de prestigio`,`The DM gave you ${d} prestige`):o&&o.r?tx(`El DM gastó ${-d} de prestigio en un avance ${rarN(o.r).toLowerCase()}`,`The DM spent ${-d} prestige on a ${rarN(o.r)} advancement`):tx(`El DM te quitó ${-d} de prestigio`,`The DM removed ${-d} prestige`)}</b>${o&&o.note?" · "+esc(o.note):""} · ${tx(`Ahora tienes ${P.prestige}`,`You now have ${P.prestige}`)}`)}
 /* ===================== TÉCNICAS DE FURIA ===================== */
@@ -2370,10 +2517,10 @@ function lvSheet(c){const P=PROG[cur]||{},g=c.gained||[],hi=P.hist||[];if(!g.len
     ${hi.length?`<details class="lvhist"><summary>${tx("Historial de niveles","Level history")} (${hi.length})</summary>${hi.map(h=>lvHist(cur,h)).reverse().join("")}</details>`:""}</div></section>`}
 
 /* Inicio de turno: economía, efectos por turno y duraciones (botón "Nuevo turno" o aviso del DM) */
-function startTurn(c){if(S.float>0&&!--S.float)log(tx("Dejas de flotar","You stop hovering"));S.turn=newTurn(c);S.turn.hurt=S.hurt;S.hurt=false;S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;if(S.hard>0){S.hard--;if(S.hard===0)log(tx("Endurecimiento terminado","Weapon Hardening ended"))}$("tray").classList.add("hide");log(tx("— Nuevo turno —","— New turn —"));
+function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.turn.hurt||S.hurt;if(!S.turnEnded)fxEndTurn(c);S.turnEnded=false;S.turn=newTurn(c);S.turn.hurt=S.hurt;S.hurt=false;S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;fxTick(c);$("tray").classList.add("hide");log(tx("— Nuevo turno —","— New turn —"));
   /* En frenesí, Postura de hierro se ofrece al inicio de cada turno */
   const ir=c.actions.findIndex(x=>x.kind==="temproll"&&x.perTurn&&x.only&&S[x.only]);
-  if(ir>=0)show({title:tx("Inicio de turno · ","Start of turn · ")+c.frenzy.label,html:`<div class="trayact"><button class="btn primary" data-act="${ir}">${c.actions[ir].name}: +${c.actions[ir].temp} ${tx("PV temporales","temporary HP")}</button></div>`,tip:c.frenzy.note})}
+  if(ir>=0)show({title:tx("Inicio de turno · ","Start of turn · ")+c.frenzy.label,html:`<div class="trayact"><button class="btn primary" data-act="${ir}">${c.actions[ir].name}: +${c.actions[ir].temp} ${tx("PV temporales","temporary HP")}</button></div>`,tip:c.frenzy.note});if(ask)thrillAsk(c,hint);fxNotice()}
 
 /* ===================== TURNOS DEL COMBATE (dm.html) ===================== */
 /* combat/live (lo escribe dm.html con sesión de DM): active, round, turnId (sube en cada cambio de turno), cur y next {kind: pc | pet | ally | foe, char, name}.
@@ -2406,7 +2553,12 @@ function onFall(raw){FALL=cleanFallen(raw&&raw.fallen);const al=Array.isArray(ra
     if(mine&&a.ev==="down"&&card&&!card.hidden)continue; // ya está viendo su tarjeta "¡Caíste a 0 PV!"
     fallAlert({char:a.char,kind:a.kind,name:String(a.name||"").slice(0,40),ev:a.ev},mine&&a.kind==="pc")}
   if(top>seen)store.set("mc:alertseen",top)}
-function onCombat(raw){onFall(raw);CB=cleanCB(raw);
+function onCombat(raw){onFall(raw);const prev=CB;CB=cleanCB(raw);
+  /* Avanzar tiempo del DM (también sin combate): una vez por aviso, y solo si es reciente */
+  if(raw&&raw.adv&&isInt(raw.adv.id,0,1e13)&&isInt(raw.adv.min,1,1440)&&raw.adv.id!==store.get("mc:advseen")){store.set("mc:advseen",raw.adv.id);
+    if(S&&!admin&&view==="char"&&Date.now()-raw.adv.id<36e5){fxAdvance(C(),raw.adv.min);fxNotice();save()}}
+  /* Fin de tu turno: el DM pasó el turno de tu personaje a otro */
+  if(prev&&S&&!admin&&view==="char"&&cbMine(prev.cur)&&prev.cur.kind==="pc"&&(!CB||CB.turnId!==prev.turnId&&!(cbMine(CB.cur)&&CB.cur.kind==="pc"))){endTurn(C());save()}
   if(CB&&S&&!admin&&view==="char"&&CB.turnId!==store.get("mc:turnseen")){store.set("mc:turnseen",CB.turnId);const c=C(),t=CB.cur,n=CB.next;
     if(cbMine(t)&&t.kind==="pc")myTurn(c);
     else if(cbMine(t)&&t.kind==="pet")petTurn(t);
@@ -2480,6 +2632,11 @@ document.addEventListener("click",e=>{
   if(ds.inved!==undefined){invForm(ds.inved);return}
   if(ds.give){invGive(ds.give,+ds.s);return}
   if(ds.x){explainStat(ds.x);return}
+  if(ds.fx){fxOpen(ds.fx);return}
+  if(ds.hbuy){hakiOpen(ds.hbuy);return}
+  if(ds.sbview){sandboxOpen(ds.sbview);return}
+  if(ds.hok){buyDecide(ds.hok,true);return}
+  if(ds.hno){buyDecide(ds.hno,false);return}
   if(ds.usedfix){S.used[ds.usedfix]=!S.used[ds.usedfix];save();render();if(T&&T.reopen)T.reopen();return}
   if(ds.srfix){const j=+ds.j;S.sr[ds.srfix]=j<S.sr[ds.srfix]?j:j+1;save();render();if(T&&T.reopen)T.reopen();return}
   if(ds.unhide){S.hid=S.hid.filter(x=>x!==ds.unhide);save();render();return}
@@ -2554,7 +2711,7 @@ document.addEventListener("click",e=>{
   if(act==="muscle"){const f=c.frenzy,warn=spend("adicional");S.muscle=ds.m;show({title:ds.m==="def"?f.defOpt:f.atkOpt,warn,tip:(ds.m==="def"?f.defTxt:f.atkTxt)+tx(" hasta el inicio de tu siguiente turno."," until the start of your next turn.")});log(ds.m==="def"?f.defTxt:f.atkTxt)}
   if(act==="trans"){const a=c.actions[+ds.i],tr=c.transform,warn=spend(a.cost);S.res[tr.res]--;S.trans=true;
     show({title:tr.name,warn,tip:tr.bar+". "+a.note});log(`<b>${tr.name}</b>`)}
-  if(act==="group"){const a=c.actions[+ds.i],me=ds.me==="1";if(a.once&&S.used[a.once])return;
+  if(act==="group"){const a=c.actions[+ds.i],me=ds.me==="1";if(a.once&&S.used[a.once])return;if(a.dur!=null)fxAdd(c,a);
     const warn=spend(a.cost),boxes=[];if(a.once)S.used[a.once]=true;
     if(a.temp){if(me)S.temp=Math.max(S.temp,a.temp);boxes.push({l:tx("PV temporales","Temporary HP"),v:"+"+a.temp,s:me?tx(`${c.name} queda con ${S.temp} (no se acumulan)`,`${c.name} has ${S.temp} (they don't stack)`):tx("a cada criatura","to each creature")})}
     if(a.heal){if(me){S.hp=Math.min(mhp(c),S.hp+a.heal);if(S.hp>0){S.ds={ok:0,ko:0};S.dead=false}}boxes.push({l:tx("Curación","Healing"),v:"+"+a.heal,s:me?tx(`${c.name} queda con ${S.hp} PV`,`${c.name} is at ${S.hp} HP`):tx("a cada aliado","to each ally")})}
@@ -2601,6 +2758,16 @@ document.addEventListener("click",e=>{
   if(act==="back"&&T&&T.back){T.back();return}
   if(act==="explain"){openSheet(ds.k,ds.v,true);return}
   if(act==="hide"){S.hid=[...new Set([...S.hid,ds.h])];$("tray").classList.add("hide");save();render();cbToast(tx("Oculta: la encuentras al final, en Ocultas.","Hidden: you'll find it at the end, under Hidden."));return}
+  if(act==="fxend"){const x=S.fx.find(y=>y.id===ds.id);if(x){const n=fxName(c,x);fxEnd(c,x,false);log(tx(`Terminaste <b>${n}</b>`,`You ended <b>${n}</b>`))}$("tray").classList.add("hide");save();render();return}
+  if(act==="thrill"){if(ds.y==="0"&&S.frenzy){S.frenzy=false;S.muscle="";log(tx(`Termina ${c.frenzy.name}: no atacaste ni recibiste daño`,`${c.frenzy.name} ends: you didn't attack or take damage`))}$("tray").classList.add("hide");save();render();return}
+  if(act==="shop"){shopOpen();return}
+  if(act==="shoptab"){shopOpen(ds.c);return}
+  if(act==="hreq"){const e=hakiE(ds.id);if(!e||hakiWhy(cur,e))return;progWrite(cur,{buy:{id:e.id,st:"pend",at:Date.now()}});if(!SANDBOX)cbToast(`<b>${tx("Solicitud enviada al DM","Request sent to the DM")}</b> · ${esc(tl(e.n))}`);$("tray").classList.add("hide");return}
+  if(act==="buycancel"){progWrite(cur,{buy:null});$("tray").classList.add("hide");return}
+  if(act==="tmlv"){lvTest($("tm-k").value,parseInt($("tm-l").value,10)||8);return}
+  if(act==="tmview"){sandboxOpen($("tm-k").value);return}
+  if(act==="tmturn"){const ch=CHARS[$("tm-k").value];buzz([220,90,220]);cbBanner(tx(`¡Es tu turno, ${esc(ch.name)}!`,`It's your turn, ${esc(ch.name)}!`),tx("Simulación: así lo ve el jugador. No cambia nada.","Simulation: this is what the player sees. Nothing changes."));return}
+  if(act==="sbexit"){sandboxExit();return}
   if(act==="furypick"){furyPick();return}
   if(act==="furysave"&&T&&T.fury){if(T.fury.length!==furyN(c))return;const u=furyUnlock();S.fury=[...T.fury];if(u)S.furyDone=u;
     log(tx("Técnicas de furia: ","Fury features: ")+furyNames(S.fury));$("tray").classList.add("hide");save();render();return}
@@ -2637,7 +2804,7 @@ document.addEventListener("click",e=>{
       if(S.fore.length&&phys()){S.fore.forEach(f=>{f.v=0;f.u=false});
         show({title:tx("Vistazo al futuro","Glimpse into the Future"),tip:tx("Tira 2d20 y anótalos como presagios.","Roll 2d20 and enter them as foretelling rolls."),apply:Object.fromEntries(S.fore.map((f,i)=>["f"+i,{label:tx(`Anotar presagio ${i+1}`,`Enter foretelling roll ${i+1}`),fn:n=>{S.fore[i].v=Math.min(20,Math.max(1,n));log(`${tx("Presagio","Foretelling roll")}: <b>${S.fore[i].v}</b>`)}}]))})}
       else if(S.fore.length)log(`${tx("Nuevos presagios","New foretelling rolls")}: <b>${S.fore.map(f=>f.v).join(tx("</b> y <b>","</b> and <b>"))}</b>`)}
-    else{c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);S.aided=[];c.actions.forEach(a=>{if(a.once&&!a.long)S.used[a.once]=false});log(tx("<b>Descanso corto</b>: recursos y reacciones especiales recuperados","<b>Short rest</b>: resources and special reactions recovered"))}
+    else{fxAdvance(c,60);FXN=[];c.resources.forEach(r=>{if(r.rest==="short")S.res[r.id]=r.max});SPECIALS.forEach(s=>S.sr[s.id]=c.prof);S.aided=[];c.actions.forEach(a=>{if(a.once&&!a.long)S.used[a.once]=false});log(tx("<b>Descanso corto</b>: recursos y reacciones especiales recuperados","<b>Short rest</b>: resources and special reactions recovered"))}
   }
   save();render();
 });
