@@ -235,6 +235,8 @@ code{font-size:12px;word-break:break-all;user-select:all}
 .hdr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:4px;align-items:center}
 .hdr .portrait{grid-row:1 / 3} .hdr h1{grid-column:2;min-width:0;font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .hdr .stats{grid-column:3} .hdr .sub{grid-column:2 / 4;margin-top:0}
 .hdr .stat{min-width:44px} .hdr .stat.ico-only{min-width:0;padding:4px 6px;justify-content:center}
+/* Pantallas angostas: el nombre arriba y CA · Inic. · Estados · Ajustes debajo, para que el nombre no se corte */
+@media (max-width:420px){.hdr .portrait{grid-row:1 / 4} .hdr h1{grid-column:2 / 4} .hdr .stats{grid-column:2 / 4;grid-row:2;justify-self:start} .hdr .sub{grid-row:3}}
 .portrait{flex-shrink:0;align-self:flex-start;display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px;border-radius:3px;
   background:color-mix(in srgb,var(--gold) 16%,var(--surface));border:1.5px solid color-mix(in srgb,var(--gold) 45%,var(--line));box-shadow:0 1px 3px var(--shadow)}
 .portrait .av{border-radius:2px;font-family:var(--f-display);font-size:28px;background:color-mix(in srgb,var(--gold) 28%,var(--surface));color:var(--ink)}
@@ -252,6 +254,19 @@ code{font-size:12px;word-break:break-all;user-select:all}
 section h2 .h2t{display:inline-flex;align-items:center}
 @media (prefers-reduced-motion:reduce){.wp,.wp:nth-child(even){transform:none}}
 .skills summary{cursor:pointer;list-style:none}
+/* Contador de usos en cada tarjeta, cargas de fruta, "Usar de todas formas" y explicación detallada */
+.ctr{display:inline-flex;align-items:center;gap:3px;margin-right:6px;font-weight:700;color:var(--ink);white-space:nowrap}
+.ctr i{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block} .ctr i.u{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
+.ctr small{font-weight:600;color:var(--muted);margin-left:3px}
+.act .spent{color:var(--bad)}
+.linkbtn{background:none;border:0;padding:6px 2px;color:var(--accent);font-weight:700;text-decoration:underline;font:inherit;cursor:pointer}
+.charges{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.charges b{font-size:20px} .charges small{color:var(--muted);font-weight:600} .charges .track{height:8px}
+.stat.condon b{color:var(--bad)}
+.expl p{margin:0 0 10px;line-height:1.55;font-size:15px} .expl ul{margin:0 0 10px;padding-left:18px;font-size:14px;line-height:1.5}
+.condrow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:var(--chip);color:var(--ink)}
+.condrow[aria-pressed="true"]{background:var(--bad);color:var(--bg)} .condrow small{font-size:13px;line-height:1.4;opacity:.9}
+.act,.stat,.charges,.prest,[data-x]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 /* Inventario: una fila por objeto (nombre arriba, botones abajo si no cabe) */
 .invit{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .invit > div:first-child{flex:1 1 150px;min-width:0;overflow-wrap:anywhere} .invit .cnt .btn{padding:6px 10px} .money{font-size:20px}
@@ -310,7 +325,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 10:00";
+const APP_VERSION="2026-10-28 10:22";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -361,6 +376,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 
 <script src="conjuros.js"></script>
 <script src="progresion.js"></script>
+<script src="explicaciones.js"></script>
 <script>
 /* ===================== PERSONAJES ===================== */
 /* Armas: hit y mod SIN Haki; el Endurecimiento suma su bono cuando está activo.
@@ -408,6 +424,7 @@ const CHARS = {
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"surge",name:{es:"Oleada de acción",en:"Action Surge"},res:"oleada",note:{es:"Una acción extra este turno (2 golpes más)",en:"One extra action this turn (2 more attacks)"}},
       {cost:"fuera",role:true,kind:"group",name:{es:"Presencia de comandante",en:"Commanding Presence"},temp:"=lvl",t:"=prof",note:{es:"1 minuto de palabras motivadoras: hasta {prof} criaturas ganan {lvl} PV temporales hasta el siguiente descanso largo",en:"1 minute of motivating words: up to {prof} creatures gain {lvl} temporary hit points until the next long rest"}},
+      {cost:"gratis",kind:"info",res:"ejecutar",name:{es:"Ejecutar",en:"Execute"},note:{es:"Una vez por turno, al impactar cuerpo a cuerpo: +{exec} de trueno; CD {8+prof+FUE} de FUE o empujado 10 pies y derribado. Aparece en la bandeja del ataque",en:"Once per turn, on a melee hit: +{exec} thunder; DC {8+prof+FUE} STR save or pushed 10 feet and knocked prone. It shows up in the attack tray"}},
       {cost:"accion",role:true,kind:"group",name:{es:"Grito de batalla",en:"Rallying Cry"},once:"grito",heal:"=prof",
         msg:{es:"Aliados a 60 pies: ventaja en su próxima tirada durante 1 minuto y recuperan {prof} PV.",en:"Allies within 60 feet: advantage on their next roll within 1 minute, and they regain {prof} hit points."},
         note:{es:"aliados a 60 pies tienen ventaja en su próxima tirada de ataque, salvación o prueba durante 1 minuto y recuperan {prof} PV. Una vez por descanso corto o largo",en:"Allies within 60 feet have advantage on their next attack roll, saving throw or ability check within 1 minute and regain {prof} hit points. Once per short or long rest"}}
@@ -547,7 +564,7 @@ const CHARS = {
         {id:"fissure",n:"Gravity Fissure",l:6,c:"accion",r:{es:"120 pies (línea de 100×5 pies)",en:"120 feet (100×5-foot line)"},sv:"DES",half:1,dmg:"8d8",ty:"fuerza",sum:{es:"Si falla, recibe el daño y queda derribado; mitad si supera.",en:"On a failure, it takes the damage and is knocked prone; half on a success."}},
         {id:"reverse",n:"Reverse Gravity",l:7,c:"accion",r:{es:"Cilindro de 50 pies de radio y 100 de alto",en:"50-foot-radius, 100-foot-high cylinder"},d:"1 minuto",conc:1,sv:"DES",sum:{es:"Todo en el área cae hacia arriba; salvación de DES para agarrarse.",en:"Everything in the area falls upward; DEX save to grab hold of something."}},
         {id:"darkstar",n:"Dark Star",l:8,c:"accion",r:{es:"60 pies (esfera de 15 pies)",en:"60 feet (15-foot sphere)"},d:"1 minuto",conc:1,sv:"CON",half:1,dmg:"8d10",ty:"fuerza",rep:{c:"",l:{es:"Daño al terminar su turno",en:"Damage at the end of its turn"}},sum:{es:"Oscuridad y terreno difícil. Al aparecer, y cuando una criatura termina su turno dentro: salvación de CON o recibe el daño; mitad si supera.",en:"Darkness and difficult terrain. When it appears, and when a creature ends its turn inside: CON save or it takes the damage; half on a success."}},
-        {id:"meteor",n:"Meteor Swarm",l:10,c:"accion",r:{es:"1 milla (4 esferas de 40 pies de radio)",en:"1 mile (four 40-foot-radius spheres)"},sv:"DES",half:1,dmg:"20d6",ty:"fuego",dmg2:"20d6",ty2:"contundente",sum:{es:"Usa todas las cargas. Mitad si supera.",en:"Uses all charges. Half on a success."}},
+        {id:"meteor",n:"Meteor Swarm",l:10,res:"meteoro",c:"accion",r:{es:"1 milla (4 esferas de 40 pies de radio)",en:"1 mile (four 40-foot-radius spheres)"},sv:"DES",half:1,dmg:"20d6",ty:"fuego",dmg2:"20d6",ty2:"contundente",sum:{es:"Usa todas las cargas. Mitad si supera.",en:"Uses all charges. Half on a success."}},
         {id:"despertar",n:{es:"Despertar: Campo de gravedad extrema",en:"Awakening: Extreme Gravity Field"},l:0,locked:1,c:"accion",r:{es:"Aura de 30 pies",en:"30-foot aura"},d:"1 minuto",sum:{es:"Todavía no desbloqueado. Velocidad a la mitad; salvación de FUE o 10d8 de fuerza y derribado. 1 vez cada 24 horas.",en:"Not unlocked yet. Speed halved; STR save or 10d8 force and knocked prone. Once every 24 hours."}}
       ]},
     role:{name:{es:"Navegante",en:"Navigator"},passive:{es:"Cartografía y mapeo",en:"Charting and Mapping"},
@@ -562,7 +579,8 @@ const CHARS = {
     resources:[
       {id:"emocion",name:{es:"Emoción del combate",en:"Thrill of the Fight"},max:"=prof",rest:"long"},
       {id:"furia",name:{es:"Puntos de furia",en:"Fury Points"},max:"=fury",rest:"short"},
-      {id:"sulong",name:"Sulong",max:1,rest:"long"}
+      {id:"sulong",name:"Sulong",max:1,rest:"long"},
+      {id:"meteoro",name:"Meteor Swarm",max:1,rest:"long"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:{es:"Puños del Cosmos",en:"Fists of the Cosmos"},note:{es:"Atacar: 2 golpes por acción · mágicos · al impactar, Pulse Wave gratis",en:"Attack: 2 attacks per action · magical · on a hit, free Pulse Wave"}},
@@ -812,7 +830,7 @@ const tplS=s=>V?s.replace(/\{([^{}]+)\}/g,(m,e)=>tplV(e)):s;
 function gainedFeats(b,L){const out=[];for(let l=b.level+1;l<=L;l++)for(const src of [PCLASS[b.cls],PSUB[b.sc]])for(const f of (src&&src.feat[l])||[])out.push({...f,lvl:l});return out}
 const addFeet=(s,n)=>s.replace(/\d+/,m=>+m+n);
 function levelSrc(k,P){
-  const b=CHARS_SRC[k],c=structuredClone(b);P=P||{};
+  const b=CHARS_SRC[k],c=structuredClone(b);P=P||{};c.actions.forEach((a,i)=>a.xid="b"+i);
   const L=Math.min(20,Math.max(b.level,P.level||b.level)),cl=PCLASS[b.cls],sc=PSUB[b.sc],prof=pb(L),dp=prof-b.prof,feats=P.feats||[];
   const scores={...b.scores};for(const a of ABS)scores[a]=Math.min(20,scores[a]+((P.asi||{})[a]||0));
   for(const f of feats)if(f.ab)scores[f.ab]=Math.min(20,scores[f.ab]+1);
@@ -832,13 +850,15 @@ function levelSrc(k,P){
   if(c.caster){c.caster.slots=[...cl.col.slots[L]];c.caster.cantrips=cl.col.cantrips[L];
     if(sc&&sc.domain)c.caster.domain=Object.entries(sc.domain).filter(([l])=>+l<=L).flatMap(([,ids])=>ids).filter(id=>SPELLS_SRC[id])}
   c.gained=[];c.extras=[];
-  for(const f of gained){if(f.res)c.resources.push(f.res);if(f.act)c.actions.push(f.act);if(f.x)c.extras.push(f.x);
+  for(const f of gained){if(f.res)c.resources.push(f.res);if(f.act)c.actions.push({...f.act,xid:"g:"+f.id});if(f.x)c.extras.push(f.x);
     if(f.k!=="have"&&f.k!=="info")c.gained.push({n:f.n,sum:f.sum,lvl:f.lvl})}
   /* Rasgos de furia: todos quedan en la ficha con fury:id y se muestran solo los que el jugador conoce (S.fury, ver known) */
-  for(const f of cl.fury||[]){c.actions.push({...f.act,fury:f.id});if(f.reroll)(c.rerolls||=[]).push({...f.reroll,fury:f.id})}
+  if(cl.fury)c.actions.push({cost:"gratis",kind:"info",res:"furia",ex:"stat:fury",xid:"furyPts",name:{es:"Puntos de furia",en:"Fury Points"},note:{es:"Los gastan tus técnicas de furia · CD de furia {8+prof+CON} · con al menos 1: ventaja en salvaciones de CON contra trampas, conjuros, veneno, enfermedad y alientos",en:"Spent by your fury features · Fury save DC {8+prof+CON} · with at least 1: advantage on CON saves against traps, spells, poison, disease and breath attacks"}});
+  for(const f of cl.fury||[]){c.actions.push({...f.act,fury:f.id,xid:"fury:"+f.id});if(f.reroll)(c.rerolls||=[]).push({...f.reroll,fury:f.id})}
   for(const f of feats){const x=featById(f.id);c.gained.push({n:x.n,sum:{es:x.es,en:x.en},feat:1});
     if(x.fx&&x.fx.luck)c.resources.push({id:"suerte",name:{es:"Puntos de suerte (Lucky)",en:"Luck Points (Lucky)"},max:x.fx.luck,rest:"long"});
     if(x.fx&&x.fx.speed)c.speed={es:addFeet(c.speed.es,x.fx.speed),en:addFeet(c.speed.en,x.fx.speed)}}
+  for(const a of c.actions)a.nes=typeof a.name==="string"?a.name:a.name.es; // nombre en español: clave de las explicaciones
   return[c,vars]}
 /* Ficha ya traducida y con las plantillas resueltas */
 function buildChar(k,P){const [src,vars]=levelSrc(k,P);V=vars;try{return lv(src)}finally{V=null}}
@@ -919,7 +939,7 @@ function fresh(c){return{lvl:CHARS_SRC[cur]?Math.min(c.level,CHARS_SRC[cur].leve
   slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,comp:c.companion?{hp:c.companion.hp,temp:0,heads:c.companion.heads||0,tf:false,turnDmg:0}:{},frenzy:false,muscle:"",trans:false,exh:0,form:"",formOpts:[],humanHp:c.maxHp,stageAC:false,
   inv:invSeed(keyOf(c)),ilog:[],gotG:[],used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
   fore:c.foretell?[{v:phys()?0:d(20),u:false},{v:phys()?0:d(20),u:false}]:[],
-  fury:[...(c.furyKnown||[])],furyDone:0,float:0,advNext:false}} // en modo físico el jugador anota los presagios
+  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],float:0,advNext:false}} // en modo físico el jugador anota los presagios
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
   const f=fresh(c);if(!s||typeof s!=="object")return f;
@@ -940,7 +960,7 @@ function merge(c,s){
     comp:obj(f.comp,s.comp),
     sea:pick(false,s.sea),frenzy:pick(false,s.frenzy),muscle:["def","atk"].includes(s.muscle)?s.muscle:"",trans:pick(false,s.trans),exh:Math.min(6,Math.max(0,pick(0,s.exh))),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(0,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)})),
-    fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext)};
+    fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),hid:Array.isArray(s.hid)?s.hid.filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,80):[],float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext)};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===CHARS.udon.maxHp&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
 function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P);if(P&&!admin)invGrants(P)}
@@ -1009,7 +1029,13 @@ const saveTip=(sv,dc,dm,half)=>tx(`Los enemigos tiran salvación de ${sv} CD ${d
 const d20Box=(l,mod,m,cmin)=>({l,v:`1d20 ${sgnS(mod)}`,s:advTxt(m)+(cmin?" · "+critTxt(cmin):"")});
 /* Entrada de daño que cambia a la receta de crítico cuando el d20 anotado es crítico */
 const dmgE=(i,expr,cls,extra="")=>({i,cls,norm:recipe(expr),crit:recipe(expr,true)+extra,normS:CRIT_()+recipe(expr,true)+extra,critS:tx("dados dobles por crítico","dice doubled for the critical")});
-function setD20(n){const t=T,p=t&&t.p;if(!p||t.d20==null||!(n>=1&&n<=20))return;
+function setD20(n){const t=T,p=t&&t.p;if(!p||t.d20==null)return;
+  /* Vacía o inválida: vuelve a la receta de antes de anotar (sin total, sin crítico ni pifia) */
+  if(!(n>=1&&n<=20)){const o=t.o0;if(!o)return;t.boxes[t.d20]={...o.b};t.nat=null;t.raw=o.raw;t.crit=false;t.o0=null;
+    for(const e of p.dmg){const x=t.boxes[e.i];if(!x||x.fixed)continue;x.v=(e.plus?"+":"")+e.norm;x.s=e.normS;x.cls=e.cls||""}
+    if(t.logLine!==o.line){const i=S.log.indexOf(t.logLine);if(i>=0)S.log[i]=o.line;t.logLine=o.line}
+    const r=$("trayres");if(r)r.innerHTML=boxesHtml(t);save();render();return}
+  if(!t.o0)t.o0={b:{...t.boxes[t.d20]},line:t.logLine,raw:t.raw};
   const crit=p.cmin?n>=p.cmin:false,fail=n===1,tot=n+p.mod+(t.bonus||0),b=t.boxes[t.d20];
   t.nat=n;t.raw=n;t.crit=crit;
   b.v=tot;b.s=`d20 ${n} ${sgn(p.mod)}${t.bonus?` + ${t.bonus}`:""}${crit?tx(" · ¡CRÍTICO!"," · CRITICAL!"):fail?tx(" · pifia"," · fumble"):n===20?tx(" · 20 natural"," · natural 20"):""}`;b.cls=crit?"crit":fail?"fail":"";
@@ -1033,7 +1059,7 @@ const $=id=>document.getElementById(id);
 /* Acciones de combate de un coste (secciones Acción, Acción adicional y Reacción) */
 /* Rasgos de furia: se conocen tantos como el bono de competencia (furyN) y el jugador elige cuáles (S.fury) */
 const furyN=c=>PCLASS[c.cls]&&PCLASS[c.cls].fury?c.prof:0,known=a=>!a.fury||S.fury.includes(a.fury);
-const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
+const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!hid("a:"+a.xid)&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
 /* Ficha de la economía del turno: botón que salta a su sección si la sección está en pantalla; si no, solo muestra el estado */
 function chip(k,off,label){const c=C(),has=!(c.caster&&book)&&(k==="especial"||costList(c,k).length>0);
   return has?`<button class="econ${off?" spent":""}" data-jump="sec-${k}"><i></i>${label}</button>`:`<span class="econ${off?" spent":""}"><i></i>${label}</span>`}
@@ -1049,12 +1075,13 @@ function render(){
    <div class="hdr"><button class="portrait" data-do="poster" aria-label="${tx(`Ver el cartel de ${c.name}`,`See ${c.name}'s poster`)}">${pic(cur,"retrato",60)}${c.bounty?`<small class="bounty">฿ ${esc(c.bounty)}</small>`:""}</button>
     <h1 title="${c.name}">${c.name}</h1>
     <div class="stats">
-      <div class="stat"><b>${acOf(c)}</b><small>${tx("CA","AC")}</small></div>
+      <button class="stat" data-x="ac"><b>${acOf(c)}</b><small>${tx("CA","AC")}</small></button>
       <button class="stat" data-do="init"><b>${sgn(ini(c))}</b><small>${tx("Inic.","Init.")}</small></button>
+      <button class="stat${S.conds.length||S.exh?" condon":""}" data-do="conds" aria-label="${tx(`Estados: ${S.conds.length+(S.exh?1:0)} activos`,`Conditions: ${S.conds.length+(S.exh?1:0)} active`)}"><b>${S.conds.length+(S.exh?1:0)}</b><small>${tx("Estados","Cond.")}</small></button>
       <button class="stat ico-only" data-do="look" aria-label="${tx("Ajustes","Settings")}"><b>${ICON}</b></button>
     </div>
     <div class="sub">${c.sub} · ${c.speed}</div></div>
-   <div class="hp"><div class="hpbar"><div class="hptxt"><span><b>${S.hp}</b>${S.temp?` <span class="t">+${S.temp}</span>`:""} / ${mhp(c)} ${tx("PV","HP")}</span><span>${S.conds.map(condT).join(", ")}</span></div>
+   <div class="hp"><div class="hpbar"><div class="hptxt"><span data-x="hp"><b>${S.hp}</b>${S.temp?` <span class="t">+${S.temp}</span>`:""} / ${mhp(c)} ${tx("PV","HP")}</span></div>
      <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${Math.max(0,S.hp)/(mhp(c)+S.temp)*100}%"></div>${S.temp?`<div class="fill tp" style="width:${S.temp/(mhp(c)+S.temp)*100}%"></div>`:""}</div></div>
      ${hpBtns("me",c.name)}</div>
    <div class="turn">
@@ -1107,34 +1134,31 @@ function render(){
     if(s.kind==="attack"){const st=wStats(c.weapons[s.w]);big=`${sgn(st.hit)}<small>${c.weapons[s.w].dice}${sgn(st.mod)}</small>`}
     if(s.kind==="reduce")big=`−1d10+${c.level}<small>${tx("daño","damage")}</small>`;
     if(s.kind==="flash")big=`${sgn(sv(c,"DES"))}<small>${tx("salv. DES","DEX save")}</small>`;
-    h+=`<button class="act" data-sr="${s.id}" ${S.sr[s.id]<=0?'aria-disabled="true"':""}><span class="n">${s.name}</span><span class="big">${big}</span><span class="d">${s.note} · ${tx(`te quedan ${S.sr[s.id]}`,`${S.sr[s.id]} left`)}</span></button>`;
+    if(hid("r:"+s.id))continue;
+    h+=`<button class="act" data-sr="${s.id}" ${S.sr[s.id]<=0||S.turn.sr<=0?'aria-disabled="true"':""}>${""}<span class="n">${s.name}</span><span class="big">${big}</span><span class="d">${ctrHtml(S.sr[s.id],c.prof,"short")}${S.turn.sr<=0?`<b class="spent">${SRW_()}</b> `:""}${s.note}</span></button>`;
   }
   h+=`</div></section>`;
-  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
+  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&!hid("a:"+a.xid)&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
   if(free.length)h+=`<section><h2>${COST.gratis}</h2><div class="list">${free.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
-  const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role);
+  const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role&&!hid("a:"+a.xid));
   if(out.length)h+=`<section><h2>${COST.fuera}</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   h+=invSec(c);
 
   h+=`<section><h2>${tx("Salvaciones","Saving Throws")}</h2><div class="saves">${Object.entries(c.saves).map(([k,[,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${abT(k)}<span>${sgn(sv(c,k))}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
   if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>${tx("Habilidades","Skills")}</span><small>${tx("Percepción pasiva","Passive Perception")} ${10+skillBonus(c,"percepcion")} · ${tx("Perspicacia pasiva","Passive Insight")} ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
-    ${["FUE","DES","INT","SAB","CAR"].map(ab=>`<div class="lvlhead"><b>${abT(ab)}</b><span class="tip">${sgn(abilOf(c)[ab])}</span></div><div class="sk">${SKILLS.filter(s=>s[3]===ab).map(([id,n,en])=>{const p=(c.skills||{})[id]||0;
+    ${["FUE","DES","INT","SAB","CAR"].map(ab=>`<div class="lvlhead" data-x="abil:${ab}"><b>${abT(ab)}</b><span class="tip">${sgn(abilOf(c)[ab])}</span></div><div class="sk">${SKILLS.filter(s=>s[3]===ab).map(([id,n,en])=>{const p=(c.skills||{})[id]||0;
       return`<button data-skill="${id}"><span>${tx(n,en)}${hint(en)}</span><b>${p?`<i class="dot" aria-label="${p>1?tx("pericia","expertise"):tx("competente","proficient")}">${p>1?"●●":"●"}</i>`:""}${sgn(skillBonus(c,id))}</b></button>`}).join("")}</div>`).join("")}
     <p class="note" style="margin-top:8px">${tx("● competente · ●● pericia (competencia doble)","● proficient · ●● expertise (double proficiency)")}</p></details></section>`;
 
   h+=`<section><h2>${tx("Sueños y prestigio","Dreams and Prestige")}</h2><div class="box2">
-    <div class="resrow"><span>${tx("Puntos de sueño","Dream Points")}</span><div class="pips">${Array.from({length:c.level},(_,j)=>`<button class="pip gold ${j<S.dream?"":"used"}" data-dreamp="${j}" aria-label="${tx("Punto de sueño","Dream point")}"></button>`).join("")}</div></div>
+    <div class="resrow"><span><button class="linkbtn" data-x="dream">${tx("Puntos de sueño","Dream Points")}</button></span><div class="pips">${Array.from({length:c.level},(_,j)=>`<button class="pip gold ${j<S.dream?"":"used"}" data-dreamp="${j}" aria-label="${tx("Punto de sueño","Dream point")}"></button>`).join("")}</div></div>
     <p class="note">${tx("+1d6 a un ataque, prueba o salvación (tras tirar), o convierte una salvación de muerte fallida en éxito. Se renuevan al subir de nivel.","+1d6 to an attack roll, ability check or saving throw (after rolling), or turn a failed death saving throw into a success. They renew when you level up.")}</p>
-    <div class="prest"><span class="num">${prestOf(cur)}</span><span class="lbl">${tx("Puntos de prestigio. Te los da el DM por acciones épicas o divertidas, y solo él los cambia o los gasta en avances.","Prestige Points. The DM awards them for epic or fun actions, and only the DM changes them or spends them on advancements.")}</span></div>
+    <div class="prest" data-x="prestige"><span class="num">${prestOf(cur)}</span><span class="lbl">${tx("Puntos de prestigio. Te los da el DM por acciones épicas o divertidas, y solo él los cambia o los gasta en avances.","Prestige Points. The DM awards them for epic or fun actions, and only the DM changes them or spends them on advancements.")}</span></div>
     ${plogHtml(cur,5)}
   </div></section>`;
 
-  h+=`<section><h2>${tx("Recursos","Resources")} <small>${tx("toca para corregir","tap to correct")}</small></h2><div class="box2">${c.resources.map(r=>`<div class="resrow"><span>${r.name}<br><small style="font-weight:400">${{long:tx("desc. largo","long rest"),short:tx("desc. corto","short rest"),none:tx("manual","manual")}[r.rest]}</small></span>${r.counter
-    ?`<div class="cnt"><b>${S.res[r.id]}<small>/${r.max}</small></b><button class="btn" data-cnt="${r.id}" data-n="-1" aria-label="${tx("Quitar 1","Remove 1")}">−1</button><button class="btn" data-cnt="${r.id}" data-n="1" aria-label="${tx("Sumar 1","Add 1")}">+1</button><button class="btn" data-cnt="${r.id}" data-n="max">${r.fill||tx("Llenar","Fill")}</button>${r.dawn?`<button class="btn" data-dawn="${r.id}">${tx("Amanecer","Dawn")} +${r.dawn}</button>`:""}</div>`
-    :`<div class="pips">${Array.from({length:r.max},(_,j)=>`<button class="pip ${j<S.res[r.id]?"":"used"}" data-res="${r.id}" data-j="${j}" aria-label="${r.name}"></button>`).join("")}</div>`}</div>`).join("")}</div></section>`;
 
-  h+=`<section><h2>${tx("Estados","Conditions")}</h2><div class="conds">${CONDS.map(x=>`<button data-cond="${x}" aria-pressed="${S.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>
-    <div class="resrow" style="margin-top:10px"><span>${tx("Agotamiento","Exhaustion")}<br><small style="font-weight:400">${tx("baja 1 con descanso largo","drops 1 with a long rest")}</small></span><div class="cnt"><b>${S.exh}<small>/6</small></b><button class="btn" data-exh="-1" aria-label="${tx("Quitar 1 nivel","Remove 1 level")}">−1</button><button class="btn" data-exh="1" aria-label="${tx("Sumar 1 nivel","Add 1 level")}">+1</button></div></div></section>`;
+  h+=hiddenSec(c);
   h+=`<section><h2>${tx("Descansos","Rests")}</h2><div class="row2">
      <button class="btn ${armed==="short"?"arm":""}" data-do="short">${armed==="short"?tx("Toca para confirmar","Tap to confirm"):tx("Descanso corto","Short Rest")}</button>
      <button class="btn ${armed==="long"?"arm":""}" data-do="long">${armed==="long"?tx("Toca para confirmar","Tap to confirm"):tx("Descanso largo","Long Rest")}</button></div></section>`;
@@ -1149,7 +1173,8 @@ function render(){
 const formShows=(c,a)=>{const f=formOf(c);return a.form?S.form===a.form&&(!a.opt||S.formOpts.includes(a.opt)):!(f&&f.hideAttacks&&a.kind==="attack")};
 /* on: el efecto está activo (tocar lo termina) · out: no se puede usar ahora (sin usos, ya usado, requisito) */
 function actState(a){return{
-  out:a.res&&S.res[a.res]<=0&&!(a.kind==="haki"&&S.hard>0)||a.inv&&invQ(a.inv)<=0||a.once&&S.used[a.once]||a.perTurn&&S.turn[a.perTurn]||a.kind==="stay1"&&S.hp>0||a.needs&&!S.turn[a.needs]||a.kind==="form"&&(S.sea||S.form&&S.form!==a.form),
+  eco:a.kind!=="info"&&!(a.kind==="frenzy"&&S.frenzy)&&econWarn(a.cost),
+  out:a.res&&S.res[a.res]<=0&&a.kind!=="info"&&!(a.kind==="haki"&&S.hard>0)||a.inv&&invQ(a.inv)<=0||a.once&&S.used[a.once]||a.perTurn&&S.turn[a.perTurn]||a.kind==="stay1"&&S.hp>0||a.needs&&!S.turn[a.needs]||a.kind==="form"&&(S.sea||S.form&&S.form!==a.form),
   on:a.kind==="haki"&&S.hard>0||a.kind==="frenzy"&&S.frenzy||a.kind==="transform"&&S.trans||a.kind==="toggle"&&S.turn[a.flag]||a.kind==="form"&&S.form===a.form}}
 function actBtn(a,i){
   const c=C();let big="",tags="";
@@ -1164,11 +1189,11 @@ function actBtn(a,i){
   else if(a.kind==="transform"||a.kind==="toggle")big=a.kind==="transform"&&S.trans||a.kind==="toggle"&&S.turn[a.flag]?`<small>${tx("Activo","Active")}</small>`:"";
   else if(a.kind==="group")big=a.temp?`+${a.temp}<small>${tx(`PV temp. · ${a.t} criaturas`,`temp. HP · ${a.t} creatures`)}</small>`:a.heal?`+${a.heal}<small>${tx("PV a aliados","HP to allies")}</small>`:"";
   else if(a.kind==="firstaid")big=`${a.heal}+${tx("nivel","level")}<small>${tx("PV","HP")}</small>`;
-  const {out,on}=actState(a);
-  const left=a.res?` · ${tx(`te quedan ${S.res[a.res]}`,`${S.res[a.res]} left`)}`:a.inv?" · "+invLeft(a.inv):a.once&&S.used[a.once]?tx(" · ya lo usaste desde el último descanso"," · already used since the last rest"):"";
+  const {out,on,eco}=actState(a);
+  const left=a.inv?" · "+invLeft(a.inv):"",ctr=actCtr(c,a);
   const d=a.kind==="haki"&&S.hard>0?tx("Activo · toca para terminarlo","Active · tap to end it"):a.kind==="frenzy"&&S.frenzy?tx("Activa · toca para terminarla (acción adicional)","Active · tap to end it (bonus action)"):a.kind==="transform"&&S.trans?tx(`Activo · toca para terminarlo (acción adicional; ganas ${c.transform.exh} de agotamiento)`,`Active · tap to end it (bonus action; you gain ${c.transform.exh} level of exhaustion)`):a.note;
   const ico=a.companion?"companion":a.kind==="haki"||a.haki?"haki":a.kind==="attack"?"weapon":"";
-  return `<button class="act ${on?"on":""}" data-act="${i}" ${out&&!on?'aria-disabled="true"':""}><span class="n">${ico?sico(ico):""}${a.name}${tags}</span><span class="big">${big}</span><span class="d">${d}${left}</span></button>`;
+  return `<button class="act ${on?"on":""}" data-act="${i}" ${out&&!on||eco?'aria-disabled="true"':""}><span class="n">${ico?sico(ico):""}${a.name}${tags}</span><span class="big">${big}</span><span class="d">${ctr}${eco?`<b class="spent">${eco}</b> `:""}${d}${left}</span></button>`;
 }
 
 /* ===================== FORMAS ZOAN ===================== */
@@ -1181,7 +1206,7 @@ function formPicker(c,i){const a=c.actions[i],f=c.forms[a.form],sel=T.fsel;
 /* Inventario de munición especial (items): cada uno se dispara con su coste y CD propia, y gasta una unidad */
 function itemSec(c){
   return`<section><h2>${c.itemsName} <small>${tx("CD","DC")} ${c.itemsDc} · ${c.itemsNote}</small></h2><div class="list">${c.items.map(x=>{const n=invQ("pg:"+x.id);
-    return`<button class="act" data-item="${x.id}" ${n>0?"":'aria-disabled="true"'}><span class="n">${x.n}<span class="tag">${n}/${x.max}</span></span><span class="big">${x.sv?`${tx("CD","DC")} ${c.itemsDc}<small>${tx(`salv. ${x.sv}`,`${x.sv} save`)}${x.dmg?" · "+x.dmg:""}</small>`:x.dmg?`${x.dmg}<small>${x.ty}</small>`:""}</span><span class="d">${COST[x.c]||x.c} · ${x.sum}</span></button>`}).join("")}
+    if(hid("i:"+x.id))return"";return`<button class="act" data-item="${x.id}" ${n>0&&!econWarn(x.c)?"":'aria-disabled="true"'}><span class="n">${x.n}<span class="tag">${n}/${x.max}</span></span><span class="big">${x.sv?`${tx("CD","DC")} ${c.itemsDc}<small>${tx(`salv. ${x.sv}`,`${x.sv} save`)}${x.dmg?" · "+x.dmg:""}</small>`:x.dmg?`${x.dmg}<small>${x.ty}</small>`:""}</span><span class="d">${COST[x.c]||x.c} · ${x.sum}</span></button>`}).join("")}
     <button class="btn gold" data-do="harvest">${c.itemsFill}</button></div></section>`}
 
 /* ===================== MASCOTA ===================== */
@@ -1216,7 +1241,7 @@ function ilogAdd(t,note=""){S.ilog=[{at:Date.now(),by:admin?"DM":C().name,t,note
 const ilogRow=x=>`<p class="note">${x.at?new Date(x.at).toLocaleDateString(look.lang)+" · ":""}<b>${esc(x.by)}</b>: ${esc(x.t)}${x.note?` · <i>${esc(x.note)}</i>`:""}</p>`;
 function invSec(c){const I=S.inv,ai=w=>c.actions.findIndex(a=>a.kind==="attack"&&a.w===w);
   return`<section id="sec-inv"><details class="skills inv" ${invOpen?"open":""}><summary><h2><span>${tx("Inventario","Inventory")}</span><small>฿${fmtB(I.money)} · ${I.items.length} ${tx("objetos","items")}</small></h2></summary>
-   <div class="invit"><div><small class="tip">${tx("Dinero","Money")}</small><br><b class="money">฿${fmtB(I.money)}</b></div><div class="cnt"><button class="btn" data-do="money" data-s="1">${tx("Ganar","Earn")}</button><button class="btn" data-do="money" data-s="-1" ${I.money?"":"disabled"}>${tx("Gastar","Spend")}</button></div></div>
+   <div class="invit"><div><small class="tip">${tx("Dinero","Money")}</small><br><b class="money" data-x="money">฿${fmtB(I.money)}</b></div><div class="cnt"><button class="btn" data-do="money" data-s="1">${tx("Ganar","Earn")}</button><button class="btn" data-do="money" data-s="-1" ${I.money?"":"disabled"}>${tx("Gastar","Spend")}</button></div></div>
    ${I.items.map(x=>{const i=x.w?ai(x.w):-1,n=esc(nmOf(x));return`<div class="invit"><div><b>${n}</b> ×${x.q}${x.eq?` <span class="tag">${tx("Equipado","Equipped")}</span>`:""}${x.k&&!x.q?` <span class="tag">${tx("Agotado","Out")}</span>`:""}${x.note?`<br><small class="tip">${esc(tl(x.note))}</small>`:""}</div>
      <div class="cnt"><button class="btn" data-invq="${x.id}" data-n="-1" ${x.q?"":"disabled"} aria-label="${tx("Quitar 1:","Remove 1:")} ${n}">−</button><button class="btn" data-invq="${x.id}" data-n="1" aria-label="${tx("Sumar 1:","Add 1:")} ${n}">+</button>${i>=0?`<button class="btn" data-act="${i}" data-peek>${tx("Ataque","Attack")}</button>`:""}<button class="btn" data-inved="${x.id}">${tx("Editar","Edit")}</button></div></div>`}).join("")}
    <div class="trayact"><button class="btn" data-inved="">${tx("Agregar objeto","Add item")}</button></div>
@@ -1283,13 +1308,13 @@ function compSec(c){
     ${cp.tfName?`<button class="act ${k.tf?"on":""}" data-do="ctf" aria-pressed="${k.tf}"><span class="n">${cp.tfName}</span><span class="big">${k.tf?`<small>${tx("Transformado","Transformed")}</small>`:""}</span><span class="d">${cp.tfNote}${k.tf?tx(" · toca para volver"," · tap to turn back"):""}</span></button>`:""}
     ${cp.attacks.map(a=>{const n=a.multi?k.heads:1,out=down||!n||a.res&&S.res[a.res]<=0;
       const big=a.sv?`${tx("CD","DC")} ${cp.dc}<small>${tx(`salv. ${a.sv}`,`${a.sv} save`)} · ${a.dmg}</small>`:`${sgn(cp.atk)}<small>${a.multi?n+" × ":""}${a.dmg}${a.dmg2?" + "+a.dmg2:""}</small>`;
-      return`<button class="act" data-cact="${a.id}" ${out?'aria-disabled="true"':""}><span class="n">${a.n}</span><span class="big">${big}</span><span class="d">${[a.r,a.sum,a.res?tx(`te quedan ${S.res[a.res]}`,`${S.res[a.res]} left`):""].filter(Boolean).join(" · ")}</span></button>`}).join("")}
+      return`<button class="act" data-cact="${a.id}" ${out?'aria-disabled="true"':""}><span class="n">${a.n}</span><span class="big">${big}</span><span class="d">${(a.res?ctrHtml(S.res[a.res],(c.resources.find(r=>r.id===a.res)||{}).max,(c.resources.find(r=>r.id===a.res)||{}).rest):"")+[a.r,a.sum].filter(Boolean).join(" · ")}</span></button>`}).join("")}
     </div></section>`}
 
 /* ===================== ROL EN LA TRIPULACIÓN ===================== */
 /* role: name, passive (nombre del pasivo), desc, tools (competencias), out (nota fuera de combate). Sus acciones van en actions con role:true */
 function roleSec(c){
-  const r=c.role,acts=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.role),fa=acts.find(([a])=>a.kind==="firstaid");
+  const r=c.role,acts=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.role&&!hid("a:"+a.xid)),fa=acts.find(([a])=>a.kind==="firstaid");
   return`<section><h2><span class="h2t">${sico("role")}${tx("Rol en la tripulación","Crew Role")}</span> <small>${r.name}</small></h2><div class="box2"><p class="note"><b>${r.passive}</b> (${tx("pasivo","feature")}). ${r.desc}</p>${r.tools?`<p class="note">${tx("Competencias","Proficiencies")}: ${r.tools}.</p>`:""}</div>
     <div class="list" style="margin-top:8px">${acts.map(([a,i])=>actBtn(a,i)).join("")}</div>
     ${fa&&S.aided.length?`<p class="note" style="margin-top:8px">${tx(`Ya recibieron ${fa[0].name}: ${S.aided.map(esc).join(", ")}. Se libera con un descanso corto o largo.`,`Already received ${fa[0].name}: ${S.aided.map(esc).join(", ")}. Resets after a short or long rest.`)}</p>`:""}
@@ -1303,8 +1328,9 @@ function fruitSec(c){
     <button class="act ${sea?"on":""}" data-do="sea" aria-pressed="${sea}"><span class="n">${f.seaLabel}</span><span class="big">${sea?tx("Activa","Active"):""}</span><span class="d">${sea?f.seaNote+tx(" Toca para quitarla."," Tap to remove it."):f.seaHint}</span></button>`;
   if(w)h+=`<button class="act" data-mwatk="1" ${sea?'aria-disabled="true"':""}><span class="n">${w.name}<span class="tag">${tx("Mágica","Magic")}</span></span><span class="big">${sgn(w.hit)}<small>${w.dice}${w.mod?sgn(w.mod):""} ${w.type}</small></span><span class="d">${tx("Acción de Atacar · alcance 15 pies en tu turno","Attack action · 15-foot reach on your turn")}${w.note?" · "+w.note:""}</span></button>`;
   h+=f.free.map((a,i)=>`<button class="act" data-free="${i}" ${sea?'aria-disabled="true"':""}><span class="n">${a.name}</span><span class="big">${a.kind==="mweapon"&&w?`<small>${tx("Activa","Active")}: ${w.name}</small>`:""}</span><span class="d">${COST[a.cost]} · ${tx("sin cargas","no charges")} · ${a.note}</span></button>`).join("");
-  h+=c.actions.map((a,i)=>a.fruitAct?actBtn(a,i):"").join("");
-  h+=f.tech.map(t=>`<button class="act" data-tech="${t.id}" ${sea||ch<t.l||t.locked?'aria-disabled="true"':""}><span class="n">${t.n}<span class="tag">${t.locked?tx("Bloqueado","Locked"):t.l?`${t.l} ${t.l===1?tx("carga","charge"):tx("cargas","charges")}`:tx("Gratis","Free")}</span>${t.conc?`<span class="tag">Conc.</span>`:""}</span><span class="big">${t.hits?`${sgn(f.atk)}<small>${t.dmg} × ${t.hits}</small>`:t.sv?`${tx("CD","DC")} ${f.dc}<small>${tx(`salv. ${t.sv}`,`${t.sv} save`)}${t.dmg?" · "+t.dmg:""}</small>`:""}</span><span class="d">${spellLine(t)}${t.pw?tx(" · se puede potenciar"," · can be empowered"):""}</span></button>`).join("");
+  h+=c.actions.map((a,i)=>a.fruitAct&&!hid("a:"+a.xid)?actBtn(a,i):"").join("");
+  if(!f.noCharges){const mx=(c.resources.find(r=>r.id==="cargas")||{}).max;h=h.replace(`<div class="list">`,`<div class="list"><button class="charges" data-x="charges"><b>${tx("Cargas","Charges")} ${ch}/${mx}</b><span class="track"><span class="fill" style="width:${ch/mx*100}%"></span></span><small>${tx("descanso largo","long rest")} · ${tx("Voluntad","Willpower")} ${f.will}</small></button>`)}
+  h+=f.tech.map(t=>hid("t:"+t.id)?"":`<button class="act" data-tech="${t.id}" ${sea||ch<t.l||t.locked||t.res&&S.res[t.res]<=0||econWarn(t.c)?'aria-disabled="true"':""}><span class="n">${t.n}<span class="tag">${t.locked?tx("Bloqueado","Locked"):t.l?`${t.l} ${t.l===1?tx("carga","charge"):tx("cargas","charges")}`:tx("Gratis","Free")}</span>${t.conc?`<span class="tag">Conc.</span>`:""}</span><span class="big">${t.hits?`${sgn(f.atk)}<small>${t.dmg} × ${t.hits}</small>`:t.sv?`${tx("CD","DC")} ${f.dc}<small>${tx(`salv. ${t.sv}`,`${t.sv} save`)}${t.dmg?" · "+t.dmg:""}</small>`:""}</span><span class="d">${t.res?ctrHtml(S.res[t.res],1,"long"):""}${t.l&&!t.locked?(ch>=t.l?`<b>${tx(`Cuesta ${t.l} · tienes ${ch}`,`Costs ${t.l} · you have ${ch}`)}</b> · `:`<b class="spent">${tx(`Te faltan ${t.l-ch} ${t.l-ch===1?"carga":"cargas"}`,`You need ${t.l-ch} more ${t.l-ch===1?"charge":"charges"}`)}</b> · `):""}${spellLine(t)}${t.pw?tx(" · se puede potenciar"," · can be empowered"):""}</span></button>`).join("");
   return h+`</div><p class="note" style="margin-top:8px">${sea?f.seaNote:f.passive}</p></section>`;
 }
 
@@ -1328,7 +1354,7 @@ function spellSec(c){
     const ids=known.filter(id=>SPELLS[id].l===l).sort((a,b)=>SPELLS[a].n.localeCompare(SPELLS[b].n));
     if(!l&&!ids.length)continue;
     h+=`<div class="lvlhead"><b>${l?tx("Nivel ","Level ")+l:tx("Trucos","Cantrips")}</b>${l?`<span class="pips">${Array.from({length:k.slots[l-1]},(_,j)=>`<button class="pip ${j<S.slots[l-1]?"":"used"}" data-slot="${l-1}" data-j="${j}" aria-label="${tx("Espacio de nivel","Level")} ${l}${tx(""," spell slot")}"></button>`).join("")}</span>`:""}</div>
-      <div class="list">${ids.map(id=>{const s=SPELLS[id],can=!s.l||s.rit||S.slots.some((v,i)=>i+1>=s.l&&v>0);
+      <div class="list">${ids.map(id=>{const s=SPELLS[id],can=(!s.l||s.rit||S.slots.some((v,i)=>i+1>=s.l&&v>0))&&!econWarn(s.c);if(hid("s:"+id))return"";
         return`<button class="act" data-spell="${id}" ${can?"":'aria-disabled="true"'}><span class="n">${s.n}${hint(SPELLS_SRC[id].n.en)}${spellTags(c,id)}</span><span class="big">${spellBig(c,s)}</span><span class="d">${spellLine(s)}</span></button>`}).join("")}</div>`;
   }
   return h+`</section>`;
@@ -1347,12 +1373,13 @@ function prepView(c){
   return h+`</section>`;
 }
 /* Ficha del conjuro (ver FICHA DE DETALLE) con el selector de espacio; los trucos llevan Usar */
-function castOpen(id){
-  const c=C(),k=c.caster,s=SPELLS[id],lv=k.slots.map((_,i)=>i+1).filter(l=>l>=s.l);
+function castOpen(id,ex){
+  const c=C(),k=c.caster,s=SPELLS[id],lv=k.slots.map((_,i)=>i+1).filter(l=>l>=s.l),w=econWarn(s.c),off=ecoOff(w);
   const R=[["what",s.sum],["cost",(COST[s.c]||s.c)+(s.l?tx(` · un espacio de nivel ${s.l} o más`,` · a level ${s.l}+ spell slot`):tx(" · truco, sin espacio"," · cantrip, no slot"))+(s.rit?tx(" · o como ritual"," · or as a ritual"):"")],
     ["uses",s.l?tx("Espacios que te quedan: ","Slots left: ")+lv.map(l=>tx(`nivel ${l}: ${S.slots[l-1]} de ${k.slots[l-1]}`,`level ${l}: ${S.slots[l-1]} of ${k.slots[l-1]}`)).join(" · ")+" · "+RESTN("long"):UNL_()],
     ["range",s.r],["dur",s.d],concRow(s),...fxRows(s,k.dc,k.atk,s.dmg&&spellDice(s.dmg,s,s.l,c),s.heal&&spellDice(s.heal,s,s.l,c)+(s.hm?"+"+k.mod:""))];
-  show({title:s.n,sheet:true,warn:econWarn(s.c),html:dl(R)+(s.l?`<div class="trayact">${lv.map(l=>`<button class="btn ${l===s.l?"primary":""}" data-cast="${id}" data-lvl="${l}" ${S.slots[l-1]>0?"":"disabled"}>${tx(`Usar espacio de nivel ${l} · te quedan ${S.slots[l-1]}`,`Use a level ${l} slot · ${S.slots[l-1]} left`)}${techRecipe(c,s,l)}</button>`).join("")}${s.rit?`<button class="btn" data-cast="${id}" data-lvl="r">${tx("Como ritual (sin espacio, +10 minutos)","As a ritual (no slot, +10 minutes)")}</button>`:""}</div>`:useBtn(`data-spell="${id}"`,false))});
+  if(ex)return explainView(s.n,"spell:"+id,s.c,R,()=>castOpen(id),spellInter(c,s));
+  show({title:s.n,sheet:true,warn:w,html:dl(R)+(s.l?`<div class="trayact">${lv.map(l=>`<button class="btn ${l===s.l?"primary":""}" data-cast="${id}" data-lvl="${l}" ${S.slots[l-1]>0&&!off?"":"disabled"}>${tx(`Usar espacio de nivel ${l} · te quedan ${S.slots[l-1]}`,`Use a level ${l} slot · ${S.slots[l-1]} left`)}${techRecipe(c,s,l)}</button>`).join("")}${s.rit?`<button class="btn" data-cast="${id}" data-lvl="r">${tx("Como ritual (sin espacio, +10 minutos)","As a ritual (no slot, +10 minutes)")}</button>`:""}</div>`+forceLink(w):useEco(`data-spell="${id}"`,false,w))+sheetFoot("spell",id)});T.reopen=()=>castOpen(id);
 }
 /* opt.rit: ritual sin espacio · opt.rep: repetir el efecto de la concentración activa (sin espacio) */
 function castSpell(id,lvl,opt={}){const k=C().caster,s=SPELLS[id];
@@ -1360,8 +1387,9 @@ function castSpell(id,lvl,opt={}){const k=C().caster,s=SPELLS[id];
     pay:()=>{if(s.l&&!opt.rit)S.slots[lvl-1]--}},opt)}
 /* Técnica de fruta: cuesta cargas = su nivel; n cargas > nivel la potencia. opt.pick: opción elegida de una técnica con opciones */
 function useTech(id,n,opt={}){const c=C(),f=c.fruit,t=f.tech.find(x=>x.id===id);
-  const src={dc:f.dc,atk:f.atk,mod:f.mod,atkL:tx("Ataque de fruta","Fruit attack"),storm:false,unit:tx("cargas","charges"),upTxt:tx(`Potenciada con ${n} cargas.`,`Empowered with ${n} charges.`),pay:()=>{S.res.cargas-=n}};
+  const src={dc:f.dc,atk:f.atk,mod:f.mod,atkL:tx("Ataque de fruta","Fruit attack"),storm:false,unit:tx("cargas","charges"),upTxt:tx(`Potenciada con ${n} cargas.`,`Empowered with ${n} charges.`),pay:()=>{S.res.cargas-=n;if(t.res)S.res[t.res]--}};
   if(opt.free){src.pay=()=>{};opt={...opt,noEcon:true}} // gratis: sin cargas ni acción (Combos gravitatorios)
+  if(t.res&&S.res[t.res]<=0&&opt.pick==null&&!opt.free)return show({title:t.n,warn:tx("Ya la usaste desde el último descanso largo.","You already used it since your last long rest.")});
   if(opt.pick!=null){const o=t.opts[opt.pick];return useFx("f:"+id,{...o,l:t.l},n,src,{rep:true,noEcon:true,title:`${t.n} · ${o.n}`})}
   useFx("f:"+id,opt.dmg?{...t,dmg:opt.dmg}:t,n,src,opt)}
 const concOf=(c,id)=>id.startsWith("f:")?c.fruit.tech.find(t=>"f:"+t.id===id):SPELLS[id];
@@ -1423,13 +1451,14 @@ function useFx(id,s,lvl,src,opt={}){
 function techRecipe(c,t,n){const up=Math.max(0,n-t.l),h=t.hits?t.hits+(t.uh||0)*up:0,d=t.dmg?recipe(spellDice(t.dmg,t,n,c)):t.heal?recipe(spellDice(t.heal,t,n,c)+(t.hm?"+"+c.caster.mod:"")):"";
   return h?tx(` · ${h} ataques de ${d}`,` · ${h} attacks of ${d}`):d?` · ${d}`:""}
 /* Ficha de la técnica con el selector de cargas: el nivel de la técnica, o más si se puede potenciar; las gratis sin potenciar llevan Usar */
-function techOpen(id){
-  const c=C(),f=c.fruit,t=f.tech.find(x=>x.id===id),ch=S.res.cargas,top=t.pw?Math.min(t.maxN??99,Math.max(t.l,ch)):t.l,off=S.sea||t.locked;
+function techOpen(id,ex){
+  const c=C(),f=c.fruit,t=f.tech.find(x=>x.id===id),ch=S.res.cargas,top=t.pw?Math.min(t.maxN??99,Math.max(t.l,ch)):t.l,w=econWarn(t.c),used=t.res&&S.res[t.res]<=0,off=S.sea||t.locked||used||ecoOff(w);
   const ns=Array.from({length:Math.min(top-t.l+1,10)},(_,i)=>t.l+i),mx=(c.resources.find(r=>r.id==="cargas")||{}).max;
   const R=[["what",t.sum],["cost",(COST[t.c]||t.c)+(t.l?tx(` · ${t.l} ${t.l===1?"carga":"cargas"}`,` · ${t.l} ${t.l===1?"charge":"charges"}`):tx(" · sin cargas"," · no charges"))+(t.pw?tx(" · se puede potenciar con cargas extra"," · can be empowered with extra charges"):"")],
-    ["uses",t.l||t.pw?usesTxt(ch,mx,"long")+tx(" (cargas de fruta)"," (fruit charges)"):UNL_()],["range",t.r],["dur",t.d],concRow(t),...fxRows(t,f.dc,f.atk,t.dmg&&spellDice(t.dmg,t,t.l,c),"")];
-  show({title:t.n,sheet:true,warn:S.sea?f.seaNote:t.locked?tx("Todavía no está desbloqueada.","Not unlocked yet."):econWarn(t.c),html:dl(R)+(!t.l&&!t.pw?useBtn(`data-tech="${id}"`,off)
-    :`<div class="trayact">${ns.map(n=>`<button class="btn ${n===t.l?"primary":""}" data-techn="${id}" data-n="${n}" ${n<=ch&&!off?"":"disabled"}>${n?tx(`Usar ${n} ${n===1?"carga":"cargas"}`,`Use ${n} ${n===1?"charge":"charges"}`):tx("Usar gratis","Use for free")}${n>t.l?tx(" (potenciada)"," (empowered)"):""}${techRecipe(c,t,n)}</button>`).join("")}</div>`)});
+    ["uses",(t.l||t.pw?usesTxt(ch,mx,"long")+tx(" (cargas de fruta)"," (fruit charges)"):UNL_())+(t.res?" · "+tx(`además, ${S.res[t.res]} de 1 uso por descanso largo`,`also ${S.res[t.res]} of 1 use per long rest`):"")],["range",t.r],["dur",t.d],concRow(t),...fxRows(t,f.dc,f.atk,t.dmg&&spellDice(t.dmg,t,t.l,c),"")];
+  if(ex)return explainView(t.n,`${cur}:tech:${id}`,t.c,R,()=>techOpen(id),techInter(c,t));
+  show({title:t.n,sheet:true,warn:S.sea?f.seaNote:t.locked?tx("Todavía no está desbloqueada.","Not unlocked yet."):used?tx("Ya la usaste desde el último descanso largo.","You already used it since your last long rest."):w,html:dl(R)+(t.res?pipsFix(S.res[t.res],1,`data-res="${t.res}"`):"")+(!t.l&&!t.pw?useBtn(`data-tech="${id}"`,off)
+    :`<div class="trayact">${ns.map(n=>`<button class="btn ${n===t.l?"primary":""}" data-techn="${id}" data-n="${n}" ${n<=ch&&!off?"":"disabled"}>${n?tx(`Usar ${n} ${n===1?"carga":"cargas"}`,`Use ${n} ${n===1?"charge":"charges"}`):tx("Usar gratis","Use for free")}${n>t.l?tx(" (potenciada)"," (empowered)"):""}${techRecipe(c,t,n)}</button>`).join("")}</div>`)+(S.sea||t.locked||used?"":forceLink(w))+sheetFoot("tech",id)});T.reopen=()=>techOpen(id);
 }
 
 /* ===================== BANDEJA DE RESULTADO ===================== */
@@ -1441,7 +1470,7 @@ function drawTray(){
   let acts="";
   if(t.d20!=null&&S.dream>0&&!t.dreamUsed&&!t.ally)acts+=`<button class="btn gold" data-do="dreamadd">${tx(`Punto de sueño (+1d6) · te quedan ${S.dream}`,`Dream point (+1d6) · ${S.dream} left`)}</button>`;
   /* Tras cualquier d20: volver a tirar (Predecir el resultado, reacción) o reemplazarlo por un presagio (uno por turno) */
-  (c.rerolls||[]).forEach((x,i)=>{if(t.d20!=null&&known(x)&&!t.rerolled&&(!x.atk||t.atkRoll)){const n=S.res[x.res];acts+=`<button class="btn" data-do="reroll" data-i="${i}" ${n>0?"":"disabled"}>${x.name}${x.when?` (${x.when})`:""}: ${tx(`volver a tirar · te quedan ${n}`,`reroll · ${n} left`)}</button>`}});
+  (c.rerolls||[]).forEach((x,i)=>{if(t.d20!=null&&known(x)&&!t.rerolled&&(!x.atk||t.atkRoll)){const n=S.res[x.res];acts+=`<button class="btn" data-do="reroll" data-i="${i}" ${n>0&&!(x.react&&S.turn.r<=0)?"":"disabled"}>${x.name}${x.when?` (${x.when})`:""}: ${tx(`volver a tirar · te quedan ${n}`,`reroll · ${n} left`)}</button>`}});
   /* Ataque furtivo (una vez por turno), Escenario de batalla (una vez por turno, armas sutiles) y Waltzing Flow (acción adicional tras un ataque cuerpo a cuerpo) */
   if(t.sneak&&c.sneak&&!t.sneakUsed){const ok=!S.turn.sneak;acts+=`<button class="btn primary" data-do="sneak" ${ok?"":"disabled"}>${tx("Si impactó","If it hit")}: +${c.sneak.dice} ${c.sneak.name}${ok?"":USED_()}</button>`}
   if(t.stage&&c.stage&&!S.turn.stage)acts+=`<button class="btn" data-do="stage" data-m="dmg">${c.stage.name}: +${c.stage.dmg} ${tx("de daño","damage")}</button><button class="btn" data-do="stage" data-m="ac">${c.stage.name}: +${c.stage.ac} ${tx("CA","AC")}</button>`;
@@ -1484,7 +1513,13 @@ const advW=()=>mode==="ventaja"?tx(" con ventaja"," with advantage"):mode==="des
 const atkRoll=(hit,cmin)=>tx(`Tira 1d20 ${sgnS(hit)}`,`Roll 1d20 ${sgnS(hit)}`)+advW()+(cmin?` · ${critTxt(cmin)}`:"");
 const svRoll=(dc,sv)=>tx(`Los enemigos tiran salvación de ${sv} contra CD ${dc}`,`Enemies make a ${sv} saving throw against DC ${dc}`);
 const concRow=s=>s.conc?["conc",tx("Sí: si ya te concentras en otra cosa, termina","Yes: if you're already concentrating on something, it ends")]:null;
-const econWarn=cost=>cost==="accion"&&S.turn.a<=0&&S.turn.atk<=0?tx("Ya usaste tu acción este turno.","You already used your action this turn."):cost==="adicional"&&S.turn.b<=0?tx("Ya usaste tu acción adicional.","You already used your bonus action."):cost==="reaccion"&&S.turn.r<=0?tx("Ya usaste tu reacción.","You already used your reaction."):"";
+const econWarn=cost=>cost==="accion"&&S.turn.a<=0&&S.turn.atk<=0?tx("Ya usaste tu acción este turno.","You already used your action this turn."):cost==="adicional"&&S.turn.b<=0?tx("Ya usaste tu acción adicional este turno.","You already used your bonus action this turn."):cost==="reaccion"&&S.turn.r<=0?tx("Ya usaste tu reacción este turno.","You already used your reaction this turn."):"";
+const SRW_=()=>tx("Ya usaste tus 2 reacciones especiales esta ronda.","You already used your 2 special reactions this round.");
+/* Usar apagado si ya gastaste esa parte del turno; "Usar de todas formas" (excepción del DM) vuelve a abrir la ficha con FORCE */
+let FORCE=false;
+const ecoOff=w=>!!w&&!FORCE;
+const forceLink=w=>ecoOff(w)?`<button class="linkbtn" data-do="force">${tx("Usar de todas formas","Use it anyway")}</button>`:"";
+const useEco=(attr,off,w,l)=>useBtn(attr,off||ecoOff(w),l)+(off?"":forceLink(w));
 /* Tirada y dados de un conjuro, técnica, Pop Green o ataque de la mascota (mismos campos que conjuros.js) */
 function fxRows(e,dc,atk,dm,hl){const R=[];
   if(e.hits)R.push(["roll",tx(`${e.hits} ataques: cada uno 1d20 ${sgnS(atk)}`,`${e.hits} attacks: each 1d20 ${sgnS(atk)}`)+advW()]);else if(e.atk)R.push(["roll",atkRoll(atk,20)]);
@@ -1509,32 +1544,147 @@ function actRows(c,a){const r=a.res&&c.resources.find(x=>x.id===a.res),w=(a.kind
   else if(a.kind==="haki")R.push(["fx",tx(`+${c.hardening.bonus} al ataque y al daño durante ${c.hardening.turns} turnos`,`+${c.hardening.bonus} to attack and damage for ${c.hardening.turns} turns`)]);
   else if(a.kind==="frenzy")R.push(["fx",c.frenzy.bar]);else if(a.kind==="transform")R.push(["fx",c.transform.bar]);
   return R}
-function openSheet(k,v){const c=C();let title="",R=[],warn="",extra="",btn="";
-  if(k==="spell")return castOpen(v);
-  if(k==="tech")return techOpen(v);
-  if(k==="act"){const a=c.actions[+v],{out,on}=actState(a);title=a.name;R=actRows(c,a);warn=on?"":econWarn(a.cost);
-    btn=useBtn(`data-act="${v}"`,out&&!on,on?tx("Terminar","End"):USE_())}
+function openSheet(k,v,ex){const c=C();let title="",R=[],warn="",extra="",btn="",key="",cost="",ix=[];
+  if(k==="spell")return castOpen(v,ex);
+  if(k==="tech")return techOpen(v,ex);
+  if(k==="act"){const a=c.actions[+v],{out,on,eco}=actState(a);title=a.name;R=actRows(c,a);warn=eco||"";key=xKey(a);cost=a.cost;ix=actInter(c,a);
+    if(a.res||a.once)extra=resFix(c,a);
+    btn=a.kind==="info"?"":useEco(`data-act="${v}"`,out&&!on,eco,on?tx("Terminar","End"):USE_())}
   else if(k==="sr"){const s=SPECIALS.find(x=>x.id===v);title=s.name;
     R=[["what",s.note],["cost",tx(`Reacción especial (aparte de tu reacción) · te quedan ${S.turn.sr} de 2 esta ronda`,`Special reaction (separate from your reaction) · ${S.turn.sr} of 2 left this round`)],["uses",usesTxt(S.sr[v],c.prof,"short")]];
     if(s.kind==="attack"){const w=c.weapons[s.w],st=wStats(w);R.push(["roll",atkRoll(st.hit,c.critMin)],["dmg",`${recipe(w.dice+"+"+st.mod)} ${w.type}`])}
     if(s.kind==="reduce")R.push(["fx",tx(`Reduces el daño en ${recipe("1d10+"+c.level)}`,`You reduce the damage by ${recipe("1d10+"+c.level)}`)]);
     if(s.kind==="flash")R.push(["roll",tx(`Salvación de DES: tira 1d20 ${sgnS(sv(c,"DES"))}`,`DEX saving throw: roll 1d20 ${sgnS(sv(c,"DES"))}`)+advW()]);
-    if(S.turn.sr<=0)warn=tx("Ya usaste tus 2 reacciones especiales esta ronda.","You already used your 2 special reactions this round.");
-    btn=useBtn(`data-sr="${v}"`,S.sr[v]<=0)}
-  else if(k==="item"){const x=c.items.find(y=>y.id===v),n=invQ("pg:"+v);title=x.n;warn=econWarn(x.c);
+    key="sr:"+v;cost="especial";const w=S.turn.sr<=0&&SRW_();if(w)warn=w;extra=pipsFix(S.sr[v],c.prof,`data-srfix="${v}"`);
+    btn=useEco(`data-sr="${v}"`,S.sr[v]<=0,w)}
+  else if(k==="item"){const x=c.items.find(y=>y.id===v),n=invQ("pg:"+v);title=x.n;warn=econWarn(x.c);key="pg:"+v;cost=x.c;
     R=[["what",x.sum],["cost",COST[x.c]||x.c],["uses",tx(`Te quedan ${n} en el inventario · cosechar los lleva a ${x.max}`,`You have ${n} left in your inventory · harvesting brings them to ${x.max}`)],...fxRows(x,c.itemsDc,0,x.dmg,"")];
-    btn=useBtn(`data-item="${v}"`,n<=0)}
+    btn=useEco(`data-item="${v}"`,n<=0,warn)}
   else if(k==="cact"){const cp=c.companion,a=cp.attacks.find(y=>y.id===v),kk=S.comp,n=a.multi?kk.heads:0,r=a.res&&c.resources.find(y=>y.id===a.res);title=`${cp.name}: ${a.n}`;
     R=[["what",a.sum],["cost",tx(`En el turno de ${cp.name}: no gasta tus acciones`,`On ${cp.name}'s turn: doesn't use your actions`)],["uses",r?usesTxt(S.res[a.res],r.max,r.rest):UNL_()],["range",a.r],...fxRows({...a,hits:n,atk:a.multi?0:a.atk},cp.dc,cp.atk,a.dmg,"")];
-    if(kk.hp<=0)warn=tx(`${cp.name} está a 0 PV.`,`${cp.name} is at 0 HP.`);
+    key="comp:"+v;if(r)extra=pipsFix(S.res[a.res],r.max,`data-res="${a.res}"`,true);if(kk.hp<=0)warn=tx(`${cp.name} está a 0 PV.`,`${cp.name} is at 0 HP.`);
     btn=useBtn(`data-cact="${v}"`,kk.hp<=0||a.multi&&!n||a.res&&S.res[a.res]<=0)}
-  else if(k==="mwatk"){const w=c.fruit.weapons[S.mw];title=w.name;warn=econWarn("accion");
-    R=[["what",c.fruit.mwNote],["cost",tx("Acción de Atacar","Attack action")],["uses",UNL_()],["roll",atkRoll(w.hit,c.critMin)],["dmg",`${recipe(w.dice+"+"+w.mod)} ${w.type}`]];btn=useBtn(`data-mwatk="1"`,S.sea)}
-  else if(k==="free"){const a=c.fruit.free[+v];title=a.name;warn=econWarn(a.cost);R=[["what",a.note],["cost",COST[a.cost]],["uses",tx("Sin cargas, sin límite","No charges, unlimited")]];
+  else if(k==="mwatk"){const w=c.fruit.weapons[S.mw];title=w.name;warn=econWarn("accion");key=cur+":mw";cost="accion";
+    R=[["what",c.fruit.mwNote],["cost",tx("Acción de Atacar","Attack action")],["uses",UNL_()],["roll",atkRoll(w.hit,c.critMin)],["dmg",`${recipe(w.dice+"+"+w.mod)} ${w.type}`]];btn=useEco(`data-mwatk="1"`,S.sea,warn)}
+  else if(k==="free"){const a=c.fruit.free[+v];title=a.name;warn=econWarn(a.cost);key=`${cur}:free:${v}`;cost=a.cost;R=[["what",a.note],["cost",COST[a.cost]],["uses",tx("Sin cargas, sin límite","No charges, unlimited")]];
     if(a.kind==="mweapon")extra=`<div class="trayact">${Object.entries(c.fruit.weapons).map(([wk,w])=>`<button class="btn ${S.mw===wk?"primary":""}" data-mw="${wk}" ${S.sea?"disabled":""}>${w.name} · ${sgn(w.hit)} · ${w.dice}${w.mod?sgn(w.mod):""}</button>`).join("")}${S.mw?`<button class="btn" data-mw="none">${tx("Desactivar","Dismiss")}</button>`:""}</div>`;
-    else btn=useBtn(`data-free="${v}"`,S.sea)}
+    else btn=useEco(`data-free="${v}"`,S.sea,warn)}
   if((k==="mwatk"||k==="free")&&S.sea)warn=c.fruit.seaNote;
-  show({title,warn,sheet:true,html:dl(R)+extra+btn})}
+  if(ex)return explainView(title,key,cost,R,()=>openSheet(k,v),ix);
+  show({title,warn,sheet:true,html:dl(R)+extra+btn+sheetFoot(k,v)});T.reopen=()=>openSheet(k,v)}
+/* ===================== CONTADORES, OCULTAS Y EXPLICACIONES ===================== */
+/* Cada tarjeta con usos limitados muestra su contador (círculos o "n/máx") y cuándo se recupera; en su ficha se corrige a mano */
+const hid=k=>S.hid.includes(k);
+const RESTS=r=>({long:tx("desc. largo","long rest"),short:tx("desc. corto","short rest"),none:tx("a mano","by hand")}[r]||"");
+const ctrHtml=(n,max,rest)=>max?`<span class="ctr" aria-label="${tx(`${n} de ${max}`,`${n} of ${max}`)}">${max<=6?Array.from({length:max},(_,j)=>`<i class="${j<n?"":"u"}"></i>`).join(""):`${n}/${max}`}<small>${max<=6?`${n}/${max} · `:""}${RESTS(rest)}</small></span>`:"";
+const resOf=(c,a)=>a.res||(a.kind==="frenzy"&&c.frenzy&&c.frenzy.res)||(a.kind==="transform"&&c.transform&&c.transform.res)||"";
+function actCtr(c,a){const id=resOf(c,a),r=id&&c.resources.find(x=>x.id===id);
+  if(r)return ctrHtml(S.res[id],r.max,r.rest);
+  if(a.once)return ctrHtml(S.used[a.once]?0:1,1,a.long?"long":"short");return""}
+const pipsFix=(n,max,attr,cnt)=>`<div class="resrow" style="margin:4px 0 8px"><span>${tx("Corregir","Correct")}<br><small style="font-weight:400">${cnt?tx("con −1 y +1","with −1 and +1"):tx("toca los círculos","tap the circles")}</small></span>${cnt
+  ?`<div class="cnt"><b>${n}<small>/${max}</small></b><button class="btn" ${attr.replace("data-res","data-cnt")} data-n="-1" aria-label="${tx("Quitar 1","Remove 1")}">−1</button><button class="btn" ${attr.replace("data-res","data-cnt")} data-n="1" aria-label="${tx("Sumar 1","Add 1")}">+1</button></div>`
+  :`<div class="pips">${Array.from({length:max},(_,j)=>`<button class="pip ${j<n?"":"used"}" ${attr} data-j="${j}" aria-label="${tx(`${j+1} de ${max}`,`${j+1} of ${max}`)}"></button>`).join("")}</div>`}</div>`;
+function resFix(c,a){const id=resOf(c,a),r=id&&c.resources.find(x=>x.id===id);
+  if(r)return pipsFix(S.res[id],r.max,`data-res="${id}"`,r.counter||r.max>8)+(r.dawn?`<div class="trayact"><button class="btn" data-dawn="${id}">${tx("Amanecer","Dawn")} +${r.dawn}</button></div>`:"");
+  if(a.once)return pipsFix(S.used[a.once]?0:1,1,`data-usedfix="${a.once}"`);return""}
+/* Pie de cada ficha: explicación detallada y Ocultar */
+function sheetFoot(k,v){const c=C(),hk=k==="act"?"a:"+c.actions[+v].xid:k==="spell"?"s:"+v:k==="tech"?"t:"+v:k==="item"?"i:"+v:k==="sr"?"r:"+v:"";
+  return`<div class="trayact"><button class="btn" data-do="explain" data-k="${k}" data-v="${v}">${tx("Explicación detallada","Detailed explanation")}</button>${hk?`<button class="btn" data-do="hide" data-h="${hk}">${tx("Ocultar","Hide")}</button>`:""}</div>`}
+function hiddenSec(c){const L=S.hid.map(k=>{const t=k[0],id=k.slice(2);let n="";
+    if(t==="a"){const a=c.actions.find(x=>x.xid===id);n=a&&a.name}else if(t==="s")n=SPELLS[id]&&SPELLS[id].n;
+    else if(t==="t")n=c.fruit&&(c.fruit.tech.find(x=>x.id===id)||{}).n;else if(t==="i")n=c.items&&(c.items.find(x=>x.id===id)||{}).n;else if(t==="r")n=(SPECIALS.find(x=>x.id===id)||{}).name;
+    return n?`<div class="invit"><div>${n}</div><div class="cnt"><button class="btn" data-unhide="${esc(k)}">${tx("Mostrar","Show")}</button></div></div>`:""}).join("");
+  return L?`<section><details class="skills hidsec" ${hidOpen?"open":""}><summary><h2><span>${tx("Ocultas","Hidden")}</span><small>${tx("las que no usas","the ones you don't use")}</small></h2></summary>${L}</details></section>`:""}
+let hidOpen=false;
+/* Explicación detallada: texto propio (explicaciones.js) + cómo se usa + interacciones con el resto del personaje + los números del momento */
+const xKey=a=>a.ex||(a.fury?"fury:"+a.fury:`${cur}:${a.nes}`);
+const howTxt=cost=>({accion:tx("En tu turno, con tu acción.","On your turn, with your action."),adicional:tx("En tu turno, con tu acción adicional (tienes una por turno).","On your turn, with your bonus action (you have one per turn)."),
+  reaccion:tx("Es una reacción: la usas cuando pasa lo que la activa, aunque no sea tu turno. Tienes una por ronda.","It's a reaction: you use it when its trigger happens, even outside your turn. You have one per round."),
+  gratis:tx("No gasta ninguna acción.","It doesn't use any action."),fuera:tx("Fuera de combate.","Out of combat."),
+  especial:tx("Es una de tus 2 reacciones especiales de la ronda; no gasta tu reacción normal.","It's one of your 2 special reactions per round; it doesn't use your normal reaction.")}[cost]||(cost?tx(`Tarda ${unitT(cost)} en usarse.`,`It takes ${unitT(cost)} to use.`):""));
+function explainView(title,key,cost,R,back,ix=[]){const x=EXPL[key]||EXPL["*:"+key.split(":").slice(1).join(":")],how=howTxt(cost);
+  const P=x?tl(x).split("\n\n").map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join(""):"";
+  show({title,sheet:true,html:`<div class="expl">${P}${how?`<p><b>${tx("Cómo se usa","How to use it")}:</b> ${how}</p>`:""}${ix.length?`<p><b>${tx("Con el resto de tu personaje","With the rest of your character")}:</b></p><ul>${ix.map(i=>`<li>${i}</li>`).join("")}</ul>`:""}</div>
+    ${R.length?`<p class="tip">${tx("Ahora mismo","Right now")}</p>${dl(R.map(r=>r&&[r[0],r[1]==null?"":String(r[1])]))}`:""}${back?`<div class="trayact"><button class="btn primary" data-do="back">${tx("Ver la ficha para usarla","Open the sheet to use it")}</button></div>`:""}`});T.back=back}
+const DREAM_=()=>tx("Tras la tirada puedes gastar un punto de sueño: +1d6.","After the roll you can spend a Dream Point: +1d6.");
+function actInter(c,a){const L=[],w=(a.kind==="attack"||a.kind==="deflect")&&c.weapons[a.w];
+  if(a.kind==="attack"&&a.cost==="accion"&&!a.cast&&apa(c)>1)L.push(tx(`Con la acción de Atacar haces ${apa(c)} golpes; cada uno es una tirada aparte y puedes repartirlos entre objetivos.`,`With the Attack action you make ${apa(c)} attacks; each is a separate roll and you can split them between targets.`));
+  if(a.offhand)L.push(a.req||tx("Requiere haber usado la acción de Atacar este turno.","Requires having taken the Attack action this turn."));
+  if(w){if(w.bruiser&&c.frenzy)L.push(tx(`En ${c.frenzy.name}: +${c.frenzy.dmg} al daño.`,`In ${c.frenzy.name}: +${c.frenzy.dmg} damage.`));
+    if(w.bruiser&&c.frenzy&&c.frenzy.muscle)L.push(c.frenzy.atkTxt+tx(" (postura de ataque)."," (attack stance)."));
+    if(c.hardening)L.push(tx(`Con Endurecimiento (Haki) activo: +${c.hardening.bonus} al ataque y al daño, y cuenta como mágica.`,`With Weapon Hardening (Haki) active: +${c.hardening.bonus} to attack and damage, and it counts as magical.`));
+    if(c.critMin<20)L.push(tx(`Haces crítico con ${c.critMin}–20.`,`You score a critical on ${c.critMin}–20.`));
+    if(c.blackArmory&&w.melee)L.push(tx("Crítico cuerpo a cuerpo: Armería negra suma 2d6 y todo el daño pasa a fuerza; el objetivo recibe la mitad de curación 1 minuto.","Melee critical: Blackened Armory adds 2d6 and all the damage becomes force; the target receives half healing for 1 minute."));
+    if(c.execute&&w.melee)L.push(tx(`${c.execute.name}: una vez por turno al impactar, +${c.execute.dice} de trueno (${c.execute.note}).`,`${c.execute.name}: once per turn on a hit, +${c.execute.dice} thunder (${c.execute.note}).`));
+    if(w.pulse&&c.pulse)L.push(tx(`Cada impacto puede desatar ${c.pulse.name} gratis (${c.pulse.dmg}), hasta ${c.pulse.max} por turno.`,`Each hit can unleash a free ${c.pulse.name} (${c.pulse.dmg}), up to ${c.pulse.max} per turn.`));
+    if(w.dragon&&c.dragon)L.push(tx(`${c.dragon.name}: al impactar eliges contundente, fuego, frío o rayo; los tres últimos suman +${c.dragon.bonus}.`,`${c.dragon.name}: on a hit you choose bludgeoning, fire, cold or lightning; the last three add +${c.dragon.bonus}.`));
+    if(w.sneak&&c.sneak)L.push(`${c.sneak.name}: +${c.sneak.dice}, ${tx("una vez por turno","once per turn")} · ${c.sneak.cond}`);
+    if(w.finesse&&c.stage)L.push(tx(`${c.stage.name}: una vez por turno, +${c.stage.dmg} de daño o +${c.stage.ac} a la CA.`,`${c.stage.name}: once per turn, +${c.stage.dmg} damage or +${c.stage.ac} AC.`));
+    if(w.still)L.push(tx(`Si no te moviste: +${w.still.hit} al ataque y +${w.still.dmg} en el primer disparo.`,`If you haven't moved: +${w.still.hit} to attack and +${w.still.dmg} on the first shot.`));
+    if(c.focusHit)L.push(tx("Golpe enfocado (Haki): una vez por turno los dados suben un tamaño.","Focused Hit (Haki): once per turn the dice go up one size."));
+    if(c.storm&&TS.test(w.type))L.push(tx(`${c.stormName}: +${c.storm}, una vez por turno.`,`${c.stormName}: +${c.storm}, once per turn.`));
+    if(c.transform)L.push(tx(`En ${c.transform.name}: ventaja y +${c.transform.hitDmg} de ${dmgT(c.transform.hitType)}.`,`In ${c.transform.name}: advantage and +${c.transform.hitDmg} ${dmgT(c.transform.hitType)}.`));
+    if(w.ammo)L.push(tx(`Gasta 1 de ${invName(w.ammo)} (te quedan ${invQ(w.ammo)}).`,`Uses 1 ${invName(w.ammo)} (${invQ(w.ammo)} left).`));
+    for(const x of c.rerolls||[])if(known(x))L.push(`${x.name}${x.when?` (${x.when})`:""}: ${tx("puedes volver a tirar el d20","you can reroll the d20")}.`);
+    L.push(DREAM_())}
+  if(a.kind==="steel")L.push(DREAM_());
+  if(a.onHit)L.push(tx("Aparece en la lista de respuestas al anotar daño con el botón Daño: ves el efecto antes de confirmar.","It shows up in the list of responses when you enter damage with the Damage button: you see the effect before confirming."));
+  if(a.trigger)L.push(tx("La app te la ofrece sola cuando se cumple su condición al recibir daño.","The app offers it on its own when its condition is met after taking damage."));
+  if(a.only==="frenzy"&&c.frenzy)L.push(tx(`Solo durante ${c.frenzy.name}.`,`Only during ${c.frenzy.name}.`));
+  if(a.res==="furia")L.push(tx("Gasta 1 punto de furia.","Uses 1 fury point."));
+  return L}
+function spellInter(c,s){const L=[];
+  if(s.l&&s.up)L.push(tx(`Con un espacio de nivel más alto: +${s.up} por cada nivel por encima del ${s.l}.`,`With a higher-level slot: +${s.up} for each level above ${s.l}.`));
+  if(!s.l&&s.dmg)L.push(tx("Truco: el daño sube en los niveles 5, 11 y 17.","Cantrip: the damage goes up at levels 5, 11 and 17."));
+  if(s.conc&&c.fruit)L.push(tx("Comparte la concentración con tus técnicas de fruta.","It shares concentration with your fruit techniques."));
+  if(c.storm&&TS.test(s.ty||""))L.push(tx(`${c.stormName}: +${c.storm}, una vez por turno.`,`${c.stormName}: +${c.storm}, once per turn.`));
+  if(c.wrath&&TS.test(s.ty||""))L.push(tx(`${c.wrath.name}: puedes hacer el daño máximo gastando 1 Canalizar divinidad.`,`${c.wrath.name}: you can deal maximum damage by spending 1 Channel Divinity.`));
+  if(s.atk)L.push(DREAM_());if(s.rit)L.push(tx("Ritual: sin espacio si tardas 10 minutos más.","Ritual: no slot if you take 10 extra minutes."));return L}
+function techInter(c,t){const f=c.fruit,L=[];
+  if(t.pw)L.push(t.uh?tx(`Potenciar: cada carga extra suma ${t.uh} ataque más.`,`Empower: each extra charge adds ${t.uh} more attack.`):t.up?tx(`Potenciar: cada carga extra suma +${t.up}${t.maxN?`, hasta ${t.maxN} cargas`:""}.`,`Empower: each extra charge adds +${t.up}${t.maxN?`, up to ${t.maxN} charges`:""}.`):tx("Se puede potenciar con cargas extra.","It can be empowered with extra charges."));
+  if(t.conc)L.push(tx("Concentración: comparte la regla con tus conjuros y técnicas (solo una a la vez).","Concentration: it shares the rule with your spells and techniques (only one at a time)."));
+  if(t.res)L.push(tx("Además de las cargas, solo una vez por descanso largo.","Besides the charges, only once per long rest."));
+  if(t.id===(c.pulse&&c.pulse.tech))L.push(tx(`Gratis (${c.pulse.dmg}) al impactar con tu arma, hasta ${c.pulse.max} por turno.`,`Free (${c.pulse.dmg}) when you hit with your weapon, up to ${c.pulse.max} per turn.`));
+  if(f.seaNote)L.push(f.seaNote);if(t.atk||t.hits)L.push(DREAM_());return L}
+/* Estadísticas, salvaciones, habilidades y estados */
+function explainStat(id){const c=C(),[t,x]=id.split(":");let title="",R=[],key="stat:"+t;
+  if(t==="ac"){title=tx("Clase de Armadura","Armor Class");R=[[tx("Ahora","Now"),acOf(c)]]}
+  else if(t==="init"){title=INIT_();R=[[tx("Bono","Bonus"),sgn(ini(c))]]}
+  else if(t==="hp"){title=tx("Puntos de golpe","Hit Points");R=[[tx("Ahora","Now"),`${S.hp} / ${mhp(c)}`],[tx("PV temporales","Temporary HP"),S.temp]]}
+  else if(t==="dream"){title=tx("Puntos de sueño","Dream Points");R=[[tx("Tienes","You have"),`${S.dream} / ${c.level}`]]}
+  else if(t==="prestige"){title=tx("Puntos de prestigio","Prestige Points");R=[[tx("Tienes","You have"),prestOf(cur)]]}
+  else if(t==="charges"){const r=c.resources.find(y=>y.id==="cargas")||{max:0};title=tx("Cargas de fruta y Voluntad","Fruit charges and Willpower");
+    R=[[tx("Cargas","Charges"),`${S.res.cargas} / ${r.max}`],[tx("Voluntad","Willpower"),c.fruit.will],[tx("CD de fruta","Fruit DC"),c.fruit.dc],[tx("Ataque de fruta","Fruit attack"),sgn(c.fruit.atk)]];
+    return explainView(title,key,"",R,null,[tl(EXPL["stat:will"])])}
+  else if(t==="econ"){title=tx("Economía del turno","Turn economy");R=[[tx("Acción","Action"),S.turn.a],[tx("Acción adicional","Bonus action"),S.turn.b],[tx("Reacción","Reaction"),S.turn.r]]}
+  else if(t==="special"){title=tx("Reacciones especiales","Special reactions");R=[[tx("Esta ronda","This round"),`${S.turn.sr} / 2`]]}
+  else if(t==="money"){title=tx("Dinero","Money");R=[[tx("Tienes","You have"),"฿"+fmtB(S.inv.money)]]}
+  else if(t==="slots"){title=tx("Espacios de conjuro","Spell slots");R=c.caster.slots.map((n,i)=>[tx(`Nivel ${i+1}`,`Level ${i+1}`),`${S.slots[i]} / ${n}`])}
+  else if(t==="abil"){title=abT(x);R=[[tx("Puntuación","Score"),c.scores?c.scores[x]:""],[tx("Modificador","Modifier"),sgn(abilOf(c)[x])]]}
+  else if(t==="save"){title=SVT_(x);key="stat:saves";R=[[tx("Bono","Bonus"),sgn(sv(c,x))+(c.saves[x][1]?tx(" · con competencia"," · proficient"):"")]]}
+  else if(t==="skill"){const sk=SKILLS.find(s=>s[0]===x);title=tx(sk[1],sk[2]);key="stat:skills";R=[[tx("Bono","Bonus"),sgn(skillBonus(c,x))],[tx("Característica","Ability"),abT(sk[3])],[tx("Pasiva","Passive"),10+skillBonus(c,x)]]}
+  else if(t==="cond"){title=condT(x);key="cond:"+x;R=[[tx("Ahora","Now"),S.conds.includes(x)?tx("lo tienes","you have it"):tx("no lo tienes","you don't have it")]]}
+  else title={temp:tx("PV temporales","Temporary HP"),exh:tx("Agotamiento","Exhaustion"),death:tx("Salvaciones de muerte","Death saving throws"),conc:tx("Concentración","Concentration"),fury:tx("Puntos de furia","Fury Points")}[t]||t;
+  explainView(title,key,"",R,null)}
+/* Panel de estados (botón Estados del encabezado): cada uno con lo que hace; el agotamiento también */
+function condsOpen(){show({title:tx("Estados","Conditions"),sheet:true,conds:1,html:`<p class="note">${tx("Toca un estado para ponerlo o quitarlo.","Tap a condition to add or remove it.")}</p>
+  <div class="list">${CONDS.map(x=>{const on=S.conds.includes(x);return`<button class="condrow" data-cond="${x}" aria-pressed="${on}"><b>${condT(x)}${on?" ✓":""}</b><small>${tl(EXPL["cond:"+x])}</small></button>`}).join("")}</div>
+  <div class="resrow" style="margin-top:12px"><span>${tx("Agotamiento","Exhaustion")}<br><small style="font-weight:400">${tx("baja 1 con descanso largo","drops 1 with a long rest")}</small></span><div class="cnt"><b>${S.exh}<small>/6</small></b><button class="btn" data-exh="-1" aria-label="${tx("Quitar 1 nivel","Remove 1 level")}">−1</button><button class="btn" data-exh="1" aria-label="${tx("Sumar 1 nivel","Add 1 level")}">+1</button></div></div>
+  <p class="note">${tl(EXPL["stat:exh"])}</p>`})}
+/* Mantener pulsado (medio segundo) una tarjeta, estadística o número abre su explicación detallada; el toque normal sigue igual */
+const LP_SEL="[data-act],[data-sr],[data-spell],[data-tech],[data-item],[data-cact],[data-free],[data-mwatk],[data-x],[data-save],[data-skill],[data-cond],[data-jump],[data-do=init],[data-do=conds]";
+function lpOpen(el){const d=el.dataset;
+  for(const k of ["act","sr","spell","tech","item","cact","free","mwatk"])if(d[k]!==undefined)return openSheet(k,d[k],true);
+  if(d.x)return explainStat(d.x);if(d.save)return explainStat("save:"+d.save);if(d.skill)return explainStat("skill:"+d.skill);if(d.cond)return explainStat("cond:"+d.cond);
+  if(d.jump)return explainStat(d.jump==="sec-especial"?"special":"econ");if(d.do==="init")return explainStat("init");if(d.do==="conds")return condsOpen()}
+{let lp=null,px=0,py=0,fired=false;const stop=()=>{clearTimeout(lp);lp=null};
+  document.addEventListener("pointerdown",e=>{fired=false;stop();const el=e.button>0?null:e.target.closest(LP_SEL);if(!el)return;px=e.clientX;py=e.clientY;
+    lp=setTimeout(()=>{lp=null;fired=true;buzz(15);lpOpen(el)},500)},{passive:true});
+  document.addEventListener("pointermove",e=>{if(lp&&Math.hypot(e.clientX-px,e.clientY-py)>10)stop()},{passive:true});
+  for(const ev of ["pointerup","pointercancel"])document.addEventListener(ev,stop,{passive:true});
+  addEventListener("scroll",stop,{passive:true,capture:true});
+  document.addEventListener("click",e=>{if(fired){fired=false;e.preventDefault();e.stopImmediatePropagation()}},true);
+  document.addEventListener("contextmenu",e=>{if(e.target.closest(LP_SEL))e.preventDefault()})}
 /* Uso rápido: solo ataques sin límite (sin recurso, sin munición, sin "una vez") y trucos */
 function quickOk(c,k,v){if(!look.quick)return false;
   if(k==="act"){const a=c.actions[+v],w=a.kind==="attack"&&c.weapons[a.w];return!!w&&!w.ammo&&!a.res&&!a.once&&!a.perTurn}
@@ -1825,7 +1975,7 @@ document.addEventListener("input",e=>{const t=e.target;if(t.id==="in-d20")setD20
 let lastLang=look.lang;
 function onLook(){if(look.lang!==lastLang){lastLang=look.lang;localize();$("tray").classList.add("hide")}if(S)render()}
 addEventListener("resize",()=>{if(view==="char")document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px")});
-document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
+document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("hidsec"))hidOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="lvtarget")lvTarget=t.value;if(t.dataset.rvdie)render();
   if(t.dataset.rvck){const e2=RV[t.dataset.rvck],f=t.dataset.f;if(e2){if(f==="ok")e2.ok=t.checked?[...e2.ok,t.dataset.id]:e2.ok.filter(x=>x!==t.dataset.id);else e2[f]=t.checked}render()}});
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
@@ -2303,7 +2453,7 @@ document.addEventListener("click",e=>{
   /* Tarjetas: primero la ficha de detalle (salvo Uso rápido en ataques sin límite); data-peek la abre también desde los recordatorios */
   const uk=USE_KEYS.find(k=>ds[k]!==undefined);
   if(uk&&(ds.peek!==undefined||el.classList.contains("act")&&(el.getAttribute("aria-disabled")==="true"||!quickOk(c,uk,ds[uk])))){armed=null;openSheet(uk,ds[uk]);return}
-  if(ds.act!==undefined){armed=null;doAct(+ds.act);return}
+  if(ds.act!==undefined){armed=null;if(c.actions[+ds.act].kind==="info"){openSheet("act",ds.act);return}doAct(+ds.act);return}
   if(ds.sr){armed=null;doSpecial(ds.sr);return}
   if(ds.skill&&phys()){const sk=SKILLS.find(s=>s[0]===ds.skill),v=skillBonus(c,sk[0]),sn=tx(sk[1],sk[2]);
     show({title:`${sn} (${abT(sk[3])})`,d20:0,boxes:[d20Box(tx("Prueba","Check"),v,mode)],p:{mod:v,dmg:[],fmt:tot=>`${sn}: ${tot}`}});log(sn);T.logLine=S.log[0];save();return}
@@ -2312,9 +2462,9 @@ document.addEventListener("click",e=>{
   if(ds.skill){const sk=SKILLS.find(s=>s[0]===ds.skill),v=skillBonus(c,sk[0]),r=d20(),sn=tx(sk[1],sk[2]);
     show({title:`${sn} (${abT(sk[3])})`,d20:0,boxes:[{l:tx("Resultado","Result"),v:r.v+v,s:`d20 ${r.txt} ${sgn(v)}`,cls:r.v===20?"crit":r.v===1?"fail":""}]});log(`${sn}: ${r.v+v}`);save();return}
   if(ds.save){const v=sv(c,ds.save),r=d20();show({title:SVT_(ds.save),d20:0,boxes:[{l:tx("Resultado","Result"),v:r.v+v,s:`d20 ${r.txt} ${sgn(v)}`,cls:r.v===20?"crit":r.v===1?"fail":""}]});log(`${SVT_(ds.save)}: ${r.v+v}`);save();return}
-  if(ds.exh){S.exh=Math.min(6,Math.max(0,S.exh+(+ds.exh)));save();render();return}
-  if(ds.cond){S.conds=S.conds.includes(ds.cond)?S.conds.filter(x=>x!==ds.cond):[...S.conds,ds.cond];save();render();return}
-  if(ds.res){const j=+ds.j;S.res[ds.res]=j<S.res[ds.res]?j:j+1;save();render();return}
+  if(ds.exh){S.exh=Math.min(6,Math.max(0,S.exh+(+ds.exh)));save();render();if(T&&T.conds)condsOpen();return}
+  if(ds.cond){S.conds=S.conds.includes(ds.cond)?S.conds.filter(x=>x!==ds.cond):[...S.conds,ds.cond];save();render();if(T&&T.conds)condsOpen();return}
+  if(ds.res){const j=+ds.j;S.res[ds.res]=j<S.res[ds.res]?j:j+1;save();render();if(T&&T.reopen&&!$("tray").classList.contains("hide"))T.reopen();return}
   if(ds.dreamp!==undefined){const j=+ds.dreamp;S.dream=j<S.dream?j:j+1;save();render();return}
   if(ds.book){book=ds.book==="prep";render();return}
   if(ds.cact){const cp=c.companion,a=cp.attacks.find(x=>x.id===ds.cact),k=S.comp;armed=null;
@@ -2325,6 +2475,10 @@ document.addEventListener("click",e=>{
     ilogAdd(tx(`${nmOf(x)}: ${o} → ${x.q}`,`${nmOf(x)}: ${o} → ${x.q}`));save();render();return}
   if(ds.inved!==undefined){invForm(ds.inved);return}
   if(ds.give){invGive(ds.give,+ds.s);return}
+  if(ds.x){explainStat(ds.x);return}
+  if(ds.usedfix){S.used[ds.usedfix]=!S.used[ds.usedfix];save();render();if(T&&T.reopen)T.reopen();return}
+  if(ds.srfix){const j=+ds.j;S.sr[ds.srfix]=j<S.sr[ds.srfix]?j:j+1;save();render();if(T&&T.reopen)T.reopen();return}
+  if(ds.unhide){S.hid=S.hid.filter(x=>x!==ds.unhide);save();render();return}
   if(ds.chead){const cp=c.companion;S.comp.heads=Math.min(cp.heads,Math.max(0,S.comp.heads+(+ds.chead)));save();render();return}
   if(ds.item){const x=c.items.find(y=>y.id===ds.item);armed=null;if(invQ("pg:"+x.id)<=0)return;
     useFx("i:"+x.id,{l:0,...x},0,{dc:c.itemsDc,atk:0,atkL:"",storm:false,unit:"",upTxt:"",pay:()=>invUse("pg:"+x.id)},{});return}
@@ -2346,7 +2500,7 @@ document.addEventListener("click",e=>{
   if(ds.prep){const k=c.caster,id=ds.prep,l=SPELLS[id].l,key=l?"p":"c",max=l?k.prepared:k.cantrips;if(k.domain.includes(id))return;
     if(S.spells[key].includes(id))S.spells[key]=S.spells[key].filter(x=>x!==id);else if(S.spells[key].length<max)S.spells[key].push(id);save();render();return}
   if(ds.slot!==undefined){const i=+ds.slot,j=+ds.j;S.slots[i]=j<S.slots[i]?j:j+1;save();render();return}
-  if(ds.cnt){const r=c.resources.find(x=>x.id===ds.cnt);S.res[r.id]=ds.n==="max"?r.max:Math.min(r.max,Math.max(0,S.res[r.id]+(+ds.n)));save();render();return}
+  if(ds.cnt){const r=c.resources.find(x=>x.id===ds.cnt);S.res[r.id]=ds.n==="max"?r.max:Math.min(r.max,Math.max(0,S.res[r.id]+(+ds.n)));save();render();if(T&&T.reopen&&!$("tray").classList.contains("hide"))T.reopen();return}
   if(ds.fore!==undefined&&!S.fore[+ds.fore].v){const i=+ds.fore;
     show({title:tx("Presagio","Foretelling roll"),tip:tx("Vistazo al futuro: tira 1d20 y anótalo.","Glimpse into the Future: roll 1d20 and enter it."),apply:{["f"+i]:{label:tx("Anotar presagio","Enter foretelling roll"),fn:n=>{S.fore[i].v=Math.min(20,Math.max(1,n));log(`${tx("Presagio","Foretelling roll")}: <b>${S.fore[i].v}</b>`)}}}});return}
   if(ds.fore!==undefined){const i=+ds.fore,f=S.fore[i],busy=S.turn.fore;
@@ -2438,6 +2592,11 @@ document.addEventListener("click",e=>{
   if(act==="invgo"&&T&&T.inv){invGo(c);return}
   if(act==="invdel"&&T&&T.inv){const x=S.inv.items.find(y=>y.id===T.inv.id);if(!x||!confirm(tx(`¿Quitar ${nmOf(x)} del inventario?`,`Remove ${nmOf(x)} from your inventory?`)))return;
     S.inv.items=S.inv.items.filter(y=>y!==x);ilogAdd(tx(`Quitaste ${nmOf(x)} ×${x.q}`,`You removed ${nmOf(x)} ×${x.q}`));$("tray").classList.add("hide");save();render();return}
+  if(act==="force"){FORCE=true;try{T.reopen()}finally{FORCE=false}return}
+  if(act==="conds"){condsOpen();return}
+  if(act==="back"&&T&&T.back){T.back();return}
+  if(act==="explain"){openSheet(ds.k,ds.v,true);return}
+  if(act==="hide"){S.hid=[...new Set([...S.hid,ds.h])];$("tray").classList.add("hide");save();render();cbToast(tx("Oculta: la encuentras al final, en Ocultas.","Hidden: you'll find it at the end, under Hidden."));return}
   if(act==="furypick"){furyPick();return}
   if(act==="furysave"&&T&&T.fury){if(T.fury.length!==furyN(c))return;const u=furyUnlock();S.fury=[...T.fury];if(u)S.furyDone=u;
     log(tx("Técnicas de furia: ","Fury features: ")+furyNames(S.fury));$("tray").classList.add("hide");save();render();return}
@@ -2468,7 +2627,7 @@ document.addEventListener("click",e=>{
   if(act==="short"||act==="long"){
     if(armed!==act){armed=act;render();return}
     armed=null;
-    if(act==="long"){const keep={lvl:S.lvl,dream:S.dream,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),inv:S.inv,ilog:S.ilog,gotG:S.gotG,fury:S.fury,furyDone:S.furyDone},
+    if(act==="long"){const keep={lvl:S.lvl,dream:S.dream,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),inv:S.inv,ilog:S.ilog,gotG:S.gotG,fury:S.fury,furyDone:S.furyDone,hid:S.hid},
         manual=c.resources.filter(r=>r.rest==="none").map(r=>[r.id,S.res[r.id]]);
       S=Object.assign(fresh(c),keep);manual.forEach(([k,v])=>S.res[k]=v);foreArm=null;log(tx("<b>Descanso largo</b>: PV y usos recuperados","<b>Long rest</b>: HP and uses recovered"));
       if(S.fore.length&&phys()){S.fore.forEach(f=>{f.v=0;f.u=false});
