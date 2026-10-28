@@ -331,7 +331,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 14:15";
+const APP_VERSION="2026-10-28 15:28";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -715,7 +715,7 @@ const CHARS = {
   /* Solo para probar la subida de nivel: Guerrero sin subclase, características en 10, sin acciones y un garrote (Contraataque necesita arma principal) */
   ryuga:{
     name:"Ryuga", bounty:"", sub:{es:"Bruiser · Eastern Dragon · Nivel {lvl} · Oni · Ermitaño",en:"Bruiser · Eastern Dragon Style · Level {lvl} · Oni · Hermit"},
-    haki:[],
+    haki:["auraOfLife","forceOfWill"], hakiDc:14,
     inv:{money:50000,items:[{w:"main",eq:1},{w:"axe",eq:1},{w:"bow",eq:1},{k:"flechas",n:{es:"Flechas",en:"Arrows"},q:15},{n:{es:"Paquete de pirata",en:"Pirate's pack"},q:1},{n:{es:"Útiles de cervecero",en:"Brewer's supplies"},q:1},{n:{es:"Kit de herborista",en:"Herbalism kit"},q:1},{n:"Bitecore",q:1,note:{es:"Sin descripción todavía",en:"No description yet"}}]},
     cls:"bruiser", sc:"easternDragon", furyKnown:["brace","focused","unbending"], scores:{FUE:20,DES:18,CON:20,INT:10,SAB:11,CAR:14}, tags:["race:oni","bg:hermit","armor:heavy"],
     level:7, prof:3, ac:19, maxHp:89, init:4, speed:{es:"45 pies",en:"45 feet"},
@@ -741,7 +741,9 @@ const CHARS = {
       {id:"emocion",name:{es:"Emoción del combate",en:"Thrill of the Fight"},max:"=prof",rest:"long"},
       {id:"furia",name:{es:"Puntos de furia",en:"Fury Points"},max:"=fury",rest:"short"},
       {id:"nube",name:{es:"Paso de nube",en:"Cloud Walk"},max:"=prof",rest:"short"},
-      {id:"presencia",name:{es:"Presencia aterradora",en:"Terrifying Presence"},max:1,rest:"long"}
+      {id:"presencia",name:{es:"Presencia aterradora",en:"Terrifying Presence"},max:1,rest:"long"},
+      {id:"aura",name:{es:"Aura de vida",en:"Aura of Life"},max:"=prof",rest:"long"},
+      {id:"fvol",name:{es:"Fuerza de voluntad",en:"Force of Will"},max:1,rest:"short"}
     ],
     actions:[
       {cost:"accion",kind:"attack",w:"main",name:"Kanabo",note:{es:"Atacar: 2 golpes por acción · arma de Bruiser, mágica · pesada, a dos manos · al impactar, Postura del dragón",en:"Attack: 2 attacks per action · bruiser weapon, magical · heavy, two-handed · on a hit, Dragon Stance"}},
@@ -757,7 +759,15 @@ const CHARS = {
       {cost:"adicional",kind:"float",res:"nube",turns:2,name:{es:"Paso de nube",en:"Cloud Walk"},bar:{es:"Flotas en el aire",en:"You hover in the air"},note:{es:"Te teletransportas hasta 30 pies a un punto que veas, flotas hasta el final de tu siguiente turno y tienes ventaja en tu siguiente ataque",en:"You teleport up to 30 feet to a point you can see, hover until the end of your next turn and have advantage on your next attack"}},
       {cost:"reaccion",kind:"temproll",name:{es:"Sangre por músculo",en:"Blood for Brawn"},once:"sangre",trigger:"half",temp:"{scrap}+{lvl}",refill:"furia",note:{es:"Al quedar con la mitad de tus PV o menos: ganas PV temporales y recuperas todos los puntos de furia. 1 vez por descanso corto o largo",en:"When you drop to half your hit points or less: you gain temporary hit points and regain all fury points. Once per short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
-      {cost:"gratis",kind:"toggle",flag:"rampage",name:{es:"Ataque temerario",en:"Rampage"},note:{es:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno",en:"This turn you have advantage on melee weapon attack rolls; attack rolls against you have advantage until your next turn"}}
+      {cost:"gratis",kind:"toggle",flag:"rampage",name:{es:"Ataque temerario",en:"Rampage"},note:{es:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno",en:"This turn you have advantage on melee weapon attack rolls; attack rolls against you have advantage until your next turn"}},
+      /* Haki (hakiAct: van en la sección Haki). Números fijos de la hoja, sin Voluntad; ya incluyen el dado extra de Purista del Haki */
+      {cost:"gratis",kind:"info",haki:true,hakiAct:true,name:{es:"Purista del Haki · Entrenamiento de calidad",en:"Haki Purist · Train Quality"},note:{es:"Pasivo: tus rasgos de Haki tiran 1 dado más (ya incluido en Aura de vida y Fuerza de voluntad). Lo pierdes si algún día comes una Fruta del Diablo",en:"Passive: your Haki features roll 1 extra die (already included in Aura of Life and Force of Will). You lose it if you ever eat a Devil Fruit"}},
+      {cost:"accion",kind:"temproll",haki:true,hakiAct:true,res:"aura",temp:"2d6+{4+lvl}",name:{es:"Aura de vida",en:"Aura of Life"},note:{es:"Armadura, poco común: ganas PV temporales (no se acumulan: te quedas con el valor más alto). {prof} usos por descanso largo",en:"Armament, Uncommon: you gain temporary HP (they don't stack: you keep the higher amount). {prof} uses per long rest"}},
+      {cost:"accion",kind:"dash",haki:true,hakiAct:true,res:"fvol",dc:14,save:"FUE",dmg:"4d10",type:"fuerza",half:true,name:{es:"Fuerza de voluntad",en:"Force of Will"},note:{es:"Armadura, raro: golpeas el suelo y cada criatura a 30 pies hace una salvación de FUE. Si falla, recibe el daño y queda derribada; si la supera, la mitad y no cae. Estructuras y objetos no mágicos reciben el doble. 1 vez por descanso corto o largo",en:"Armament, Rare: you slam the ground and every creature within 30 feet makes a STR saving throw. On a failure it takes the damage and is knocked prone; on a success, half and it isn't knocked prone. Structures and nonmagical objects take double damage. Once per short or long rest"}},
+      {cost:"gratis",kind:"info",haki:true,hakiAct:true,name:{es:"Fortalecerse ×4",en:"Strengthen Self ×4"},note:{es:"Avance estándar: +2 FUE, +4 DES y +2 CON (ya incluidos en tus características)",en:"Standard advancement: +2 STR, +4 DEX and +2 CON (already included in your ability scores)"}},
+      /* Trasfondo Ermitaño */
+      {cost:"fuera",kind:"info",name:{es:"Descubrimiento",en:"Discovery"},note:{es:"Ermitaño: en tu retiro descubriste algo único y poderoso. Qué es y cómo pesa en la campaña lo decides con el DM",en:"Hermit: during your seclusion you made a unique and powerful discovery. What it is and how it affects the campaign is up to you and the DM"}},
+      {cost:"fuera",kind:"info",name:{es:"Especialidad: vida en comunidad religiosa",en:"Specialty: communal living in a religious order"},note:{es:"Ermitaño: viviste en comunidad bajo las reglas de una orden religiosa",en:"Hermit: you lived communally under the rules of a religious order"}}
     ]
   }
 };
@@ -1072,7 +1082,7 @@ const $=id=>document.getElementById(id);
 /* Acciones de combate de un coste (secciones Acción, Acción adicional y Reacción) */
 /* Rasgos de furia: se conocen tantos como el bono de competencia (furyN) y el jugador elige cuáles (S.fury) */
 const furyN=c=>PCLASS[c.cls]&&PCLASS[c.cls].fury?c.prof:0,known=a=>!a.fury||S.fury.includes(a.fury);
-const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!hid("a:"+a.xid)&&!a.role&&!a.fruitAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
+const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!hid("a:"+a.xid)&&!a.role&&!a.fruitAct&&!a.hakiAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
 /* Ficha de la economía del turno: botón que salta a su sección si la sección está en pantalla; si no, solo muestra el estado */
 function chip(k,off,label){const c=C(),has=!(c.caster&&book)&&(k==="especial"||costList(c,k).length>0);
   return has?`<button class="econ${off?" spent":""}" data-jump="sec-${k}"><i></i>${label}</button>`:`<span class="econ${off?" spent":""}"><i></i>${label}</span>`}
@@ -1141,6 +1151,7 @@ function render(){
   if(c.items)h+=itemSec(c);
   if(c.companion)h+=compSec(c);
   if(c.role)h+=roleSec(c);
+  if(c.hakiDc)h+=hakiSec(c);
   h+=lvSheet(c);
   h+=`<section id="sec-especial"><h2>${tx("Reacciones especiales","Special Reactions")} <small>${tx(`2 por ronda · ${c.prof} usos c/u por descanso corto`,`2 per round · ${c.prof} uses each per short rest`)}</small></h2><div class="list">`;
   for(const s of SPECIALS){
@@ -1152,7 +1163,7 @@ function render(){
     h+=`<button class="act" data-sr="${s.id}" ${S.sr[s.id]<=0||S.turn.sr<=0?'aria-disabled="true"':""}>${""}<span class="n">${s.name}</span><span class="big">${big}</span><span class="d">${ctrHtml(S.sr[s.id],c.prof,"short")}${S.turn.sr<=0?`<b class="spent">${SRW_()}</b> `:""}${s.note}</span></button>`;
   }
   h+=`</div></section>`;
-  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&!hid("a:"+a.xid)&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
+  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&!a.hakiAct&&!hid("a:"+a.xid)&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
   if(free.length)h+=`<section><h2>${COST.gratis}</h2><div class="list">${free.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role&&!hid("a:"+a.xid));
   if(out.length)h+=`<section><h2>${COST.fuera}</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
@@ -1335,6 +1346,10 @@ function roleSec(c){
     ${fa&&S.aided.length?`<p class="note" style="margin-top:8px">${tx(`Ya recibieron ${fa[0].name}: ${S.aided.map(esc).join(", ")}. Se libera con un descanso corto o largo.`,`Already received ${fa[0].name}: ${S.aided.map(esc).join(", ")}. Resets after a short or long rest.`)}</p>`:""}
     ${r.out?`<p class="note" style="margin-top:8px">${r.out}</p>`:""}</section>`;
 }
+
+/* hakiDc: sección Haki con su CD y las acciones con hakiAct:true (Ryuga) */
+function hakiSec(c){const acts=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.hakiAct&&!hid("a:"+a.xid));
+  return acts.length?`<section id="sec-haki"><h2><span class="h2t">${sico("haki")}Haki</span> <small>${tx("CD","DC")} ${c.hakiDc}</small></h2><div class="list">${acts.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`:""}
 
 /* ===================== FRUTA DEL DIABLO ===================== */
 function fruitSec(c){
