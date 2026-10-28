@@ -135,6 +135,7 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 .pip.used{background:transparent;opacity:.5}
 .pip.gold{border-color:var(--gold);background:var(--gold)} .pip.gold.used{background:transparent}
 
+.tiers{display:block;width:100%;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}
 .prest{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .prest .num{font-family:var(--f-display);font-size:40px;line-height:1;color:var(--gold);min-width:44px}
 .prest .lbl{font-size:13px;color:var(--muted);flex:1;min-width:120px}
@@ -331,7 +332,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 15:28";
+const APP_VERSION="2026-10-28 15:36";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -612,7 +613,7 @@ const CHARS = {
   },
   sungsopp:{
     name:"Sungsopp", bounty:"", sub:{es:"Rogue · Duelista Danzante · Nivel {lvl} · Humano · Ladrón",en:"Rogue · Dancing Duelist · Level {lvl} · Human · Thief"},
-    haki:["focusedHit","auraDetection","farSight","predictOutcome"],
+    haki:["enhancedStrike","auraDetection","farSight","predictOutcome"],
     inv:{money:8125,items:[{w:"main",eq:1},{w:"ojo",eq:1},{w:"espada",eq:1},{w:"ballesta",eq:1},{k:"virotes",n:{es:"Virotes",en:"Bolts"},q:20},{w:"daga",n:{es:"Dagas",en:"Daggers"},q:2,eq:1},{n:{es:"Herramientas de ladrón",en:"Thieves' tools"},q:1},{n:{es:"Paquete de ladrón",en:"Burglar's pack"},q:1},{n:{es:"Libros",en:"Books"},q:1},{n:{es:"Comidas",en:"Meals"},q:2},{n:{es:"Joyas",en:"Jewels"},q:4}]},
     cls:"rogue", sc:"dancingDuelist", scores:{FUE:11,DES:18,CON:13,INT:11,SAB:11,CAR:18}, tags:["race:human","fruit","armor:light","feat:slingKing"],
     level:7, prof:3, ac:15, acDex:true, maxHp:42, init:4, speed:{es:"30 pies",en:"30 feet"},
@@ -628,7 +629,6 @@ const CHARS = {
     flow:[{name:{es:"Tango giratorio",en:"Spinning Tango"},note:{es:"te mueves 10 pies sin provocar ataques de oportunidad; si terminas a 5 pies de una criatura, +1 a tu siguiente ataque contra ella este turno.",en:"you move 10 feet without provoking opportunity attacks; if you end within 5 feet of a creature, +1 to your next attack against it this turn."}},
       {name:{es:"Distracción",en:"Distracting Tap Dance"},note:{es:"una criatura a 5 pies: el siguiente ataque contra ella de otra criatura, antes de tu próximo turno, tiene ventaja.",en:"one creature within 5 feet: the next attack roll against it by another creature, before your next turn, has advantage."}},
       {name:{es:"Asombro",en:"Awe-Struck"},note:{es:"un ataque cuerpo a cuerpo; si impacta y el objetivo se concentra, pierde la concentración.",en:"one melee attack; on a hit, if the target is concentrating, its concentration ends."}}],
-    focusHit:{max:8},
     itemsName:"Pop Greens",itemsDc:"=8+prof+DES",itemsNote:{es:"se disparan con la resortera",en:"fired with the slingshot"},itemsFill:{es:"Cosechar (llenar todos a 2)",en:"Harvest (fill all to 2)"},
     items:[
       {id:"bambu",n:{es:"Trampa Bambu-Bind",en:"Bambu-Bind Trap"},c:"accion",start:1,max:2,sv:"DES",svTxt:{es:"Si falla, velocidad 0 hasta su próximo turno",en:"On a failure, speed 0 until its next turn"},sum:{es:"Radio de 10 pies. Las enredaderas tienen CA 12 y 17 PV.",en:"10-foot radius. The vines have AC 12 and 17 HP."}},
@@ -663,11 +663,11 @@ const CHARS = {
         {id:"breath",n:{es:"Aliento de fuego",en:"Fire Breath"},res:"aliento",r:{es:"Cono de 15 pies",en:"15-foot cone"},sv:"DES",half:1,dmg:"10d6",ty:"fuego",sum:{es:"Mitad si supera · 3 por descanso corto o largo",en:"Half on a success · 3 per short or long rest"}}]},
     role:{name:{es:"Capitán",en:"Captain"},passive:{es:"Carisma de capitán",en:"Captain's Charisma"},desc:{es:"Tiene la última palabra en las decisiones del grupo.",en:"You have the last say in any group decision."},tools:{es:"Intimidación y Persuasión",en:"Intimidation and Persuasion"}},
     weapons:{
-      main:{name:{es:"Riqueza",en:"Wealth"},hit:9,dice:"2d4",mod:6,type:"perforante",extra:"1d6",extraType:"oscuridad",finesse:true,melee:true,sneak:true,abil:"DES"},
-      ojo:{name:{es:"Ojo del Horizonte",en:"Eye of the Horizon"},hit:8,dice:"1d6",mod:4,type:"contundente",ranged:true,sneak:true,abil:"DES",still:{name:{es:"Impacto calculado",en:"Calculated Shot"},hit:2,dmg:"1d6"}},
-      espada:{name:{es:"Espada corta",en:"Shortsword"},hit:7,dice:"1d6",mod:4,type:"perforante",finesse:true,melee:true,sneak:true,abil:"DES"},
-      daga:{name:{es:"Daga común",en:"Common Dagger"},hit:7,dice:"1d4",mod:4,type:"perforante",finesse:true,melee:true,sneak:true,abil:"DES"},
-      ballesta:{name:{es:"Ballesta corta",en:"Short Crossbow"},hit:7,dice:"1d6",mod:4,type:"perforante",ranged:true,sneak:true,abil:"DES",ammo:"virotes"},
+      main:{name:{es:"Riqueza",en:"Wealth"},hit:9,dice:"2d6",mod:6,type:"perforante",extra:"1d6",extraType:"oscuridad",finesse:true,melee:true,sneak:true,abil:"DES"},
+      ojo:{name:{es:"Ojo del Horizonte",en:"Eye of the Horizon"},hit:8,dice:"1d8",mod:4,type:"contundente",ranged:true,sneak:true,abil:"DES",still:{name:{es:"Impacto calculado",en:"Calculated Shot"},hit:2,dmg:"1d6"}},
+      espada:{name:{es:"Espada corta",en:"Shortsword"},hit:7,dice:"1d8",mod:4,type:"perforante",finesse:true,melee:true,sneak:true,abil:"DES"},
+      daga:{name:{es:"Daga común",en:"Common Dagger"},hit:7,dice:"1d6",mod:4,type:"perforante",finesse:true,melee:true,sneak:true,abil:"DES"},
+      ballesta:{name:{es:"Ballesta corta",en:"Short Crossbow"},hit:7,dice:"1d8",mod:4,type:"perforante",ranged:true,sneak:true,abil:"DES",ammo:"virotes"},
       bpuno:{name:{es:"Puñetazo",en:"Punch"},hit:6,dice:"2d8",mod:3,type:"contundente",melee:true,fixed:1},
       broca:{name:{es:"Roca",en:"Rock"},hit:6,dice:"2d8",mod:3,type:"contundente",ranged:true,fixed:1},
       hpuno:{name:{es:"Puño de simio",en:"Ape Fist"},hit:3,dice:"2d8",mod:0,type:"contundente",melee:true,abil:"FUE"},
@@ -705,7 +705,7 @@ const CHARS = {
       {cost:"reaccion",kind:"use",haki:true,name:{es:"Predecir el resultado",en:"Predict Outcome"},res:"predecir",note:{es:"Tú o un aliado a 30 pies vuelve a tirar un d20 ya visto el resultado",en:"You or an ally within 30 feet rerolls a d20 after seeing the result"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"still",name:{es:"No me he movido",en:"I Haven't Moved"},note:{es:"Activa Puntería firme y el Impacto calculado del Ojo del Horizonte (+2 al ataque y +1d6 en el primer disparo). Se reinicia con Nuevo turno",en:"Enables Steady Aim and the Eye of the Horizon's Calculated Shot (+2 to attack and +1d6 on the first shot). Resets with New Turn"}},
-      {cost:"gratis",kind:"toggle",haki:true,flag:"focus",perTurn:"focusUsed",name:{es:"Golpe enfocado",en:"Focused Hit"},note:{es:"Haki, una vez por turno: los dados de daño de tu siguiente ataque con arma suben un tamaño (máximo d8)",en:"Haki, once per turn: the damage dice of your next weapon attack go up one size (max d8)"}},
+      {cost:"gratis",kind:"info",haki:true,hakiId:"enhancedStrike",name:{es:"Golpe mejorado",en:"Enhanced Strike"},note:{es:"Haki de Armadura, pasivo: el dado base de tus ataques con arma sube un tamaño (máximo d12), en todos los ataques. Ya está en tus armas. No cambia los dados de Haki ni de clase (Ataque furtivo, la oscuridad de Riqueza, Impacto calculado, Escenario de batalla) ni la forma Zoan",en:"Armament Haki, passive: the base die of your weapon attacks goes up one size (max d12), on every attack. It's already in your weapons. It doesn't change Haki or class dice (Sneak Attack, Wealth's darkness, Calculated Shot, Stage of Battle) or the Zoan form"}},
       {cost:"accion",role:true,kind:"group",dur:10,name:{es:"Orden del capitán",en:"Captain's Order"},once:"orden",temp:"=lvl+prof",
         msg:{es:"Aliados a 60 pies que te vean u oigan: pueden moverse la mitad de su velocidad como reacción sin provocar ataques de oportunidad, y eligen entre un ataque de oportunidad si un enemigo entra en su alcance o +2 al daño de su siguiente ataque exitoso en el próximo minuto. Todos ganan {lvl+prof} PV temporales.",
           en:"Allies within 60 feet who can see or hear you: they can move half their speed as a reaction without provoking opportunity attacks, and they choose between an opportunity attack if an enemy enters their reach or +2 damage on their next successful attack within the next minute. Everyone gains {lvl+prof} temporary hit points."},
@@ -1673,6 +1673,9 @@ const hakiName=id=>{const e=hakiE(id);return e?tl(e.n):id};
 function hakiSug(e,L){return{q:Math.ceil(L/4),h:Math.ceil(L/2),w:L}[e.wf]} // declarada: levelSrc la usa al cargar
 const hakiSum=(e,n)=>tl(e.sum).split("{HW}").join(n==null?tx("? (revisar)","? (review)"):String(n));
 const hakiOwned=k=>[...((CHARS_SRC[k]||{}).haki||[]),...((PROG[k]||{}).haki||[])];
+/* Tier de Haki (regla de la casa, 28-10-2026): Tier 2 pide 1 rasgo del mismo color y Tier 3, 2 (los aficionados no cuentan; los de clase o subclase sí) */
+const hakiNeed=t=>t===2?1:t===3?2:0,hakiTop=have=>have>=2?3:have>=1?2:1;
+const hakiCol=c=>tl(HAKI_COLORS[c]).replace(/^Color (de |del |of the |of )/,"");
 function hakiCount(k,col){return hakiOwned(k).filter(id=>{const e=hakiE(id);return e&&e.c===col&&e.r>0}).length+(((CHARS_SRC[k]||{}).hakiCls||{})[col]||0)}
 /* Motivo por el que no se puede pedir (vacío = se puede) */
 function hakiWhy(k,e){const P=PROG[k]||{},o=hakiOwned(k),cost=rarOf(e.r)[1],p=prestOf(k);
@@ -1680,14 +1683,14 @@ function hakiWhy(k,e){const P=PROG[k]||{},o=hakiOwned(k),cost=rarOf(e.r)[1],p=pr
   if(P.buy&&P.buy.st==="pend")return tx("Ya tienes una solicitud pendiente","You already have a pending request");
   if(e.r===0&&CHARS[k].level>4)return tx("Solo para niveles 1 a 4 (aficionado)","Levels 1 to 4 only (amateur)");
   if(e.c==="king"&&!((CHARS_SRC[k]||{}).king||P.king))return tx("Necesitas Cualidades de un rey (lo decide el DM)","You need Qualities of a King (the DM decides)");
-  const need=e.t===2?4:e.t===3?6:0,have=hakiCount(k,e.c);
-  if(have<need)return tx(`Nivel ${e.t}: necesitas ${need} rasgos de este color (tienes ${have})`,`Tier ${e.t}: you need ${need} features of this color (you have ${have})`);
+  const need=hakiNeed(e.t),have=hakiCount(k,e.c);
+  if(have<need)return tx(`Necesitas ${need} rasgo${need>1?"s":""} de ${hakiCol(e.c)} para el Tier ${e.t} (tienes ${have})`,`You need ${need} ${hakiCol(e.c)} feature${need>1?"s":""} for Tier ${e.t} (you have ${have})`);
   if(e.req){const miss=e.req.filter(r=>!o.includes(r));if(e.reqAny?miss.length===e.req.length:miss.length)return tx("Necesitas ","You need ")+miss.map(hakiName).join(e.reqAny?tx(" o "," or "):", ")}
   if(cost>p)return tx(`Te falta${cost-p>1?"n":""} ${cost-p} punto${cost-p>1?"s":""}`,`You need ${cost-p} more point${cost-p>1?"s":""}`);
   return""}
 function hakiRows(k,e){const [rn,cost]=rarOf(e.r),L=CHARS[k].level,n=((PROG[k]||{}).hakiN||{})[e.id];
-  return[[tx("Rareza","Rarity"),`${rn} · ${cost} ${tx(cost===1?"punto":"puntos",cost===1?"point":"points")}`],[tx("Nivel de Haki","Haki tier"),e.t?String(e.t):tx("Aficionado (sin nivel)","Amateur (no tier)")],
-    [tx("Requisitos","Prerequisites"),[e.c==="king"?tx("Cualidades de un rey","Qualities of a King"):"",e.r===0?tx("nivel 1 a 4","level 1 to 4"):"",e.t>1?tx(`${e.t===2?4:6} rasgos de este color`,`${e.t===2?4:6} features of this color`):"",...(e.req||[]).map(hakiName)].filter(Boolean).join(e.reqAny?tx(" o "," or "):" · ")||tx("Ninguno","None")],
+  return[[tx("Rareza","Rarity"),`${rn} · ${cost} ${tx(cost===1?"punto":"puntos",cost===1?"point":"points")}`],[tx("Tier de Haki","Haki tier"),e.t?String(e.t):tx("Aficionado (sin tier)","Amateur (no tier)")],
+    [tx("Requisitos","Prerequisites"),[e.c==="king"?tx("Cualidades de un rey","Qualities of a King"):"",e.r===0?tx("nivel 1 a 4","level 1 to 4"):"",e.t>1?tx(`${hakiNeed(e.t)} rasgo${e.t>2?"s":""} de ${hakiCol(e.c)}`,`${hakiNeed(e.t)} ${hakiCol(e.c)} feature${e.t>2?"s":""}`):"",...(e.req||[]).map(hakiName)].filter(Boolean).join(e.reqAny?tx(" o "," or "):" · ")||tx("Ninguno","None")],
     e.a?[tx("Uso","Use"),(COST[e.a]||e.a)+(e.u?` · ${String(e.u[0]).startsWith("=")?tx("tantos usos como tu competencia","as many uses as your proficiency"):e.u[0]+" "+tx(e.u[0]===1?"uso":"usos",e.u[0]===1?"use":"uses")} · ${RESTN(e.u[1])}`:"")]:[tx("Uso","Use"),tx("Pasivo","Passive")],
     e.wf?[tx("Voluntad","Willpower"),tx(`Revisar: el Haki no usa Voluntad; número fijo sugerido ${hakiSug(e,L)} (lo fija el DM al aprobar)`,`Review: Haki doesn't use Willpower; suggested fixed number ${hakiSug(e,L)} (the DM sets it when approving)`)+(n!=null?tx(` · fijado en ${n}`,` · set to ${n}`):"")]:null,
     e.repl?[tx("Reemplaza a","Replaces"),hakiName(e.repl)]:null,e.up?[tx("Al nivel 5","At level 5"),tx("se convierte en ","becomes ")+hakiName(e.up)]:null].filter(Boolean)}
@@ -1696,12 +1699,13 @@ function shopOpen(col){if(col)SHOPTAB=col;const k=cur,P=PROG[k]||{},p=prestOf(k)
   const item=e=>{const why=hakiWhy(k,e),[rn,cost]=rarOf(e.r),n=(P.hakiN||{})[e.id];
     return`<button class="act" data-hbuy="${e.id}" ${why?'aria-disabled="true"':""}><span class="n">${tl(e.n)}${hint(e.n.en)}<span class="tag">${rn} · ${cost}</span>${e.wf?`<span class="tag">${tx("Revisar","Review")}</span>`:""}</span>
       <span class="d">${hakiSum(e,n??hakiSug(e,CHARS[k].level))}${e.req?` · ${tx("Requiere","Requires")} ${e.req.map(hakiName).join(e.reqAny?tx(" o "," or "):", ")}`:""}${why?`<br><b class="spent">${why}</b>`:""}</span></button>`};
-  show({title:tx("Gastar prestigio","Spend prestige"),sheet:true,shop:1,html:`<p class="note"><b>${tx(`Tienes ${p} ${p===1?"punto":"puntos"} de prestigio`,`You have ${p} Prestige ${p===1?"Point":"Points"}`)}</b> · ${["arm","obs","king"].map(c=>`${tl(HAKI_COLORS[c])}: ${hakiCount(k,c)}`).join(" · ")}</p>
-    <p class="note">${tx("Costos","Costs")}: ${RARITY.map(([n,v])=>`${n} ${v}`).join(" · ")}. ${tx("Nivel 2 pide 4 rasgos de ese color y nivel 3, 6.","Tier 2 needs 4 features of that color and tier 3, 6.")}</p>
+  show({title:tx("Gastar prestigio","Spend prestige"),sheet:true,shop:1,html:`<p class="note"><b>${tx(`Tienes ${p} ${p===1?"punto":"puntos"} de prestigio`,`You have ${p} Prestige ${p===1?"Point":"Points"}`)}</b> </p>
+    <button class="note tiers" data-x="tiers">${["arm","obs","king"].map(c=>{const n=hakiCount(k,c);return tx(`${hakiCol(c)}: ${n} ${n===1?"rasgo":"rasgos"} (hasta Tier ${hakiTop(n)})`,`${hakiCol(c)}: ${n} ${n===1?"feature":"features"} (up to Tier ${hakiTop(n)})`)}).join(" · ")}</button>
+    <p class="note">${tx("Costos","Costs")}: ${RARITY.map(([n,v])=>`${n} ${v}`).join(" · ")}. ${tx("Tier 1 (poco común y raro): sin requisito. Tier 2 (muy raro): 1 rasgo del mismo color. Tier 3 (legendario): 2.","Tier 1 (Uncommon and Rare): no requirement. Tier 2 (Very Rare): 1 feature of the same color. Tier 3 (Legendary): 2.")}</p>
     ${b?`<div class="warn">${tx("Solicitud enviada al DM","Request sent to the DM")}: <b>${hakiName(b.id)}</b> · <button class="linkbtn" data-do="buycancel">${tx("Cancelar solicitud","Cancel request")}</button></div>`:""}
     ${!(CHARS_SRC[k]||{}).fruit?`<p class="note">${tx("Purista del Haki: como no tienes fruta, en los niveles 4, 10 y 16 eliges una mejora (Calidad, Cantidad o Resistencia de tu Haki). La aplica el DM; la pierdes si comes una fruta.","Haki Purist: since you have no fruit, at levels 4, 10 and 16 you choose an improvement (Quality, Quantity or Stamina of your Haki). The DM applies it; you lose it if you eat a fruit.")}</p>`:""}
-    <div class="adv" role="group" aria-label="${tx("Color de Haki","Haki color")}">${["arm","obs","king"].map(c=>`<button data-do="shoptab" data-c="${c}" aria-pressed="${SHOPTAB===c}">${tl(HAKI_COLORS[c]).replace(/^Color (de |del |of the |of )/,"")}</button>`).join("")}</div>
-    ${[0,1,2,3].map(t=>{const L=HAKI.filter(e=>e.c===SHOPTAB&&e.t===t);return L.length?`<h3 class="lvh">${t?tx(`Nivel ${t}`,`Tier ${t}`):tx("Aficionado (sin nivel)","Amateur (no tier)")}</h3><div class="list">${L.map(item).join("")}</div>`:""}).join("")}`})}
+    <div class="adv" role="group" aria-label="${tx("Color de Haki","Haki color")}">${["arm","obs","king"].map(c=>`<button data-do="shoptab" data-c="${c}" aria-pressed="${SHOPTAB===c}">${hakiCol(c)}</button>`).join("")}</div>
+    ${[0,1,2,3].map(t=>{const L=HAKI.filter(e=>e.c===SHOPTAB&&e.t===t);return L.length?`<h3 class="lvh">${t?`Tier ${t}`:tx("Aficionado (sin tier)","Amateur (no tier)")}</h3><div class="list">${L.map(item).join("")}</div>`:""}).join("")}`})}
 function hakiOpen(id,ex){const k=cur,e=hakiE(id),why=hakiWhy(k,e),cost=rarOf(e.r)[1],R=hakiRows(k,e),n=((PROG[k]||{}).hakiN||{})[id]??hakiSug(e,CHARS[k].level);
   if(ex)return explainView(tl(e.n),"haki:"+id,e.a||"",[["what",hakiSum(e,n)],...R],()=>hakiOpen(id));
   show({title:tl(e.n),sheet:true,warn:why,html:`${dl([["what",hakiSum(e,n)],...R])}<button class="btn primary use" data-do="hreq" data-id="${id}" ${why?"disabled":""}>${tx(`Pedir al DM · ${cost} ${cost===1?"punto":"puntos"}`,`Ask the DM · ${cost} ${cost===1?"point":"points"}`)}</button>
@@ -1816,6 +1820,7 @@ function explainStat(id){const c=C(),[t,x]=id.split(":");let title="",R=[],key="
   else if(t==="hp"){title=tx("Puntos de golpe","Hit Points");R=[[tx("Ahora","Now"),`${S.hp} / ${mhp(c)}`],[tx("PV temporales","Temporary HP"),S.temp]]}
   else if(t==="dream"){title=tx("Puntos de sueño","Dream Points");R=[[tx("Tienes","You have"),`${S.dream} / ${c.level}`]]}
   else if(t==="prestige"){title=tx("Puntos de prestigio","Prestige Points");R=[[tx("Tienes","You have"),prestOf(cur)]]}
+  else if(t==="tiers"){title=tx("Tiers de Haki","Haki tiers");R=["arm","obs","king"].map(c=>{const n=hakiCount(cur,c);return[hakiCol(c),tx(`${n} ${n===1?"rasgo":"rasgos"} · hasta Tier ${hakiTop(n)}`,`${n} ${n===1?"feature":"features"} · up to Tier ${hakiTop(n)}`)]})}
   else if(t==="charges"){const r=c.resources.find(y=>y.id==="cargas")||{max:0};title=tx("Cargas de fruta y Voluntad","Fruit charges and Willpower");
     R=[[tx("Cargas","Charges"),`${S.res.cargas} / ${r.max}`],[tx("Voluntad","Willpower"),c.fruit.will],[tx("CD de fruta","Fruit DC"),c.fruit.dc],[tx("Ataque de fruta","Fruit attack"),sgn(c.fruit.atk)]];
     return explainView(title,key,"",R,null,[tl(EXPL["stat:will"])])}
