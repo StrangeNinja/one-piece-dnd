@@ -175,7 +175,8 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 .tray .in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .tray .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .tray .title{font-family:var(--f-display);font-size:20px;min-width:0}
-.tray .x{padding:6px 10px;border-radius:8px;background:var(--chip);font-size:13px;font-weight:700}
+.tray .x{padding:6px 12px;min-width:40px;min-height:36px;border-radius:8px;background:var(--chip);font-size:16px;font-weight:700;flex:none}
+.navb{margin:-4px 0 -6px}.navb .linkbtn{text-decoration:none;font-size:15px;padding:6px 0;display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .res{display:flex;gap:8px;flex-wrap:wrap}
 .res .box{flex:1;min-width:120px;padding:8px 12px;border-radius:10px;background:var(--bg)}
 .res .box small{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
@@ -338,7 +339,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 18:56";
+const APP_VERSION="2026-10-28 19:08";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -369,12 +370,23 @@ function drawLook(){const t=isDark()?"dark":"light",d=document.getElementById("l
   <h3>Idioma / Language</h3><div class="lk-mode lk-two">${Object.entries(LANGS).map(([k,o])=>`<button data-lklang="${k}" lang="${k}" aria-pressed="${look.lang===k}">${n(o)}</button>`).join("")}</div>
   <p class="lk-ver">${tx("Versión","Version")} ${APP_VERSION}</p></div>`}
 function openLook(){let d=document.getElementById("lk");
-  if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";document.body.append(d);
+  if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";document.body.append(d);d.addEventListener("close",()=>navLater());
     d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
       const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":b.dataset.lklang?"lang":b.dataset.lkquick?"quick":"dice",val=b.dataset["lk"+k];
       setLook({...look,[k]:val});d.querySelector(`[data-lk${k}="${val}"]`)?.focus()})}
-  drawLook();d.showModal()}
+  drawLook();d.showModal();navLater()}
 applyLook();darkQ.addEventListener("change",applyLook);
+/* Gesto Atrás del teléfono (botón de Android, deslizar desde el borde en iPhone): cada nivel abierto es una entrada del historial (pushState, sin cambiar la URL).
+   Niveles: Ajustes más los que cuente la página (navDepth); Atrás cierra uno (navPop). Cerrar varios a la vez retrocede el historial y HSKIP ignora ese popstate */
+let HD=0,HSKIP=0,HT=0;
+const lkOpen=()=>!!(document.getElementById("lk")||{}).open;
+function navSync(){HT=0;if(HSKIP)return;const d=(lkOpen()?1:0)+(typeof navDepth==="function"?navDepth():0);
+  if(d>HD)for(;HD<d;HD++)history.pushState({mc:HD+1},"");
+  else if(d<HD){HSKIP=1;history.go(d-HD);HD=d;setTimeout(()=>{if(HSKIP){HSKIP=0;navLater()}},1500)}}
+function navLater(){if(!HT)HT=setTimeout(navSync,0)}
+addEventListener("popstate",()=>{if(HSKIP){HSKIP=0;navLater();return}if(!HD)return;HD--;
+  if(lkOpen())document.getElementById("lk").close();else if(typeof navPop==="function")navPop();navLater()});
+if(history.state&&history.state.mc){HSKIP=1;history.go(-history.state.mc)} // recarga con niveles abiertos: vuelve a la entrada base
 addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook();if(typeof onLook==="function")onLook()}}});
 </script>
 </head>
@@ -1299,7 +1311,7 @@ function invGo(c){const o=T.inv,w=$("invw"),bad=m=>{w.textContent=m;w.hidden=fal
     if(o.op==="add"){S.inv.items.push({id:"u"+Date.now().toString(36),n:name,q,note,eq});ilogAdd(tx(`Agregaste ${name} ×${q}`,`You added ${name} ×${q}`),note)}
     else{const x=S.inv.items.find(y=>y.id===o.id);if(!x)return;const old=`${nmOf(x)} ×${x.q}`;if(name!==nmOf(x))x.n=name;if(note!==tl(x.note))x.note=note;x.q=q;x.eq=eq;
       ilogAdd(tx(`Editaste ${old} → ${name} ×${q}`,`You edited ${old} → ${name} ×${q}`),note)}}
-  $("tray").classList.add("hide");save();render()}
+  trayDone();save();render()}
 /* Entregas del DM: se aplican una sola vez en el teléfono del jugador, con aviso en segunda persona */
 const grantTxt=g=>[g.m?`${g.m>0?"+":"−"}฿${fmtB(g.m)}`:"",g.n?`${g.q>0?"+":"−"}${esc(g.n)} x${Math.abs(g.q)}`:""].filter(Boolean).join(" · ");
 function invGrants(P){const gs=(P.grants||[]).filter(g=>!S.gotG.includes(g.id)).reverse();if(!gs.length)return;const L=[];
@@ -1517,7 +1529,37 @@ function techOpen(id,ex){
 }
 
 /* ===================== BANDEJA DE RESULTADO ===================== */
-function show(t){T=t;if(t.d20!=null&&t.raw==null&&!t.p)t.raw=lastD20;drawTray();$("scrim").hidden=!t.sheet;if(t.sheet&&$("rcard"))$("rcard").hidden=true;$("tray").classList.remove("hide")}
+/* ===================== PILA DE PANELES ===================== */
+/* Abrir un panel (sheet) desde otro lo apila; Volver, deslizar, el velo y el gesto Atrás vuelven al anterior tal cual estaba (el mismo DOM: pestaña,
+   desplazamiento, selecciones y casillas). Si cambió el estado y el panel sabe redibujarse (reopen), se redibuja en el mismo lugar. La X cierra todo.
+   Un panel ya abierto en la pila no se duplica: se vuelve a él. Un resultado (Usar, Confirmar, Enviar) cierra los paneles de su flujo (mismo título)
+   y queda encima de donde empezó */
+let STK=[],NAVSRC=false,NAVREPL=false,RESTORED=null;const STK_MAX=6;
+const tKey=t=>(t.x?"x|":"")+String(t.key||t.title),tGrp=t=>String(t.title);
+const navSig=()=>JSON.stringify([S,PROG[cur]||null]);
+const trayOn=()=>!$("tray").classList.contains("hide");
+function navSnap(){const y=$("tray").scrollTop,f=document.createDocumentFragment();f.append(...$("trayin").childNodes);return{t:T,n:f,y,sig:navSig()}} // y antes de vaciar (si no, vuelve a 0)
+const navbHtml=()=>STK.length?`<div class="navb"><button class="linkbtn" data-do="navback" aria-label="${tx("Volver a","Back to")} ${String(STK[STK.length-1].t.title).replace(/<[^>]*>/g,"")}">‹ ${STK[STK.length-1].t.title}</button></div>`:"";
+function navRestore(f){T=f.t;RESTORED=T;setTimeout(()=>RESTORED=null);$("scrim").hidden=!T.sheet;$("tray").classList.remove("hide");
+  if(f.sig!==navSig()&&T.reopen){NAVREPL=true;try{T.reopen()}finally{NAVREPL=false}}
+  else{$("trayin").replaceChildren(f.n);const o=$("trayin").querySelector(".navb");if(o)o.remove();$("trayin").querySelector(".grab").insertAdjacentHTML("afterend",navbHtml())}
+  $("tray").scrollTop=f.y;navLater()}
+function navBack(){const f=STK.pop();if(f)navRestore(f);else $("tray").classList.add("hide")}
+/* Fin de un flujo (Guardar, Confirmar, Enviar…): cierra sus paneles y vuelve a donde empezó; desde fuera de la bandeja, cierra todo */
+function trayDone(){if(!NAVSRC||!T||!trayOn()){$("tray").classList.add("hide");return}const g=tGrp(T);while(STK.length&&tGrp(STK[STK.length-1].t)===g)STK.pop();navBack()}
+function navDepth(){return(trayOn()&&T?STK.length+1:0)+(W?1:0)}
+function navPop(){if(trayOn())trayAway();else if(W){W=null;lvDraw();render()}}
+for(const ev of ["click","pointerdown"])document.addEventListener(ev,e=>{NAVSRC=!!(e.target.closest&&e.target.closest("#tray"));setTimeout(()=>NAVSRC=false)},true);
+new MutationObserver(()=>{if(!trayOn())STK=[];navLater()}).observe($("tray"),{attributes:true,attributeFilter:["class"]});
+function show(t){let y=null;
+  if(NAVREPL);
+  else if(!trayOn()||!T||!NAVSRC)STK=[];
+  else if(t.sheet){const k=tKey(t),j=STK.findIndex(f=>tKey(f.t)===k);
+    if(j>=0){y=STK[j].y;STK.length=j}
+    else if(tKey(T)!==k){STK.push(navSnap());if(STK.length>STK_MAX)STK.shift()}}
+  else if(RESTORED===T&&T.sheet)STK.push(navSnap()); // el flujo ya volvió a su inicio: el resultado va encima
+  else{const g=tGrp(T);while(STK.length&&tGrp(STK[STK.length-1].t)===g)STK.pop()}
+  T=t;if(t.d20!=null&&t.raw==null&&!t.p)t.raw=lastD20;drawTray();$("scrim").hidden=!t.sheet;if(t.sheet&&$("rcard"))$("rcard").hidden=true;$("tray").classList.remove("hide");if(y!=null)$("tray").scrollTop=y;navLater()}
 const boxesHtml=t=>(t.boxes||[]).map(b=>`<div class="box ${b.cls||""}"><small>${b.l}</small><b${typeof b.v==="string"&&b.v.length>8?' class="rc"':""}>${b.v}</b><span>${b.s||""}</span></div>`).join("");
 const DRAGON_TY=["contundente","fuego","frío","rayo"];
 function drawTray(){
@@ -1545,7 +1587,7 @@ function drawTray(){
   /* Daños extra de rasgos de nivel (extras): una vez por turno cada uno, cuando la tirada tiene daño */
   if(t.atkRoll||t.dmgBox>=0)(c.extras||[]).forEach(x=>{if(t["xu_"+x.id])return;const used=S.turn.xu.split(",").includes(x.id);
     acts+=`<button class="btn" data-do="xtra" data-x="${x.id}" ${used?"disabled":""}>+${x.dice} ${x.name}${used?USED_():""}</button>`});
-  $("trayin").innerHTML=`<div class="grab" aria-hidden="true"></div><div class="top"><div class="title">${t.title}</div><button class="x" data-do="close">${tx("Cerrar","Close")}</button></div>
+  $("trayin").innerHTML=`<div class="grab" aria-hidden="true"></div>${navbHtml()}<div class="top"><div class="title">${t.title}</div><button class="x" data-do="close" aria-label="${STK.length?tx("Cerrar todo","Close all"):tx("Cerrar","Close")}">✕</button></div>
    ${t.warn?`<div class="warn">${t.warn}</div>`:""}
    ${t.boxes&&t.boxes.length?`<div class="res" id="trayres">${boxesHtml(t)}</div>`:""}
    ${t.p&&t.d20!=null?`<div class="hp d20in"><label for="in-d20">${tx("Si quieres, anota el d20 natural","Optionally, enter the natural d20")}</label><input class="hpin" id="in-d20" type="number" inputmode="numeric" min="1" max="20" value="${t.nat??""}" placeholder="d20"></div>`:""}
@@ -1730,11 +1772,11 @@ function shopOpen(col){if(col)SHOPTAB=col;const k=cur,P=PROG[k]||{},p=prestOf(k)
     ${b?`<div class="warn">${tx("Solicitud enviada al DM","Request sent to the DM")}: <b>${hakiName(b.id)}</b> · <button class="linkbtn" data-do="buycancel">${tx("Cancelar solicitud","Cancel request")}</button></div>`:""}
     ${!(CHARS_SRC[k]||{}).fruit?`<p class="note">${tx("Purista del Haki: como no tienes fruta, en los niveles 4, 10 y 16 eliges una mejora (Calidad, Cantidad o Resistencia de tu Haki). La aplica el DM; la pierdes si comes una fruta.","Haki Purist: since you have no fruit, at levels 4, 10 and 16 you choose an improvement (Quality, Quantity or Stamina of your Haki). The DM applies it; you lose it if you eat a fruit.")}</p>`:""}
     <div class="adv" role="group" aria-label="${tx("Color de Haki","Haki color")}">${["arm","obs","king"].map(c=>`<button data-do="shoptab" data-c="${c}" aria-pressed="${SHOPTAB===c}">${hakiCol(c)}</button>`).join("")}</div>
-    ${[0,1,2,3].map(t=>{const L=HAKI.filter(e=>e.c===SHOPTAB&&e.t===t);return L.length?`<h3 class="lvh">${t?`Tier ${t}`:tx("Aficionado (sin tier)","Amateur (no tier)")}</h3><div class="list">${L.map(item).join("")}</div>`:""}).join("")}`})}
+    ${[0,1,2,3].map(t=>{const L=HAKI.filter(e=>e.c===SHOPTAB&&e.t===t);return L.length?`<h3 class="lvh">${t?`Tier ${t}`:tx("Aficionado (sin tier)","Amateur (no tier)")}</h3><div class="list">${L.map(item).join("")}</div>`:""}).join("")}`});T.reopen=()=>shopOpen()}
 function hakiOpen(id,ex){const k=cur,e=hakiE(id),why=hakiWhy(k,e),cost=rarOf(e.r)[1],R=hakiRows(k,e),n=((PROG[k]||{}).hakiN||{})[id]??hakiSug(e,CHARS[k].level);
   if(ex)return explainView(tl(e.n),"haki:"+id,e.a||"",[["what",hakiSum(e,n)],...R],()=>hakiOpen(id));
   show({title:tl(e.n),sheet:true,warn:why,html:`${dl([["what",hakiSum(e,n)],...R])}<button class="btn primary use" data-do="hreq" data-id="${id}" ${why?"disabled":""}>${tx(`Pedir al DM · ${cost} ${cost===1?"punto":"puntos"}`,`Ask the DM · ${cost} ${cost===1?"point":"points"}`)}</button>
-    <div class="trayact"><button class="btn" data-do="shop">${tx("Volver a la tienda","Back to the shop")}</button></div>`})}
+    <div class="trayact"><button class="btn" data-do="hexp" data-id="${id}">${tx("Explicación detallada","Detailed explanation")}</button></div>`})}
 /* Avisos al jugador cuando el DM responde (una vez por respuesta, mc:buyseen) */
 function buyNotice(P){const b=P.buy;if(!b||b.st==="pend"||!b.at)return;const key=b.at+b.st;if(store.get("mc:buyseen")===key)return;store.set("mc:buyseen",key);
   cbToast(b.st==="ok"?`<b>${tx(`El DM aprobó tu compra: ${esc(hakiName(b.id))}`,`The DM approved your purchase: ${esc(hakiName(b.id))}`)}</b> · ${tx(`Te quedan ${P.prestige} de prestigio`,`You have ${P.prestige} prestige left`)}${b.note?" · "+esc(b.note):""}`
@@ -1796,7 +1838,7 @@ const howTxt=cost=>({accion:tx("En tu turno, con tu acción.","On your turn, wit
   especial:tx("Es una de tus 2 reacciones especiales de la ronda; no gasta tu reacción normal.","It's one of your 2 special reactions per round; it doesn't use your normal reaction.")}[cost]||(cost?tx(`Tarda ${unitT(cost)} en usarse.`,`It takes ${unitT(cost)} to use.`):""));
 function explainView(title,key,cost,R,back,ix=[]){const x=EXPL[key]||EXPL["*:"+key.split(":").slice(1).join(":")],how=howTxt(cost);
   const P=x?tl(x).split("\n\n").map(p=>`<p>${p.replace(/\n/g,"<br>")}</p>`).join(""):"";
-  show({title,sheet:true,html:`<div class="expl">${P}${how?`<p><b>${tx("Cómo se usa","How to use it")}:</b> ${how}</p>`:""}${ix.length?`<p><b>${tx("Con el resto de tu personaje","With the rest of your character")}:</b></p><ul>${ix.map(i=>`<li>${i}</li>`).join("")}</ul>`:""}</div>
+  show({title,sheet:true,x:1,html:`<div class="expl">${P}${how?`<p><b>${tx("Cómo se usa","How to use it")}:</b> ${how}</p>`:""}${ix.length?`<p><b>${tx("Con el resto de tu personaje","With the rest of your character")}:</b></p><ul>${ix.map(i=>`<li>${i}</li>`).join("")}</ul>`:""}</div>
     ${R.length?`<p class="tip">${tx("Ahora mismo","Right now")}</p>${dl(R.map(r=>r&&[r[0],r[1]==null?"":String(r[1])]))}`:""}${back?`<div class="trayact"><button class="btn primary" data-do="back">${tx("Ver la ficha para usarla","Open the sheet to use it")}</button></div>`:""}`});T.back=back}
 const DREAM_=()=>tx("Tras la tirada puedes gastar un punto de sueño: +1d6.","After the roll you can spend a Dream Point: +1d6.");
 function actInter(c,a){const L=[],w=(a.kind==="attack"||a.kind==="deflect")&&c.weapons[a.w];
@@ -1866,7 +1908,7 @@ function condsOpen(){show({title:tx("Estados","Conditions"),sheet:true,conds:1,h
   <p class="note">${tl(EXPL["stat:exh"])}</p>`})}
 /* Mantener pulsado (medio segundo) una tarjeta, estadística o número abre su explicación detallada; el toque normal sigue igual */
 const LP_SEL="[data-hbuy],[data-hk],[data-fx],[data-act],[data-sr],[data-spell],[data-tech],[data-item],[data-cact],[data-free],[data-mwatk],[data-x],[data-save],[data-skill],[data-cond],[data-jump],[data-do=init],[data-do=conds]";
-function lpOpen(el){const d=el.dataset;if(d.hbuy)return hakiOpen(d.hbuy,true);if(d.hk)return hakiGo(d.hk,true);if(d.fx)return fxOpen(d.fx);
+function lpOpen(el){NAVSRC=!!el.closest("#tray");const d=el.dataset;if(d.hbuy)return hakiOpen(d.hbuy,true);if(d.hk)return hakiGo(d.hk,true);if(d.fx)return fxOpen(d.fx);
   for(const k of ["act","sr","spell","tech","item","cact","free","mwatk"])if(d[k]!==undefined)return openSheet(k,d[k],true);
   if(d.x)return explainStat(d.x);if(d.save)return explainStat("save:"+d.save);if(d.skill)return explainStat("skill:"+d.skill);if(d.cond)return explainStat("cond:"+d.cond);
   if(d.jump)return explainStat(d.jump==="sec-especial"?"special":"econ");if(d.do==="init")return explainStat("init");if(d.do==="conds")return condsOpen()}
@@ -1955,7 +1997,7 @@ function weaponAttack(w,title,warn,tip,o={}){
 function doAct(i){
   const c=C(),a=c.actions[i];let warn="";
   if(a.dur!=null&&a.kind!=="group"&&!(a.res&&S.res[a.res]<=0)&&!(a.once&&S.used[a.once]))fxAdd(c,a);
-  if(a.kind==="haki"&&S.hard>0){S.hard=0;log(tx("Endurecimiento terminado","Weapon Hardening ended"));$("tray").classList.add("hide");save();render();return}
+  if(a.kind==="haki"&&S.hard>0){S.hard=0;log(tx("Endurecimiento terminado","Weapon Hardening ended"));trayDone();save();render();return}
   if(a.kind==="attack"){
     const w=c.weapons[a.w];
     if(w.ammo&&invQ(w.ammo)<=0){show({title:a.name,warn:tx("No te queda munición en el inventario.","You have no ammo left in your inventory.")});return}
@@ -2468,7 +2510,7 @@ function lvDiff(a,b){const L=[],add=(t,x,y)=>{if(String(x)!==String(y))L.push(`<
 const lvRevHtml=(k,to,picksRev)=>{const r=lvReviews(k,to);return r.length||picksRev?`<div class="lvrev"><b>${tx("Revisar (lo decide el DM)","Review (the DM decides)")}</b>${r.map(f=>`<p class="note"><b>${tl(f.n)}</b>: ${tl(f.sum)} ${tl(f.why)}</p>`).join("")}${picksRev?`<p class="note">${picksRev}</p>`:""}</div>`:""};
 function lvOpen(){const P=PROG[cur];if(admin||!P||!P.event||P.pending)return;$("tray").classList.add("hide");
   W={k:cur,ev:P.event,step:0,die:null,mode:"",kind:"asi",asi:{},feat:null,picks:{cantrips:[],fury:[]},fury:[...S.fury]};lvDraw()}
-function lvDraw(){let d=$("wz");if(!d){d=document.createElement("div");d.id="wz";d.className="wz";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");document.body.append(d)}
+function lvDraw(){navLater();let d=$("wz");if(!d){d=document.createElement("div");d.id="wz";d.className="wz";d.setAttribute("role","dialog");d.setAttribute("aria-modal","true");document.body.append(d)}
   if(!W){d.hidden=true;return}
   const k=W.k,c=W.c||CHARS[k],cl=lvCl(k),P=W.P||PROG[k]||{},steps=lvSteps(),st=steps[W.step],ch=lvChoices(k,W.ev.from,W.ev.to),pd=lvProposal();
   const names={hp:tx("Puntos de golpe","Hit points"),asi:tx("Mejora de característica o dote","Ability Score Improvement or feat"),pick:tx("Elecciones","Choices"),fury:tx("Cambiar técnicas de furia","Change fury features"),auto:tx("Cambios automáticos","Automatic changes"),sum:tx("Esto cambia en tu ficha","This changes on your sheet")};
@@ -2759,9 +2801,10 @@ document.addEventListener("click",e=>{
   const act=ds.do;if(!act)return;
   if(act!=="short"&&act!=="long")armed=null;
   if(act==="close"){$("tray").classList.add("hide");return}
+  if(act==="navback"){navBack();return}
   if(act==="look"){openLook();return}
   if(act==="poster"){openPoster(cur);return}
-  if(act==="chead"){const cp=c.companion;if(ds.y==="1"&&S.comp.heads>0){S.comp.heads--;log(tx(`Muere una cabeza de ${cp.name}: quedan ${S.comp.heads}`,`One of ${cp.name}'s heads dies: ${S.comp.heads} left`))}S.comp.turnDmg=0;$("tray").classList.add("hide")}
+  if(act==="chead"){const cp=c.companion;if(ds.y==="1"&&S.comp.heads>0){S.comp.heads--;log(tx(`Muere una cabeza de ${cp.name}: quedan ${S.comp.heads}`,`One of ${cp.name}'s heads dies: ${S.comp.heads} left`))}S.comp.turnDmg=0;trayDone()}
   if(act==="ctf"){const cp=c.companion;S.comp.tf=!S.comp.tf;show({title:cp.name+(S.comp.tf?tx(": transformado",": transformed"):tx(": vuelve a su forma",": back to normal")),tip:S.comp.tf?cp.tfNote:""});log(`${cp.name} ${S.comp.tf?tx("se transforma","transforms"):tx("vuelve a su forma","turns back")}`)}
   if(act==="login"){LOGIN.gerr="";fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>{LOGIN.gerr=authErr(e);render()});return}
   if(act==="lgmode"){LOGIN={m:ds.m,err:"",ok:"",busy:false};render();return}
@@ -2786,14 +2829,14 @@ document.addEventListener("click",e=>{
   if(act==="sea"){S.sea=!S.sea;if(S.sea&&S.form){log(HUMAN_(formOf(c).name));endForm(c)}if(S.sea){S.mw="";if(S.conc.id.startsWith("f:")){log(LOSTC_(concOf(c,S.conc.id).n));S.conc={id:"",lvl:0}}}
     log(S.sea?`<b>${c.fruit.seaLabel}</b>: ${tx("sin poderes de la fruta","no fruit powers")}`:tx("Vuelve la fruta","The fruit powers are back"))}
   if(act==="rep")return S.conc.id.startsWith("f:")?useTech(S.conc.id.slice(2),S.conc.lvl,{rep:true}):castSpell(S.conc.id,S.conc.lvl,{rep:true});
-  if(act==="endconc"){log(tx(`Termina la concentración en ${concOf(c,S.conc.id).n}`,`Concentration on ${concOf(c,S.conc.id).n} ends`));S.conc={id:"",lvl:0};$("tray").classList.add("hide")}
+  if(act==="endconc"){log(tx(`Termina la concentración en ${concOf(c,S.conc.id).n}`,`Concentration on ${concOf(c,S.conc.id).n} ends`));S.conc={id:"",lvl:0};trayDone()}
   if(act==="concsave"&&phys()){const v=sv(c,"CON"),dc=+ds.dc;
     show({title:CSV_(),d20:0,boxes:[d20Box(VSDC_(dc),v,mode)],html:ENDC_(),
       p:{mod:v,dmg:[],onSet:(b,n,tot)=>{b.s+=tot>=dc?tx(" · la mantienes"," · you keep it"):tx(" · la pierdes"," · you lose it");b.cls=tot>=dc?"":"fail"},fmt:tot=>`${tx("Concentración","Concentration")}: ${tot} ${tx("contra CD","vs DC")} ${dc}`},tip:tx("Si fallas, termina la concentración.","If you fail, concentration ends.")});log(tx("Concentración","Concentration"));T.logLine=S.log[0];return}
   if(act==="concsave"){const v=sv(c,"CON"),r=d20(),tot=r.v+v,ok=tot>=+ds.dc;
     show({title:CSV_(),warn:ok?"":tx("Fallaste. Si un punto de sueño no te alcanza para llegar a la CD, termina la concentración.","You failed. If a dream point isn't enough to reach the DC, end your concentration."),d20:0,
       boxes:[{l:VSDC_(ds.dc),v:tot,s:`d20 ${r.txt} ${sgn(v)}`,cls:ok?"":"fail"}],html:ok?"":ENDC_()});log(`${tx("Concentración","Concentration")}: ${tot} ${tx("contra CD","vs DC")} ${ds.dc}`)}
-  if(act==="forenext"){foreArm=+ds.i;$("tray").classList.add("hide");render();return}
+  if(act==="forenext"){foreArm=+ds.i;trayDone();render();return}
   if(act==="foreother"){const f=S.fore[+ds.i];f.u=true;S.turn.fore=true;show({title:tx("Presagio usado","Foretelling roll used"),boxes:[{l:tx("Tirada","Roll"),v:f.v,s:tx("para otra criatura","for another creature")}]});log(tx(`Presagio ${f.v} usado para otra criatura`,`Foretelling roll ${f.v} used for another creature`))}
   if(act==="muscle"){const f=c.frenzy,warn=spend("adicional");S.muscle=ds.m;show({title:ds.m==="def"?f.defOpt:f.atkOpt,warn,tip:(ds.m==="def"?f.defTxt:f.atkTxt)+tx(" hasta el inicio de tu siguiente turno."," until the start of your next turn.")});log(ds.m==="def"?f.defTxt:f.atkTxt)}
   if(act==="trans"){const a=c.actions[+ds.i],tr=c.transform,warn=spend(a.cost);S.res[tr.res]--;S.trans=true;
@@ -2824,7 +2867,7 @@ document.addEventListener("click",e=>{
     const warn=spend(a.cost);S.res[a.res]--;startForm(c,a.form,sel);show({title:f.name,warn,tip:f.bar+" · "+names.join(" · ")});log(`<b>${f.name}</b>: ${names.join(", ")}`)}
   /* Confirmar la respuesta: recién ahí se gasta. Deshacer vuelve a antes del daño (lastHit.pre) */
   if(act==="rconf"&&T&&T.resp){const R=T.resp,k=R.sel,{a,i,sr}=respOf(c,k),v=R.rv[k]||{},pre=lastHit&&lastHit.pre;if(respNeed(c,a,v))return;
-    $("tray").classList.add("hide");
+    trayDone();
     if(!RDO.includes(a.kind)){if(pre)preU=pre;sr?doSpecial(sr):doAct(i);return}
     const warn=respRun(c,k,v);if(warn)log(warn);const left=tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):"");
     if(a.kind==="deflect"&&v.ok){const w=c.weapons[a.w],st=wStats(w),base=w.dice+"+"+st.mod;
@@ -2839,25 +2882,26 @@ document.addEventListener("click",e=>{
   if(act==="money"){moneyForm(+ds.s);return}
   if(act==="invgo"&&T&&T.inv){invGo(c);return}
   if(act==="invdel"&&T&&T.inv){const x=S.inv.items.find(y=>y.id===T.inv.id);if(!x||!confirm(tx(`¿Quitar ${nmOf(x)} del inventario?`,`Remove ${nmOf(x)} from your inventory?`)))return;
-    S.inv.items=S.inv.items.filter(y=>y!==x);ilogAdd(tx(`Quitaste ${nmOf(x)} ×${x.q}`,`You removed ${nmOf(x)} ×${x.q}`));$("tray").classList.add("hide");save();render();return}
+    S.inv.items=S.inv.items.filter(y=>y!==x);ilogAdd(tx(`Quitaste ${nmOf(x)} ×${x.q}`,`You removed ${nmOf(x)} ×${x.q}`));trayDone();save();render();return}
   if(act==="force"){FORCE=true;try{T.reopen()}finally{FORCE=false}return}
   if(act==="conds"){condsOpen();return}
   if(act==="back"&&T&&T.back){T.back();return}
   if(act==="explain"){openSheet(ds.k,ds.v,true);return}
-  if(act==="hide"){S.hid=[...new Set([...S.hid,ds.h])];$("tray").classList.add("hide");save();render();cbToast(tx("Oculta: la encuentras al final, en Ocultas.","Hidden: you'll find it at the end, under Hidden."));return}
-  if(act==="fxend"){const x=S.fx.find(y=>y.id===ds.id);if(x){const n=fxName(c,x);fxEnd(c,x,false);log(tx(`Terminaste <b>${n}</b>`,`You ended <b>${n}</b>`))}$("tray").classList.add("hide");save();render();return}
-  if(act==="thrill"){if(ds.y==="0"&&S.frenzy){S.frenzy=false;S.muscle="";log(tx(`Termina ${c.frenzy.name}: no atacaste ni recibiste daño`,`${c.frenzy.name} ends: you didn't attack or take damage`))}$("tray").classList.add("hide");save();render();return}
+  if(act==="hexp"){hakiOpen(ds.id,true);return}
+  if(act==="hide"){S.hid=[...new Set([...S.hid,ds.h])];trayDone();save();render();cbToast(tx("Oculta: la encuentras al final, en Ocultas.","Hidden: you'll find it at the end, under Hidden."));return}
+  if(act==="fxend"){const x=S.fx.find(y=>y.id===ds.id);if(x){const n=fxName(c,x);fxEnd(c,x,false);log(tx(`Terminaste <b>${n}</b>`,`You ended <b>${n}</b>`))}trayDone();save();render();return}
+  if(act==="thrill"){if(ds.y==="0"&&S.frenzy){S.frenzy=false;S.muscle="";log(tx(`Termina ${c.frenzy.name}: no atacaste ni recibiste daño`,`${c.frenzy.name} ends: you didn't attack or take damage`))}trayDone();save();render();return}
   if(act==="shop"){shopOpen(ds.c);return}
   if(act==="shoptab"){shopOpen(ds.c);return}
-  if(act==="hreq"){const e=hakiE(ds.id);if(!e||hakiWhy(cur,e))return;progWrite(cur,{buy:{id:e.id,st:"pend",at:Date.now()}});if(!SANDBOX)cbToast(`<b>${tx("Solicitud enviada al DM","Request sent to the DM")}</b> · ${esc(tl(e.n))}`);$("tray").classList.add("hide");return}
-  if(act==="buycancel"){progWrite(cur,{buy:null});$("tray").classList.add("hide");return}
+  if(act==="hreq"){const e=hakiE(ds.id);if(!e||hakiWhy(cur,e))return;progWrite(cur,{buy:{id:e.id,st:"pend",at:Date.now()}});if(!SANDBOX)cbToast(`<b>${tx("Solicitud enviada al DM","Request sent to the DM")}</b> · ${esc(tl(e.n))}`);trayDone();return}
+  if(act==="buycancel"){progWrite(cur,{buy:null});trayDone();return}
   if(act==="tmlv"){lvTest($("tm-k").value,parseInt($("tm-l").value,10)||8);return}
   if(act==="tmview"){sandboxOpen($("tm-k").value);return}
   if(act==="tmturn"){const ch=CHARS[$("tm-k").value];buzz([220,90,220]);cbBanner(tx(`¡Es tu turno, ${esc(ch.name)}!`,`It's your turn, ${esc(ch.name)}!`),tx("Simulación: así lo ve el jugador. No cambia nada.","Simulation: this is what the player sees. Nothing changes."));return}
   if(act==="sbexit"){sandboxExit();return}
   if(act==="furypick"){furyPick();return}
   if(act==="furysave"&&T&&T.fury){if(T.fury.length!==furyN(c))return;const u=furyUnlock();S.fury=[...T.fury];if(u)S.furyDone=u;
-    log(tx("Técnicas de furia: ","Fury features: ")+furyNames(S.fury));$("tray").classList.add("hide");save();render();return}
+    log(tx("Técnicas de furia: ","Fury features: ")+furyNames(S.fury));trayDone();save();render();return}
   if(act==="nohit"){rehit(0,T&&T.title);save();render();return}
   if(act==="pulse"){S.turn.pulse++;T.pulseUsed=true;const t=c.fruit.tech.find(x=>x.id===c.pulse.tech);useTech(t.id,t.l,{free:true,dmg:c.pulse.dmg,title:c.pulse.name+tx(" (gratis)"," (free)")});return}
   if(act==="reroll"&&phys()&&T.p){const x=c.rerolls[+(ds.i||0)],t=T,b=t.boxes[t.d20],warn=x.react?spend("reaccion"):"";S.res[x.res]--;t.rerolled=true;
@@ -2873,7 +2917,7 @@ document.addEventListener("click",e=>{
   if(act==="turn")startTurn(c);
   if(act==="hpopen"){hpOpen(ds.k,ds.who);return}
   if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0))return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"",pet=h.who==="comp",hp=()=>pet?S.comp.hp:S.hp,h0=hp();
-    $("tray").classList.add("hide");
+    trayDone();
     if(h.k==="dmg")(pet?compDamage:takeDamage)(c,n,h.ty,h.mag);else if(h.k==="heal")healHp(c,h.who,n,src);else tempHp(c,h.who,n);
     /* DM con una ficha abierta desde Mesa: vista previa del aviso al grupo (dm.html no avisa los cambios hechos con la cuenta del DM) */
     const ev=h0>0&&hp()<=0?"down":h0<=0&&hp()>0?"up":"";if(admin&&ev)fallAlert({char:cur,kind:pet?"pet":"pc",name:pet?c.companion.name:c.name,ev},false,true)}
@@ -2899,13 +2943,13 @@ document.addEventListener("click",e=>{
 /* Deshacer: después del toque, si cambió el estado (ver DESHACER) */
 document.addEventListener("click",e=>{const el=e.target.closest("button"),p=preU;preU=null;
   if(p&&el&&S&&p.cur===cur&&!Object.keys(el.dataset).some(k=>NO_UNDO.includes(k))&&JSON.stringify(S)!==p.s)offerUndo(p)});
-/* La bandeja se cierra con Cerrar o Cancelar, o deslizando hacia abajo desde el tirador: tocar dentro nunca la cierra.
-   El velo y Escape la cierran, pero si escribiste algo preguntan antes. Enter en el panel de PV lo aplica */
+/* La bandeja se cierra con la X (toda la pila) o Cancelar; deslizar hacia abajo desde el tirador, el velo, Escape y el gesto Atrás vuelven un nivel: tocar dentro nunca la cierra.
+   El velo, Escape y Atrás preguntan antes si escribiste algo. Enter en el panel de PV lo aplica */
 const trayDirty=()=>[...document.querySelectorAll("#trayin input")].some(x=>x.value!==x.defaultValue);
-function trayAway(){if(!trayDirty()||confirm(tx("¿Descartar?","Discard?")))$("tray").classList.add("hide")}
+function trayAway(){if(!trayDirty()||confirm(tx("¿Descartar?","Discard?")))navBack()}
 $("scrim").addEventListener("click",trayAway);
 {let y0=null;const t=$("tray");t.addEventListener("touchstart",e=>{y0=e.target.closest(".grab")?e.touches[0].clientY:null},{passive:true});
-  t.addEventListener("touchend",e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>40)t.classList.add("hide");y0=null},{passive:true})}
+  t.addEventListener("touchend",e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>40)navBack();y0=null},{passive:true})}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("tray").classList.contains("hide")&&!document.querySelector("dialog[open]"))trayAway();
   if(e.key==="Enter"&&(e.target.id==="hpn"||e.target.id==="hpsrc")){const b=document.querySelector('#trayin [data-do="hpgo"]');if(b&&!b.disabled)b.click()}});
 load();render();cloudInit();

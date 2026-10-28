@@ -160,7 +160,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 18:56";
+const APP_VERSION="2026-10-28 19:08";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -191,12 +191,23 @@ function drawLook(){const t=isDark()?"dark":"light",d=document.getElementById("l
   <h3>Idioma / Language</h3><div class="lk-mode lk-two">${Object.entries(LANGS).map(([k,o])=>`<button data-lklang="${k}" lang="${k}" aria-pressed="${look.lang===k}">${n(o)}</button>`).join("")}</div>
   <p class="lk-ver">${tx("Versión","Version")} ${APP_VERSION}</p></div>`}
 function openLook(){let d=document.getElementById("lk");
-  if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";document.body.append(d);
+  if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";document.body.append(d);d.addEventListener("close",()=>navLater());
     d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
       const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":b.dataset.lklang?"lang":b.dataset.lkquick?"quick":"dice",val=b.dataset["lk"+k];
       setLook({...look,[k]:val});d.querySelector(`[data-lk${k}="${val}"]`)?.focus()})}
-  drawLook();d.showModal()}
+  drawLook();d.showModal();navLater()}
 applyLook();darkQ.addEventListener("change",applyLook);
+/* Gesto Atrás del teléfono (botón de Android, deslizar desde el borde en iPhone): cada nivel abierto es una entrada del historial (pushState, sin cambiar la URL).
+   Niveles: Ajustes más los que cuente la página (navDepth); Atrás cierra uno (navPop). Cerrar varios a la vez retrocede el historial y HSKIP ignora ese popstate */
+let HD=0,HSKIP=0,HT=0;
+const lkOpen=()=>!!(document.getElementById("lk")||{}).open;
+function navSync(){HT=0;if(HSKIP)return;const d=(lkOpen()?1:0)+(typeof navDepth==="function"?navDepth():0);
+  if(d>HD)for(;HD<d;HD++)history.pushState({mc:HD+1},"");
+  else if(d<HD){HSKIP=1;history.go(d-HD);HD=d;setTimeout(()=>{if(HSKIP){HSKIP=0;navLater()}},1500)}}
+function navLater(){if(!HT)HT=setTimeout(navSync,0)}
+addEventListener("popstate",()=>{if(HSKIP){HSKIP=0;navLater();return}if(!HD)return;HD--;
+  if(lkOpen())document.getElementById("lk").close();else if(typeof navPop==="function")navPop();navLater()});
+if(history.state&&history.state.mc){HSKIP=1;history.go(-history.state.mc)} // recarga con niveles abiertos: vuelve a la entrada base
 addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook();if(typeof onLook==="function")onLook()}}});
 </script>
 </head>
@@ -348,7 +359,10 @@ function dmToast(cls,html){let d=$("dmt");if(!d){d=document.createElement("div")
   d.className="dmt "+cls;d.innerHTML=html;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>d.hidden=true,5000)}
 function applyHeal(c,n){c.hp=Math.min(c.max,c.hp+n)}
 
-function render(){
+/* Gesto Atrás: la tarjeta abierta cuenta como un nivel (ver navSync en el script de apariencia) */
+function navDepth(){return open?1:0}
+function navPop(){open=null;armed=null;render()}
+function render(){navLater();
   watchFall();
   const L=sorted(),cur=L.find(c=>c.id===S.cur);document.title=tx("Panel del DM","DM Panel");
   $("top").innerHTML=`<div class="toprow"><h1>${tx("Panel del DM","DM Panel")}</h1><span style="display:flex;align-items:center;gap:10px"><span class="round">${tx(`Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie`,`Round ${S.round} · ${L.filter(c=>c.hp>0).length} standing`)}</span><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></span></div>
