@@ -57,6 +57,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
   -webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 .wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+#main{width:100%} /* con margin auto no se estira: sin esto el tablón de carteles ensancha la página */
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pick{display:flex;gap:8px;padding-top:14px;overflow-x:auto}
@@ -264,6 +265,9 @@ section h2 .h2t{display:inline-flex;align-items:center}
 .ctr i{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block} .ctr i.u{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line)}
 .ctr small{font-weight:600;color:var(--muted);margin-left:3px}
 .act .spent{color:var(--bad)}
+.mail{display:flex;flex-direction:column;gap:6px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.mail .or{margin:0 0 4px;font-weight:700;color:var(--muted)}.mail .lgin{width:100%;text-align:left;font-size:16px}.mail .btn{margin-top:6px}
+.lglinks{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px}.okmsg{color:var(--good);font-weight:700}
 .linkbtn{background:none;border:0;padding:6px 2px;color:var(--accent);font-weight:700;text-decoration:underline;font:inherit;cursor:pointer}
 .charges{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
 .charges b{font-size:20px} .charges small{color:var(--muted);font-weight:600} .charges .track{height:8px}
@@ -332,7 +336,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 15:36";
+const APP_VERSION="2026-10-28 15:46";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -987,7 +991,7 @@ function merge(c,s){
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===CHARS.udon.maxHp&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
 function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P);if(P&&!admin)invGrants(P)}
-function save(){if(SANDBOX)return;store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}}
+function save(){if(SANDBOX)return;store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}else if(view==="char")store.set("mc:dirty",cur)}
 
 /* ===================== DADOS ===================== */
 const d=n=>1+Math.floor(Math.random()*n);
@@ -1090,7 +1094,7 @@ function render(){
   document.title=tx("Mesa de Combate","Combat Table");
   if(view==="char"&&S)fxSweep(C());
   const c=C(),t=S.turn,pct=Math.max(0,S.hp/mhp(c)*100);
-  const keys=user&&!admin?[]:Object.keys(CHARS);
+  const keys=admin?Object.keys(CHARS):[];
   put($("pick"),(admin?`<button data-pick="mesa" aria-pressed="${view==="mesa"}">${tx("Mesa","Table")}</button>`:"")+
     (keys.length>1||admin?keys.map(k=>`<button data-pick="${k}" aria-pressed="${k===cur&&view==="char"}">${pic(k,"mini",24)}${CHARS[k].name}</button>`).join(""):""));
   $("hero").hidden=view!=="char";
@@ -1190,8 +1194,7 @@ function render(){
      <button class="btn ${armed==="long"?"arm":""}" data-do="long">${armed==="long"?tx("Toca para confirmar","Tap to confirm"):tx("Descanso largo","Long Rest")}</button></div></section>`;
   h+=`<section><h2>${tx("Historial","Log")}</h2><div class="log">${S.log.length?S.log.map(l=>`<div>${l}</div>`).join(""):`<div>${tx("Aún no hay tiradas.","No rolls yet.")}</div>`}</div></section>`;
   h+=user?`<p class="note">${tx(`Sincronizado con la nube como ${esc(user.email)}. Sin conexión se guarda en este teléfono y se sube al volver.`,`Synced to the cloud as ${esc(user.email)}. Offline, it is saved on this phone and uploaded when you reconnect.`)}</p>${outBtn()}`
-    :fb?`<p class="note">${tx("Los PV, usos y puntos se guardan solo en este teléfono.","HP, uses and points are saved only on this phone.")}</p><button class="btn primary" data-do="login">${tx("Entrar con Google","Sign in with Google")}</button>`
-    :`<p class="note">${tx("Los PV, usos y puntos se guardan en este teléfono.","HP, uses and points are saved on this phone.")}</p>`;
+    :`<p class="note">${tx("Sin conexión: se guarda en este teléfono y se sube cuando vuelvas a tener internet.","Offline: it's saved on this phone and uploaded when you're back online.")}</p>`;
   put($("main"),h);
   document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px");
 }
@@ -2046,7 +2049,7 @@ function doSpecial(id){
 }
 
 /* ===================== NUBE (Firebase) ===================== */
-/* Configuración de la app web de Firebase (no es secreta: la protegen las reglas de Firestore). Con null, todo queda solo en el teléfono. */
+/* Configuración de la app web de Firebase (no es secreta: la protegen las reglas de Firestore). Iniciar sesión es obligatorio. */
 const FIREBASE={
   apiKey:"AIzaSyBjywHbBPsTBVvWtOXbKhjQDf4kmbEc-MU",
   authDomain:"one-piece-dnd.firebaseapp.com",
@@ -2058,23 +2061,24 @@ const FIREBASE={
 const FB="https://www.gstatic.com/firebasejs/10.12.2/firebase-";
 const outBtn=()=>`<button class="btn" data-do="logout">${tx("Cerrar sesión","Sign out")}</button>`;
 const esc=s=>String(s??"").replace(/[&<>"']/g,ch=>"&#"+ch.charCodeAt(0)+";");
-let fb=null,user=null,admin=false,view="char",mesa={state:{},players:[]},unsub=[],stateUnsub=null,pushT=null;
+let fb=null,user=null,admin=false,view="load",mesa={state:{},players:[]},unsub=[],stateUnsub=null,pushT=null;
 
 async function cloudInit(){
-  if(!FIREBASE)return;
   try{
     const [A,U,F]=await Promise.all(["app","auth","firestore"].map(m=>import(FB+m+".js")));
     const app=A.initializeApp(FIREBASE);let db;
     try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){db=F.getFirestore(app)}
     fb={U,F,db,auth:U.getAuth(app)};
-  }catch(e){return} // sin internet y sin la librería en caché: sigue en modo local
+  }catch(e){ // sin internet y sin la librería en caché: el último jugador que entró en este teléfono sigue con su copia local (mc:acct); se sube al volver (mc:dirty)
+    const a=store.get("mc:acct");if(CHARS[a]){cur=a;load();view="char"}else view="login";render();return}
   render();
   fb.U.onAuthStateChanged(fb.auth,signedIn);
 }
 async function signedIn(u){
   unsub.forEach(f=>f());unsub=[];if(stateUnsub){stateUnsub();stateUnsub=null}if(progUnsub){progUnsub();progUnsub=null}
   user=u;admin=false;
-  if(!u){view="login";render();return}
+  if(!u){store.set("mc:acct",null);$("tray").classList.add("hide");view="login";render();return}
+  LOGIN={m:"in",err:"",ok:"",busy:false};
   view="load";render();
   const {F,db}=fb;
   try{admin=(await F.getDoc(F.doc(db,"admins",u.uid))).exists()}catch(e){}
@@ -2088,8 +2092,8 @@ async function signedIn(u){
   }
   const ref=F.doc(db,"players",u.uid);
   unsub.push(F.onSnapshot(ref,d=>{
-    if(!d.exists()){if(!d.metadata.fromCache)F.setDoc(ref,{name:u.displayName||"",email:u.email||"",char:null});return}
-    const k=d.data().char;setLook(d.data().look,true);
+    if(!d.exists()){if(!d.metadata.fromCache)F.setDoc(ref,{name:u.displayName||NEWNAME||"",email:u.email||"",char:null});return}
+    const k=d.data().char;setLook(d.data().look,true);store.set("mc:acct",CHARS[k]?k:null);
     if(CHARS[k])openChar(k);else{if(stateUnsub){stateUnsub();stateUnsub=null}view="wait";render()}
   }));
 }
@@ -2099,6 +2103,7 @@ function openChar(k){
   if(pushT)push(); // sube lo pendiente antes de cambiar de personaje
   if(stateUnsub)stateUnsub();
   cur=k;load();view="char";store.set("mc:cur",cur);render();
+  if(store.get("mc:dirty")===k){store.set("mc:dirty",null);push()} // cambios hechos sin conexión y sin la librería
   if(progUnsub)progUnsub();progUnsub=fb.F.onSnapshot(fb.F.doc(fb.db,"progress",k),d=>onProg(k,d.exists()?d.data():{}));
   stateUnsub=fb.F.onSnapshot(fb.F.doc(fb.db,"state",k),d=>{
     if(SANDBOX||cur!==k||pushT||d.metadata.hasPendingWrites)return;
@@ -2112,13 +2117,53 @@ function lookToCloud(v){if(fb&&user)fb.F.setDoc(fb.F.doc(fb.db,"players",user.ui
 function push(){clearTimeout(pushT);pushT=null;if(!fb||!user||SANDBOX)return;
   fb.F.setDoc(fb.F.doc(fb.db,"state",cur),{...S,maxHp:C().maxHp,by:user.uid,at:fb.F.serverTimestamp()}).catch(e=>console.warn("No se pudo guardar en la nube",e))}
 
+/* Inicio de sesión obligatorio: Google o correo y contraseña (Firebase Authentication). LOGIN.m: formulario de correo (in, new, reset).
+   NEWNAME: nombre de la cuenta nueva, por si el documento del jugador se crea antes de que llegue updateProfile */
+let LOGIN={m:"in",err:"",ok:"",busy:false},NEWNAME="";
+function authErr(e){const c=String((e&&e.code)||"").replace("auth/","");if(["popup-closed-by-user","cancelled-popup-request"].includes(c))return"";
+  const bad=tx("Tu correo o tu contraseña no son correctos. Revísalos e intenta de nuevo.","Your email or password is incorrect. Check them and try again.");
+  return{"invalid-credential":bad,"invalid-login-credentials":bad,"wrong-password":bad,"user-not-found":bad,
+    "email-already-in-use":tx("Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña.","There's already an account with that email. Sign in or reset your password."),
+    "weak-password":tx("Tu contraseña es muy débil: usa al menos 8 caracteres.","Your password is too weak: use at least 8 characters."),
+    "invalid-email":tx("Ese correo no es válido. Revisa cómo lo escribiste.","That email isn't valid. Check how you typed it."),
+    "missing-password":tx("Escribe tu contraseña.","Enter your password."),
+    "network-request-failed":tx("No tienes conexión. Revisa tu internet e intenta de nuevo.","You have no connection. Check your internet and try again."),
+    "too-many-requests":tx("Hiciste demasiados intentos. Espera unos minutos y vuelve a intentarlo.","You made too many attempts. Wait a few minutes and try again."),
+    "popup-blocked":tx("Tu navegador bloqueó la ventana de Google. Permite las ventanas emergentes e intenta de nuevo.","Your browser blocked the Google window. Allow pop-ups and try again."),
+    "user-disabled":tx("Tu cuenta está desactivada. Habla con el DM.","Your account is disabled. Talk to the DM."),
+    "operation-not-allowed":tx("Esta forma de entrar no está activada. Avísale al DM.","This sign-in method isn't enabled. Let the DM know.")}[c]
+    ||tx("No se pudo completar. Intenta de nuevo en un momento.","That didn't work. Try again in a moment.")}
+function mailForm(){const m=LOGIN.m,f=(id,l,type,ac)=>`<label class="tip" for="${id}">${l}</label><input class="hpin lgin" id="${id}" type="${type}" autocomplete="${ac}" maxlength="${type==="text"?40:120}"${type==="email"?' inputmode="email" autocapitalize="off" spellcheck="false"':""}>`;
+  return`<form class="mail" data-lg novalidate><p class="or">${m==="new"?tx("Crear cuenta con tu correo","Create an account with your email"):m==="reset"?tx("Recuperar tu contraseña","Reset your password"):tx("o con tu correo","or with your email")}</p>
+    ${m==="new"?f("lg-name",tx("Tu nombre","Your name"),"text","name"):""}${f("lg-email",tx("Correo","Email"),"email","email")}
+    ${m!=="reset"?f("lg-pass",tx("Contraseña","Password")+(m==="new"?tx(" (mínimo 8 caracteres)"," (at least 8 characters)"):""),"password",m==="new"?"new-password":"current-password"):""}
+    ${m==="new"?f("lg-pass2",tx("Repite la contraseña","Confirm your password"),"password","new-password"):""}
+    ${m==="reset"?`<p class="note">${tx("Te enviaremos un correo con un enlace para elegir una contraseña nueva.","We'll send you an email with a link to choose a new password.")}</p>`:""}
+    ${LOGIN.err?`<p class="warn" role="alert">${LOGIN.err}</p>`:""}${LOGIN.ok?`<p class="note okmsg" role="status">${LOGIN.ok}</p>`:""}
+    <button class="btn primary" type="submit" ${LOGIN.busy?"disabled":""}>${LOGIN.busy?tx("Un momento…","One moment…"):m==="new"?tx("Crear cuenta","Create account"):m==="reset"?tx("Enviar correo","Send email"):tx("Iniciar sesión","Sign in")}</button>
+    <div class="lglinks">${m==="in"?`<button type="button" class="linkbtn" data-do="lgmode" data-m="new">${tx("Crear cuenta","Create account")}</button><button type="button" class="linkbtn" data-do="lgmode" data-m="reset">${tx("¿Olvidaste tu contraseña?","Forgot your password?")}</button>`
+      :`<button type="button" class="linkbtn" data-do="lgmode" data-m="in">${tx("Ya tengo cuenta: iniciar sesión","I already have an account: sign in")}</button>`}</div></form>`}
+async function mailGo(){if(!fb||LOGIN.busy)return;const v=id=>($(id)||{}).value||"",U=fb.U,a=fb.auth,m=LOGIN.m,email=v("lg-email").trim(),pw=v("lg-pass");
+  a.languageCode=look.lang==="en"?"en":"es"; // el correo de Firebase llega en el idioma de la app
+  const bad=m==="new"&&!v("lg-name").trim()?tx("Escribe tu nombre.","Enter your name."):!email?tx("Escribe tu correo.","Enter your email."):m==="reset"?""
+    :!pw?tx("Escribe tu contraseña.","Enter your password."):m==="new"&&pw.length<8?tx("Tu contraseña es muy corta: usa al menos 8 caracteres.","Your password is too short: use at least 8 characters.")
+    :m==="new"&&pw!==v("lg-pass2")?tx("Las contraseñas no coinciden.","The passwords don't match."):"";
+  LOGIN={...LOGIN,err:bad,ok:"",gerr:""};if(bad){render();return}
+  LOGIN.busy=true;render();
+  try{if(m==="reset"){await U.sendPasswordResetEmail(a,email);LOGIN.ok=tx(`Te enviamos un correo a ${esc(email)} para cambiar tu contraseña. Si no lo ves en unos minutos, revisa la carpeta de spam.`,`We sent an email to ${esc(email)} to change your password. If you don't see it in a few minutes, check your spam folder.`)}
+    else if(m==="new"){NEWNAME=v("lg-name").trim().slice(0,40);const r=await U.createUserWithEmailAndPassword(a,email,pw);await U.updateProfile(r.user,{displayName:NEWNAME})}
+    else await U.signInWithEmailAndPassword(a,email,pw)}
+  catch(e){LOGIN.err=authErr(e)}
+  LOGIN.busy=false;render()}
+addEventListener("submit",e=>{if(e.target.matches("[data-lg]")){e.preventDefault();mailGo()}});
 function gate(){
   if(view==="login")return`<section class="box2" style="margin-top:24px"><h1>${tx("Mesa de Combate","Combat Table")}</h1>
     <div class="board" aria-label="${tx("Carteles de se busca","Wanted posters")}">${Object.keys(CHARS).map(k=>`<figure class="wp">${pic(k,"cartel",108,144)}<figcaption>${CHARS[k].name}</figcaption></figure>`).join("")}</div>
-    <p class="note">${tx("Entra con tu cuenta de Google para guardar tu personaje en la nube y usarlo en cualquier dispositivo.","Sign in with your Google account to save your character in the cloud and use it on any device.")}</p>
-    <button class="btn primary" data-do="login">${tx("Entrar con Google","Sign in with Google")}</button><button class="btn" data-do="local">${tx("Usar sin cuenta (solo en este teléfono)","Use without an account (this phone only)")}</button></section>`;
+    ${fb?`<p class="note">${tx("Inicia sesión para usar tu personaje. Se guarda en la nube y también en este teléfono, así sigue funcionando si se corta la conexión.","Sign in to use your character. It's saved in the cloud and on this phone too, so it keeps working if the connection drops.")}</p>
+    <button class="btn primary" data-do="login">${tx("Iniciar sesión con Google","Sign in with Google")}</button>${LOGIN.gerr?`<p class="warn" role="alert">${LOGIN.gerr}</p>`:""}${mailForm()}`
+    :`<p class="note">${tx("Sin conexión. Necesitas internet para iniciar sesión.","No connection. You need internet to sign in.")}</p>`}</section>`;
   if(view==="load")return`<p class="note" style="margin-top:24px">${tx("Conectando…","Connecting…")}</p>`;
-  if(view==="wait")return`<section class="box2" style="margin-top:24px"><h1>${tx("Hola","Hi")}, ${esc(user.displayName)}</h1>
+  if(view==="wait")return`<section class="box2" style="margin-top:24px"><h1>${tx("Hola","Hi")}, ${esc(user.displayName||NEWNAME)}</h1>
     <p class="note">${tx("Tu cuenta todavía no tiene personaje. Pídele al DM que te asigne uno; esta pantalla se actualiza sola.","Your account doesn't have a character yet. Ask the DM to assign you one; this screen updates by itself.")}</p>
     <p class="note">${tx("Tu ID de usuario","Your user ID")}: <code>${esc(user.uid)}</code></p>${outBtn()}</section>`;
   const opts=sel=>`<option value="">${tx("Sin asignar","Unassigned")}</option>`+Object.entries(CHARS).map(([k,c])=>`<option value="${k}" ${k===sel?"selected":""}>${c.name}</option>`).join("");
@@ -2316,13 +2361,13 @@ function tempHp(c,who,n){const cp=who==="comp"&&c.companion,k=cp?S.comp:S,old=k.
 
 /* ===================== NIVELES (subida) ===================== */
 /* Flujo: el DM crea event en progress/{k} (Mesa) → el jugador ve la celebración y el asistente → envía pending → el DM aprueba (pasa a level, hist…), edita o rechaza.
-   Sin cuenta (solo este teléfono) el progreso se guarda en localStorage (mc:prog). W: asistente abierto. RV: lo que el DM editó de cada propuesta */
+   mc:prog: copia local del progreso de la nube. W: asistente abierto. RV: lo que el DM editó de cada propuesta */
 let W=null,RV={},progUnsub=null,lvTarget="all";
 const lvSeen=()=>store.get("mc:lvseen")||[];
 function progWrite(k,data,full){if(SANDBOX){cbToast(tx("Modo prueba: no se guardó nada","Test mode: nothing was saved"));return Promise.resolve()}
   if(fb&&user){const ref=fb.F.doc(fb.db,"progress",k);
     return(full?fb.F.setDoc(ref,data):fb.F.setDoc(ref,data,{merge:true})).catch(e=>show({title:tx("No se pudo guardar el nivel","Couldn't save the level"),warn:e.code||String(e)}))}
-  onProg(k,full?data:{...(PROG[k]||{}),...data});return Promise.resolve()}
+  cbToast(tx("Sin conexión: inténtalo cuando vuelvas a tener internet","Offline: try again when you're back online"));return Promise.resolve()}
 /* Llega un progreso nuevo (de la nube o de este teléfono): rearma las fichas y, si el DM aprobó una subida del personaje abierto, actualiza su estado */
 function onProg(k,raw){if(!CHARS_SRC[k])return;
   const P=cleanProg(k,raw),old=(PROG[k]||{}).prestige||0;
@@ -2544,7 +2589,7 @@ function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.t
 
 /* ===================== TURNOS DEL COMBATE (dm.html) ===================== */
 /* combat/live (lo escribe dm.html con sesión de DM): active, round, turnId (sube en cada cambio de turno), cur y next {kind: pc | pet | ally | foe, char, name}.
-   Los enemigos llegan sin nombre. Sin cuenta se lee la copia local mc:live (DM y app en el mismo navegador). mc:turnseen: último turno ya avisado en este teléfono */
+   Los enemigos llegan sin nombre. mc:turnseen: último turno ya avisado en este teléfono */
 let CB=null;
 const CB_KINDS=["pc","pet","ally","foe"],CB_CHARS=["udon","codel","kalgo","sungsopp","ryuga"];
 const cbWho=x=>x&&typeof x==="object"&&CB_KINDS.includes(x.kind)?{kind:x.kind,char:CB_CHARS.includes(x.char)?x.char:null,name:x.kind==="foe"?"":String(x.name||"").slice(0,40)}:null;
@@ -2602,7 +2647,6 @@ function cbBar(){const fb=FALL.map(f=>`<i class="fb ${f.st}">${esc(f.name)} · $
   const tt=t.kind==="foe"?tx("Turno de los enemigos","Enemies' turn"):cbMine(t)&&t.kind==="pc"?tx("Tu turno","Your turn"):tx(`Turno de ${esc(t.name)}`,`${esc(t.name)}'s turn`);
   return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}${fb}</div>`}
 const cbBadge=()=>CB&&cbMine(CB.cur)?`<span class="econ yt-b"><i></i>${CB.cur.kind==="pet"?tx(`Turno de ${esc(CB.cur.name)}`,`${esc(CB.cur.name)}'s turn`):tx("Tu turno","Your turn")}</span>`:"";
-addEventListener("storage",e=>{if(e.key==="mc:live"&&!user)onCombat(store.get("mc:live"))});
 
 /* ===================== EVENTOS ===================== */
 document.addEventListener("click",e=>{
@@ -2696,9 +2740,9 @@ document.addEventListener("click",e=>{
   if(act==="poster"){openPoster(cur);return}
   if(act==="chead"){const cp=c.companion;if(ds.y==="1"&&S.comp.heads>0){S.comp.heads--;log(tx(`Muere una cabeza de ${cp.name}: quedan ${S.comp.heads}`,`One of ${cp.name}'s heads dies: ${S.comp.heads} left`))}S.comp.turnDmg=0;$("tray").classList.add("hide")}
   if(act==="ctf"){const cp=c.companion;S.comp.tf=!S.comp.tf;show({title:cp.name+(S.comp.tf?tx(": transformado",": transformed"):tx(": vuelve a su forma",": back to normal")),tip:S.comp.tf?cp.tfNote:""});log(`${cp.name} ${S.comp.tf?tx("se transforma","transforms"):tx("vuelve a su forma","turns back")}`)}
-  if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>show({title:tx("No se pudo entrar","Couldn't sign in"),warn:e.code||String(e)}));return}
+  if(act==="login"){LOGIN.gerr="";fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>{LOGIN.gerr=authErr(e);render()});return}
+  if(act==="lgmode"){LOGIN={m:ds.m,err:"",ok:"",busy:false};render();return}
   if(act==="logout"){if(pushT)push();fb.U.signOut(fb.auth);return}
-  if(act==="local"){view="char";render();return}
   if(act==="apply"){const t=T,a=t.apply&&t.apply[ds.k],n=parseInt($("in-"+ds.k).value,10);if(!a||!Number.isFinite(n))return;
     a.fn(n);if(T===t){delete t.apply[ds.k];t.tip=(t.tip?t.tip+" ":"")+`${tx("Anotado","Entered")}: ${n}.`;drawTray()}save();render();return}
   if(act==="dreamadd"&&phys()){const t=T;S.dream--;t.dreamUsed=true;t.tip=(t.tip?t.tip+" ":"")+tx("Punto de sueño: tira 1d6 y súmalo a esta tirada.","Dream point: roll 1d6 and add it to this roll.");
@@ -2841,7 +2885,7 @@ $("scrim").addEventListener("click",trayAway);
   t.addEventListener("touchend",e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>40)t.classList.add("hide");y0=null},{passive:true})}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("tray").classList.contains("hide")&&!document.querySelector("dialog[open]"))trayAway();
   if(e.key==="Enter"&&(e.target.id==="hpn"||e.target.id==="hpsrc")){const b=document.querySelector('#trayin [data-do="hpgo"]');if(b&&!b.disabled)b.click()}});
-load();render();cloudInit();onCombat(store.get("mc:live")); // sin cuenta: combate del dm.html abierto en este navegador
+load();render();cloudInit();
 </script>
 
 </body>

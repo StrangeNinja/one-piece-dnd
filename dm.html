@@ -160,7 +160,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 15:36";
+const APP_VERSION="2026-10-28 15:46";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -234,7 +234,7 @@ const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){retu
 let uid=1;const nid=()=>"c"+(Date.now().toString(36))+(uid++);
 /* ===== Nube (Firebase): combate compartido con los jugadores =====
    combat/dm: el combate completo (solo el DM). combat/live: lo que ven los jugadores (ronda, turno y quién sigue; los enemigos van sin nombre ni datos).
-   Sin sesión de DM todo queda en este teléfono, como antes; además se copia en localStorage (mc:live) para la app abierta en el mismo navegador.
+   Sin sesión de DM todo queda en este teléfono, como antes.
    Configuración pública (la protegen las reglas de Firestore): la misma que en index.html */
 const FIREBASE={apiKey:"AIzaSyBjywHbBPsTBVvWtOXbKhjQDf4kmbEc-MU",authDomain:"one-piece-dnd.firebaseapp.com",projectId:"one-piece-dnd",storageBucket:"one-piece-dnd.firebasestorage.app",messagingSenderId:"629290049992",appId:"1:629290049992:web:6fe9f692bb47c8878460fd"};
 const FB="https://www.gstatic.com/firebasejs/10.12.2/firebase-";
@@ -302,7 +302,7 @@ function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx
   /* Caídos y avisos: solo jugadores y mascotas (nombre, tipo y estado; nada privado) */
   const fallen=Object.entries(S.fall||{}).map(([k,st])=>{const c=S.list.find(x=>{const l=linkOf(x);return l&&fallKey(l)===k});return c&&{...linkOf(c),name:c.name,st}}).filter(Boolean);
   return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,at:Date.now()}}
-function syncOut(){if(typeof sorted!=="function")return;store.set("mc:live",liveOf());
+function syncOut(){if(typeof sorted!=="function")return;
   if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
     F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
     F.setDoc(F.doc(db,"combat","live"),liveOf()).catch(e=>console.warn("No se pudo publicar el turno",e))},250)}
@@ -323,7 +323,7 @@ async function cloudInit(){
     if(isDM){const {F,db}=fb;
       /* Otro dispositivo del DM: gana el combate guardado más nuevo */
       unsubs.push(F.onSnapshot(F.doc(db,"combat","dm"),d=>{const v=d.exists()&&d.data();
-        if(v&&v.S&&Array.isArray(v.S.list)&&(v.at||0)>(S.at||0)&&!d.metadata.hasPendingWrites){S=v.S;store.set("dm:combat2",S);store.set("mc:live",liveOf());render()}
+        if(v&&v.S&&Array.isArray(v.S.list)&&(v.at||0)>(S.at||0)&&!d.metadata.hasPendingWrites){S=v.S;store.set("dm:combat2",S);render()}
         if(firstDm){firstDm=false;syncOut()}}));
       unsubs.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>LIVE.state[d.id]=d.data());liveMax();render()}));
       unsubs.push(F.onSnapshot(F.collection(db,"progress"),q=>{q.forEach(d=>LIVE.prog[d.id]=d.data());liveMax();render()}))}
