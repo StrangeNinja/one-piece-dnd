@@ -102,6 +102,8 @@ button.econ[data-jump]:active{transform:scale(.96)}
 @media (max-width:480px){.turn{gap:6px 4px}.econ{padding:5px 7px;gap:4px;font-size:11.5px;letter-spacing:-.02em}.econ i{width:7px;height:7px}.turn .brk{display:block;flex-basis:100%;height:0;margin-top:-6px}}
 #main section{scroll-margin-top:calc(var(--hdr,180px) + env(safe-area-inset-top,0px) + 8px)}
 section h2{border-radius:8px;transition:background-color .5s,box-shadow .5s}
+.hkc{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0}.hkc+.hkc{border-top:1px solid var(--line)}.hkc .btn{flex:none}
+.act.flash{box-shadow:0 0 0 3px var(--accent)}
 section h2.flash{background:color-mix(in srgb,var(--accent) 16%,transparent);box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 16%,transparent)}
 .newturn{margin-left:auto;padding:7px 12px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px}
 
@@ -336,7 +338,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 15:46";
+const APP_VERSION="2026-10-28 18:56";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -398,7 +400,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 const CHARS = {
   udon:{
     name:"Udon", bounty:"", sub:{es:"Guerrero · Black Weapon · Nivel {lvl} · Humano · Samurái",en:"Warrior · Black Weapon · Level {lvl} · Human · Samurai"},
-    haki:["weaponHardening"],
+    haki:["weaponHardening"],hakiFrom:{weaponHardening:"pres"}, // hakiFrom: origen de cada rasgo (pres comprado, up aficionado mejorado o texto); sin dato = de la hoja
     inv:{money:1000,items:[{w:"main",eq:1},{w:"sc",eq:1}]},
     cls:"warrior", sc:"blackWeapon", scores:{FUE:20,DES:13,CON:16,INT:8,SAB:10,CAR:10}, tags:["race:human","armor:light","armor:medium","armor:heavy"],
     level:7, prof:3, ac:15, maxHp:66, init:1, speed:{es:"30 pies",en:"30 feet"},
@@ -431,7 +433,7 @@ const CHARS = {
       {cost:"accion",kind:"dash",name:{es:"Golpe embestida",en:"Dashing Strike"},res:"embestida",dc:"=8+prof+FUE",save:"DES",dmg:"2d8+{FUE}",type:"cortante",note:{es:"Embistes en línea recta hasta 20 pies sin provocar ataques. Afecta a todos a 5 pies del recorrido",en:"You rush in a straight line up to 20 feet without provoking attacks. Hits every creature within 5 feet of the path"}},
       {cost:"accion",kind:"steel",name:{es:"Golpe de Viento de Acero",en:"Steel Wind Strike"},res:"viento",hit:"=prof+FUE",dmg:"6d10",type:"fuerza",targets:5,note:{es:"Katana del Shogun · hasta 5 objetivos a 30 pies, luego te teletransportas junto a uno",en:"Shogun Katana · up to 5 targets within 30 feet, then you teleport next to one of them"}},
       {cost:"adicional",kind:"attack",w:"sc",offhand:true,name:{es:"Katana del Shogun Carmesí",en:"Crimson Shogun Katana"},note:{es:"Segunda arma · requiere haber usado la acción de Atacar",en:"Second weapon · requires having taken the Attack action"}},
-      {cost:"adicional",kind:"haki",name:{es:"Endurecimiento (Haki)",en:"Weapon Hardening (Haki)"},res:"haki",note:{es:"+3 al ataque y daño de ambas katanas durante 1 minuto (10 turnos)",en:"+3 to attack and damage with both katanas for 1 minute (10 turns)"}},
+      {cost:"adicional",kind:"haki",hakiId:"weaponHardening",name:{es:"Endurecimiento (Haki)",en:"Weapon Hardening (Haki)"},res:"haki",note:{es:"+3 al ataque y daño de ambas katanas durante 1 minuto (10 turnos)",en:"+3 to attack and damage with both katanas for 1 minute (10 turns)"}},
       {cost:"adicional",kind:"heal",name:{es:"Tomar aliento",en:"Second Wind"},res:"aliento",heal:"1d10+{lvl}",note:{es:"Recuperas PV",en:"You regain hit points"}},
       {cost:"reaccion",kind:"deflect",onHit:1,w:"sc",name:{es:"Desvío",en:"Deflection"},note:{es:"Cuando te aciertan cuerpo a cuerpo: si tu ataque iguala o supera el del enemigo, desvías y le haces daño",en:"When a melee attack hits you: if your attack roll equals or beats the enemy's, you deflect it and deal damage"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
@@ -445,7 +447,7 @@ const CHARS = {
   },
   codel:{
     name:"Codel", bounty:"", sub:{es:"Sacerdote · Sky Domain · Nivel {lvl} · Birkan · Mercenario",en:"Priest · Sky Domain · Level {lvl} · Birkan · Mercenary"},
-    haki:["auraDetection","predictOutcome","glimpse"],
+    haki:["auraDetection","predictOutcome","glimpse"],hakiFrom:{auraDetection:{es:"Raza: Birkan (Mantra Specialist)",en:"Race: Birkan (Mantra Specialist)"}},
     inv:{money:124000,items:[{w:"main",eq:1},{w:"pistol",eq:1},{k:"balas",n:{es:"Balas de pistola",en:"Pistol bullets"},q:20},{n:{es:"Escudo",en:"Shield"},q:1,eq:1},{n:{es:"Símbolo sagrado",en:"Holy symbol"},q:1,eq:1},{k:"kits",n:{es:"Kits de sanación",en:"Healer's kits"},q:2},{n:{es:"Dial de tono",en:"Tone Dial"},q:1,eq:1}]},
     cls:"priest", sc:"skyDomain", scores:{FUE:8,DES:15,CON:16,INT:8,SAB:18,CAR:9}, tags:["race:skyIslander","caster","fruit","armor:light","armor:medium","armor:heavy","feat:spellcasterDisruptor"],
     level:7, prof:3, ac:18, maxHp:62, init:2, speed:{es:"30 pies",en:"30 feet"},
@@ -526,12 +528,12 @@ const CHARS = {
       {cost:"accion",kind:"dash",dur:10,name:{es:"Voluntad de lo Divino",en:"Will of Divine"},res:"canal",dc:"=8+prof+SAB",save:"SAB",note:{es:"Canalizar divinidad. Cada humanoide enemigo a 30 pies que te vea u oiga: si falla, queda expulsado 1 minuto (huye y no usa reacciones; repite la salvación al final de sus turnos; termina si recibe daño). Voluntad Abrumadora: si su VD es {cr} o menos, queda inconsciente",
         en:"Channel Divinity. Each hostile humanoid within 30 feet that can see or hear you: on a failure, it is turned for 1 minute (it flees and can't take reactions; it repeats the save at the end of its turns; it ends if it takes damage). Overwhelming Willpower: if its CR is {cr} or lower, it falls unconscious"}},
       {cost:"accion",kind:"pool",name:{es:"Voluntad de Kami",en:"Kami's Will"},res:"kami",note:{es:"Al tocar. 5 PV de la reserva curan una enfermedad o neutralizan un veneno",en:"By touch. 5 hit points from the pool cure one disease or neutralize one poison"}},
-      {cost:"accion",kind:"use",haki:true,name:{es:"Detección de aura",en:"Aura Detection"},note:{es:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies",en:"Observation Haki: you detect Haki and Devil Fruit users within 120 feet"}},
+      {cost:"accion",kind:"use",haki:true,hakiId:"auraDetection",name:{es:"Detección de aura",en:"Aura Detection"},note:{es:"Haki de Observación: detectas usuarios de Haki y de frutas del diablo a 120 pies",en:"Observation Haki: you detect Haki and Devil Fruit users within 120 feet"}},
       {cost:"reaccion",kind:"dash",onHit:1,name:{es:"Golpe atronador de dial",en:"Thunderous Dial Strike"},res:"dial",dc:"=8+prof+SAB",save:"DES",dmg:"2d8",type:"trueno o rayo",half:true,note:{es:"Cuando una criatura a 5 pies que ves te golpea. Eliges trueno o rayo",en:"When a creature within 5 feet that you can see hits you. You choose thunder or lightning"}},
       {cost:"accion",role:true,kind:"use",name:{es:"Estabilizar con kit",en:"Stabilize with Kit"},inv:"kits",note:{es:"Kit de sanación: una criatura moribunda queda estable y con 1 PV · gasta 1 kit",en:"Healer's kit: a dying creature becomes stable with 1 hit point · uses 1 kit"}},
       {cost:"accion",role:true,kind:"firstaid",name:{es:"Primeros auxilios",en:"First Aid"},heal:"1d6+4",note:{es:"cura 1d6 + 4 + el nivel (dados de golpe) de una criatura herida. Una vez por criatura hasta un descanso corto o largo",en:"Heals an injured creature 1d6 + 4 + its level (Hit Dice). Once per creature until a short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Disruptor de lanzadores",en:"Spellcaster Disruptor"},note:{es:"Una criatura a 5 pies lanza un conjuro: la atacas con el sable. Si la dañas, tiene desventaja para mantener la concentración",en:"A creature within 5 feet casts a spell: you attack it with your saber. If you damage it, it has disadvantage to maintain concentration"}},
-      {cost:"reaccion",kind:"use",haki:true,name:{es:"Predecir el resultado",en:"Predict Outcome"},res:"predecir",note:{es:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado",en:"You or an ally within 30 feet rerolls the d20 of an attack roll, ability check or saving throw after seeing the result"}},
+      {cost:"reaccion",kind:"use",haki:true,hakiId:"predictOutcome",name:{es:"Predecir el resultado",en:"Predict Outcome"},res:"predecir",note:{es:"Tú o un aliado a 30 pies vuelve a tirar el d20 de un ataque, prueba o salvación, ya visto el resultado",en:"You or an ally within 30 feet rerolls the d20 of an attack roll, ability check or saving throw after seeing the result"}},
       {cost:"fuera",kind:"use",name:{es:"Protección de las Nubes",en:"Protection of the Clouds"},res:"pluma",note:{es:"Caída de pluma (reacción al caer): tú y hasta 5 criaturas a 60 pies caen despacio y sin daño",en:"Feather Fall (reaction when falling): you and up to 5 creatures within 60 feet fall slowly and take no damage"}},
       {cost:"fuera",kind:"use",name:{es:"Dial de tono: grabar",en:"Tone Dial: Record"},res:"tono",note:{es:"Acción adicional, 1 carga: graba hasta 60 segundos. Grabación actual: «Esto va a destruir el mundo»",en:"Bonus action, 1 charge: records up to 60 seconds. Current recording: “This is going to destroy the world”"}},
       {cost:"fuera",kind:"use",name:{es:"Dial de tono: reproducir",en:"Tone Dial: Play"},note:{es:"Acción: reproduce lo grabado",en:"Action: plays back the recording"}},
@@ -540,7 +542,7 @@ const CHARS = {
   },
   kalgo:{
     name:"Kalgo", bounty:"", sub:{es:"Bruiser · Black Fist · Nivel {lvl} · Mink · Arqueólogo",en:"Bruiser · Black Fist Style · Level {lvl} · Mink · Archaeologist"},
-    haki:[],hakiCls:{arm:1}, // Músculos recubiertos de Haki (subclase) cuenta para los niveles
+    haki:[],hakiCls:[{id:"armamentCoatedMuscles",c:"arm",n:{es:"Músculos recubiertos de Haki",en:"Armament-Coated Muscles"},from:{es:"Subclase: Black Fist",en:"Subclass: Black Fist"}}], // Haki de clase o subclase: cuenta para los tiers
     inv:{money:8000000,items:[{w:"main",eq:1},{w:"pistol",eq:1},{k:"balas",n:{es:"Balas de pistola",en:"Pistol bullets"},q:20},{n:{es:"Sombrero",en:"Hat"},q:1},{n:{es:"Log pose",en:"Log Pose"},q:1},{n:{es:"Herramientas de cartógrafo",en:"Cartographer's tools"},q:1},{n:{es:"Herramientas de navegante",en:"Navigator's tools"},q:1}]},
     cls:"bruiser", sc:"blackFist", furyKnown:["bruteForce","brace","focused","redirect"], scores:{FUE:19,DES:16,CON:18,INT:12,SAB:12,CAR:12}, tags:["race:mink","bg:archaeologist","fruit"],
     level:7, prof:3, ac:17, maxHp:75, init:3, speed:{es:"40 pies · trepar 20",en:"40 feet · climb 20"},
@@ -606,7 +608,7 @@ const CHARS = {
       {cost:"adicional",kind:"attack",w:"main",offhand:true,req:{es:"Recuerda: Scrapper requiere haber usado la acción de Atacar.",en:"Remember: Scrapper requires having taken the Attack action."},name:{es:"Scrapper: Puños del Cosmos",en:"Scrapper: Fists of the Cosmos"},note:{es:"Tras la acción de Atacar: un golpe con los guanteletes (cuenta para Pulse Wave) o un agarre",en:"After the Attack action: one strike with the gauntlets (counts for Pulse Wave) or a grapple"}},
       {cost:"adicional",kind:"frenzy",name:{es:"Emoción del combate",en:"Thrill of the Fight"},note:{es:"Frenesí de 1 minuto: +{prof} de daño con Puños y golpes sin arma, resistencia a contundente, perforante y cortante, ventaja en pruebas y salvaciones de FUE. Al entrar recuperas 1 punto de furia",en:"1-minute frenzy: +{prof} damage with Fists and unarmed strikes, resistance to bludgeoning, piercing and slashing, advantage on STR checks and saving throws. When you enter it you regain 1 fury point"}},
       {cost:"adicional",kind:"use",dur:"until:frenzy",name:{es:"Hazlo caer",en:"Bring Him Down"},only:"frenzy",once:"caer",perFrenzy:true,note:{es:"Black Fist: los enemigos a 15 pies tienen desventaja al atacar a otros que no seas tú, hasta que termine la Emoción del combate. 1 vez por Emoción",en:"Black Fist Style: enemies within 15 feet have disadvantage on attacks against anyone but you until Thrill of the Fight ends. Once per Thrill of the Fight"}},
-      {cost:"adicional",kind:"muscle",haki:true,onHit:1,name:{es:"Músculos recubiertos de Haki",en:"Armament-Coated Muscles"},only:"frenzy",note:{es:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−{CON} al daño de cada golpe, salvo fuerza y psíquico) o ataque (+{ceil(CON/2)} al ataque y +{ceil(CON/2)} al daño con Puños y golpes sin arma)",en:"Black Fist Style: until the start of your next turn, choose defense (−{CON} to each hit's damage, except force and psychic) or attack (+{ceil(CON/2)} to attack and +{ceil(CON/2)} to damage with Fists and unarmed strikes)"}},
+      {cost:"adicional",kind:"muscle",haki:true,hakiId:"armamentCoatedMuscles",onHit:1,name:{es:"Músculos recubiertos de Haki",en:"Armament-Coated Muscles"},only:"frenzy",note:{es:"Black Fist: hasta el inicio de tu siguiente turno, elige defensa (−{CON} al daño de cada golpe, salvo fuerza y psíquico) o ataque (+{ceil(CON/2)} al ataque y +{ceil(CON/2)} al daño con Puños y golpes sin arma)",en:"Black Fist Style: until the start of your next turn, choose defense (−{CON} to each hit's damage, except force and psychic) or attack (+{ceil(CON/2)} to attack and +{ceil(CON/2)} to damage with Fists and unarmed strikes)"}},
       {cost:"reaccion",kind:"temproll",name:{es:"Sangre por músculo",en:"Blood for Brawn"},once:"sangre",trigger:"half",temp:"{scrap}+{lvl}",refill:"furia",note:{es:"Al quedar con la mitad de tus PV o menos: ganas PV temporales y recuperas todos los puntos de furia. 1 vez por descanso corto o largo",en:"When you drop to half your hit points or less: you gain temporary hit points and regain all fury points. Once per short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"rampage",name:{es:"Ataque temerario",en:"Rampage"},note:{es:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno",en:"This turn you have advantage on melee weapon attack rolls; attack rolls against you have advantage until your next turn"}},
@@ -617,7 +619,7 @@ const CHARS = {
   },
   sungsopp:{
     name:"Sungsopp", bounty:"", sub:{es:"Rogue · Duelista Danzante · Nivel {lvl} · Humano · Ladrón",en:"Rogue · Dancing Duelist · Level {lvl} · Human · Thief"},
-    haki:["enhancedStrike","auraDetection","farSight","predictOutcome"],
+    haki:["enhancedStrike","auraDetection","farSight","predictOutcome"],hakiFrom:{enhancedStrike:"up"},
     inv:{money:8125,items:[{w:"main",eq:1},{w:"ojo",eq:1},{w:"espada",eq:1},{w:"ballesta",eq:1},{k:"virotes",n:{es:"Virotes",en:"Bolts"},q:20},{w:"daga",n:{es:"Dagas",en:"Daggers"},q:2,eq:1},{n:{es:"Herramientas de ladrón",en:"Thieves' tools"},q:1},{n:{es:"Paquete de ladrón",en:"Burglar's pack"},q:1},{n:{es:"Libros",en:"Books"},q:1},{n:{es:"Comidas",en:"Meals"},q:2},{n:{es:"Joyas",en:"Jewels"},q:4}]},
     cls:"rogue", sc:"dancingDuelist", scores:{FUE:11,DES:18,CON:13,INT:11,SAB:11,CAR:18}, tags:["race:human","fruit","armor:light","feat:slingKing"],
     level:7, prof:3, ac:15, acDex:true, maxHp:42, init:4, speed:{es:"30 pies",en:"30 feet"},
@@ -693,7 +695,7 @@ const CHARS = {
       {cost:"accion",kind:"attack",w:"ballesta",name:{es:"Ballesta corta",en:"Short Crossbow"},note:{es:"A distancia · gasta 1 virote",en:"Ranged · uses 1 bolt"}},
       {cost:"accion",kind:"attack",w:"main",vortex:true,perTurn:"vortex",name:"Vortex Strike",note:{es:"Una vez por turno, en lugar de un ataque cuerpo a cuerpo: una tirada con desventaja contra todas las criaturas a 5 pies",en:"Once per turn, instead of a melee attack: one roll with disadvantage against every creature within 5 feet"}},
       {cost:"accion",kind:"dash",name:{es:"Paso del trueno",en:"Thunder Step"},res:"paso",dc:15,save:"CON",dmg:"3d10",type:"trueno",half:true,note:{es:"Riqueza: te teletransportas hasta 90 pies a un espacio libre que veas; cada criatura a 5 pies del lugar que dejaste hace la salvación. El estruendo se oye a 90 m",en:"Wealth: you teleport up to 90 feet to an unoccupied space you can see; each creature within 5 feet of the space you left makes the save. The boom can be heard 300 feet away"}},
-      {cost:"accion",kind:"use",haki:true,name:{es:"Detección de aura",en:"Aura Detection"},note:{es:"Haki de Observación: detectas Haki y frutas a 120 pies",en:"Observation Haki: you detect Haki and Devil Fruits within 120 feet"}},
+      {cost:"accion",kind:"use",haki:true,hakiId:"auraDetection",name:{es:"Detección de aura",en:"Aura Detection"},note:{es:"Haki de Observación: detectas Haki y frutas a 120 pies",en:"Observation Haki: you detect Haki and Devil Fruits within 120 feet"}},
       {cost:"accion",kind:"form",form:"beast",res:"bestia",fruitAct:true,name:{es:"Forma bestia",en:"Beast Form"},note:{es:"Acción, 2 por descanso largo, hasta {ceil(lvl/2)} horas. PV propios {6*lvl}, CA 12, multiataque de 2 puñetazos. Al volver recuperas tus PV de antes; si llegó a 0, el daño sobrante pasa a tu forma humana",en:"Action, 2 per long rest, up to {ceil(lvl/2)} hours. Own HP {6*lvl}, AC 12, multiattack of 2 punches. When you revert you get your previous HP back; if it dropped to 0, the leftover damage carries over to your human form"}},
       {cost:"accion",kind:"form",form:"hybrid",res:"hibrida",fruitAct:true,name:{es:"Forma híbrida",en:"Hybrid Form"},note:{es:"Acción, {prof} por descanso largo, hasta {ceil(lvl/2)} horas. FUE 14, DES 20, CON 15 y 2 opciones a elegir",en:"Action, {prof} per long rest, up to {ceil(lvl/2)} hours. STR 14, DEX 20, CON 15 and 2 options to choose"}},
       {cost:"accion",kind:"attack",w:"bpuno",form:"beast",name:{es:"Puñetazo",en:"Punch"},note:{es:"Multiataque: 2 puñetazos por acción",en:"Multiattack: 2 punches per action"}},
@@ -704,9 +706,9 @@ const CHARS = {
       {cost:"adicional",kind:"use",name:{es:"Acción astuta: Destrabarse",en:"Cunning Action: Disengage"},note:{es:"Tu movimiento no provoca ataques de oportunidad este turno",en:"Your movement doesn't provoke opportunity attacks this turn"}},
       {cost:"adicional",kind:"use",name:{es:"Acción astuta: Esconderse",en:"Cunning Action: Hide"},note:{es:"Haces una prueba de Sigilo para esconderte",en:"You make a Stealth check to hide"}},
       {cost:"adicional",kind:"toggle",flag:"aim",needs:"still",advNext:true,name:{es:"Puntería firme",en:"Steady Aim"},note:{es:"Ventaja en tu siguiente ataque de este turno; tu velocidad queda en 0. Requiere no haberte movido",en:"Advantage on your next attack this turn; your speed becomes 0. Requires not having moved"}},
-      {cost:"adicional",kind:"toggle",haki:true,flag:"far",res:"vista",advNext:true,ranged:true,name:{es:"Vista lejana",en:"Far Sight"},note:{es:"Haki: ventaja en tu siguiente ataque a distancia, o el triple de alcance",en:"Haki: advantage on your next ranged attack, or triple range"}},
+      {cost:"adicional",kind:"toggle",haki:true,hakiId:"farSight",flag:"far",res:"vista",advNext:true,ranged:true,name:{es:"Vista lejana",en:"Far Sight"},note:{es:"Haki: ventaja en tu siguiente ataque a distancia, o el triple de alcance",en:"Haki: advantage on your next ranged attack, or triple range"}},
       {cost:"reaccion",kind:"halve",onHit:1,name:{es:"Esquiva asombrosa",en:"Uncanny Dodge"},note:{es:"Un atacante que ves te impacta: recibes la mitad del daño de ese ataque",en:"An attacker you can see hits you: you take half the damage from that attack"}},
-      {cost:"reaccion",kind:"use",haki:true,name:{es:"Predecir el resultado",en:"Predict Outcome"},res:"predecir",note:{es:"Tú o un aliado a 30 pies vuelve a tirar un d20 ya visto el resultado",en:"You or an ally within 30 feet rerolls a d20 after seeing the result"}},
+      {cost:"reaccion",kind:"use",haki:true,hakiId:"predictOutcome",name:{es:"Predecir el resultado",en:"Predict Outcome"},res:"predecir",note:{es:"Tú o un aliado a 30 pies vuelve a tirar un d20 ya visto el resultado",en:"You or an ally within 30 feet rerolls a d20 after seeing the result"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"still",name:{es:"No me he movido",en:"I Haven't Moved"},note:{es:"Activa Puntería firme y el Impacto calculado del Ojo del Horizonte (+2 al ataque y +1d6 en el primer disparo). Se reinicia con Nuevo turno",en:"Enables Steady Aim and the Eye of the Horizon's Calculated Shot (+2 to attack and +1d6 on the first shot). Resets with New Turn"}},
       {cost:"gratis",kind:"info",haki:true,hakiId:"enhancedStrike",name:{es:"Golpe mejorado",en:"Enhanced Strike"},note:{es:"Haki de Armadura, pasivo: el dado base de tus ataques con arma sube un tamaño (máximo d12), en todos los ataques. Ya está en tus armas. No cambia los dados de Haki ni de clase (Ataque furtivo, la oscuridad de Riqueza, Impacto calculado, Escenario de batalla) ni la forma Zoan",en:"Armament Haki, passive: the base die of your weapon attacks goes up one size (max d12), on every attack. It's already in your weapons. It doesn't change Haki or class dice (Sneak Attack, Wealth's darkness, Calculated Shot, Stage of Battle) or the Zoan form"}},
@@ -764,11 +766,11 @@ const CHARS = {
       {cost:"reaccion",kind:"temproll",name:{es:"Sangre por músculo",en:"Blood for Brawn"},once:"sangre",trigger:"half",temp:"{scrap}+{lvl}",refill:"furia",note:{es:"Al quedar con la mitad de tus PV o menos: ganas PV temporales y recuperas todos los puntos de furia. 1 vez por descanso corto o largo",en:"When you drop to half your hit points or less: you gain temporary hit points and regain all fury points. Once per short or long rest"}},
       {cost:"reaccion",kind:"attack",w:"main",name:{es:"Ataque de oportunidad",en:"Opportunity Attack"},note:{es:"Cuando un enemigo sale de tu alcance",en:"When an enemy leaves your reach"}},
       {cost:"gratis",kind:"toggle",flag:"rampage",name:{es:"Ataque temerario",en:"Rampage"},note:{es:"Este turno tienes ventaja en tus ataques cuerpo a cuerpo; los ataques contra ti tienen ventaja hasta tu siguiente turno",en:"This turn you have advantage on melee weapon attack rolls; attack rolls against you have advantage until your next turn"}},
-      /* Haki (hakiAct: van en la sección Haki). Números fijos de la hoja, sin Voluntad; ya incluyen el dado extra de Purista del Haki */
-      {cost:"gratis",kind:"info",haki:true,hakiAct:true,name:{es:"Purista del Haki · Entrenamiento de calidad",en:"Haki Purist · Train Quality"},note:{es:"Pasivo: tus rasgos de Haki tiran 1 dado más (ya incluido en Aura de vida y Fuerza de voluntad). Lo pierdes si algún día comes una Fruta del Diablo",en:"Passive: your Haki features roll 1 extra die (already included in Aura of Life and Force of Will). You lose it if you ever eat a Devil Fruit"}},
-      {cost:"accion",kind:"temproll",haki:true,hakiAct:true,res:"aura",temp:"2d6+{4+lvl}",name:{es:"Aura de vida",en:"Aura of Life"},note:{es:"Armadura, poco común: ganas PV temporales (no se acumulan: te quedas con el valor más alto). {prof} usos por descanso largo",en:"Armament, Uncommon: you gain temporary HP (they don't stack: you keep the higher amount). {prof} uses per long rest"}},
-      {cost:"accion",kind:"dash",haki:true,hakiAct:true,res:"fvol",dc:14,save:"FUE",dmg:"4d10",type:"fuerza",half:true,name:{es:"Fuerza de voluntad",en:"Force of Will"},note:{es:"Armadura, raro: golpeas el suelo y cada criatura a 30 pies hace una salvación de FUE. Si falla, recibe el daño y queda derribada; si la supera, la mitad y no cae. Estructuras y objetos no mágicos reciben el doble. 1 vez por descanso corto o largo",en:"Armament, Rare: you slam the ground and every creature within 30 feet makes a STR saving throw. On a failure it takes the damage and is knocked prone; on a success, half and it isn't knocked prone. Structures and nonmagical objects take double damage. Once per short or long rest"}},
-      {cost:"gratis",kind:"info",haki:true,hakiAct:true,name:{es:"Fortalecerse ×4",en:"Strengthen Self ×4"},note:{es:"Avance estándar: +2 FUE, +4 DES y +2 CON (ya incluidos en tus características)",en:"Standard advancement: +2 STR, +4 DEX and +2 CON (already included in your ability scores)"}},
+      /* Haki (los pasivos van en la sección Haki; los activos, en su sección de acción). Números fijos de la hoja, sin Voluntad; ya incluyen el dado extra de Purista del Haki */
+      {cost:"gratis",kind:"info",haki:true,purist:true,name:{es:"Purista del Haki · Entrenamiento de calidad",en:"Haki Purist · Train Quality"},note:{es:"Pasivo: tus rasgos de Haki tiran 1 dado más (ya incluido en Aura de vida y Fuerza de voluntad). Lo pierdes si algún día comes una Fruta del Diablo",en:"Passive: your Haki features roll 1 extra die (already included in Aura of Life and Force of Will). You lose it if you ever eat a Devil Fruit"}},
+      {cost:"accion",kind:"temproll",haki:true,hakiId:"auraOfLife",res:"aura",temp:"2d6+{4+lvl}",name:{es:"Aura de vida",en:"Aura of Life"},note:{es:"Armadura, poco común: ganas PV temporales (no se acumulan: te quedas con el valor más alto). {prof} usos por descanso largo",en:"Armament, Uncommon: you gain temporary HP (they don't stack: you keep the higher amount). {prof} uses per long rest"}},
+      {cost:"accion",kind:"dash",haki:true,hakiId:"forceOfWill",res:"fvol",dc:14,save:"FUE",dmg:"4d10",type:"fuerza",half:true,name:{es:"Fuerza de voluntad",en:"Force of Will"},note:{es:"Armadura, raro: golpeas el suelo y cada criatura a 30 pies hace una salvación de FUE. Si falla, recibe el daño y queda derribada; si la supera, la mitad y no cae. Estructuras y objetos no mágicos reciben el doble. 1 vez por descanso corto o largo",en:"Armament, Rare: you slam the ground and every creature within 30 feet makes a STR saving throw. On a failure it takes the damage and is knocked prone; on a success, half and it isn't knocked prone. Structures and nonmagical objects take double damage. Once per short or long rest"}},
+      {cost:"gratis",kind:"info",haki:true,name:{es:"Fortalecerse ×4",en:"Strengthen Self ×4"},note:{es:"Avance estándar: +2 FUE, +4 DES y +2 CON (ya incluidos en tus características)",en:"Standard advancement: +2 STR, +4 DEX and +2 CON (already included in your ability scores)"}},
       /* Trasfondo Ermitaño */
       {cost:"fuera",kind:"info",name:{es:"Descubrimiento",en:"Discovery"},note:{es:"Ermitaño: en tu retiro descubriste algo único y poderoso. Qué es y cómo pesa en la campaña lo decides con el DM",en:"Hermit: during your seclusion you made a unique and powerful discovery. What it is and how it affects the campaign is up to you and the DM"}},
       {cost:"fuera",kind:"info",name:{es:"Especialidad: vida en comunidad religiosa",en:"Specialty: communal living in a religious order"},note:{es:"Ermitaño: viviste en comunidad bajo las reglas de una orden religiosa",en:"Hermit: you lived communally under the rules of a religious order"}}
@@ -879,7 +881,7 @@ function levelSrc(k,P){
     if(x.fx&&x.fx.speed)c.speed={es:addFeet(c.speed.es,x.fx.speed),en:addFeet(c.speed.en,x.fx.speed)}}
   /* Avances de Haki aprobados por el DM (tienda de prestigio): activos como tarjetas con usos y recarga; pasivos como rasgo (y sus competencias o Percepción pasiva) */
   for(const id of P.haki||[]){const e=HAKI.find(x=>x.id===id);if(!e)continue;const n=(P.hakiN||{})[id]??hakiSug(e,L),sum=JSON.parse(JSON.stringify(e.sum).split("{HW}").join(String(n)));
-    if(e.repl)c.actions=c.actions.filter(a=>a.hakiId!==e.repl);
+    if(e.repl)c.actions=c.actions.filter(a=>a.hakiId!==e.repl||a.xid[0]!=="h"); // solo las compradas: las de la hoja siguen (como antes)
     for(const [s,v] of Object.entries(e.sk||{}))c.skills[s]=Math.max(c.skills[s]||0,v);if(e.pp)c.ppB=(c.ppB||0)+e.pp;
     if(e.u)c.resources.push({id:"h_"+id,name:e.n,max:e.u[0],rest:e.u[1]});
     c.actions.push({cost:e.a||"gratis",kind:e.a?"use":"info",haki:true,hakiId:id,xid:"h:"+id,ex:"haki:"+id,name:e.n,note:sum,...(e.u?{res:"h_"+id}:{}),...(e.d!=null?{dur:e.d}:{})});c.gained.push({n:e.n,sum})}
@@ -1086,7 +1088,8 @@ const $=id=>document.getElementById(id);
 /* Acciones de combate de un coste (secciones Acción, Acción adicional y Reacción) */
 /* Rasgos de furia: se conocen tantos como el bono de competencia (furyN) y el jugador elige cuáles (S.fury) */
 const furyN=c=>PCLASS[c.cls]&&PCLASS[c.cls].fury?c.prof:0,known=a=>!a.fury||S.fury.includes(a.fury);
-const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!hid("a:"+a.xid)&&!a.role&&!a.fruitAct&&!a.hakiAct&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
+const hakiPas=a=>a.haki&&a.kind==="info";
+const costList=(c,cost)=>c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost===cost&&!hid("a:"+a.xid)&&!a.role&&!a.fruitAct&&!hakiPas(a)&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
 /* Ficha de la economía del turno: botón que salta a su sección si la sección está en pantalla; si no, solo muestra el estado */
 function chip(k,off,label){const c=C(),has=!(c.caster&&book)&&(k==="especial"||costList(c,k).length>0);
   return has?`<button class="econ${off?" spent":""}" data-jump="sec-${k}"><i></i>${label}</button>`:`<span class="econ${off?" spent":""}"><i></i>${label}</span>`}
@@ -1155,7 +1158,6 @@ function render(){
   if(c.items)h+=itemSec(c);
   if(c.companion)h+=compSec(c);
   if(c.role)h+=roleSec(c);
-  if(c.hakiDc)h+=hakiSec(c);
   h+=lvSheet(c);
   h+=`<section id="sec-especial"><h2>${tx("Reacciones especiales","Special Reactions")} <small>${tx(`2 por ronda · ${c.prof} usos c/u por descanso corto`,`2 per round · ${c.prof} uses each per short rest`)}</small></h2><div class="list">`;
   for(const s of SPECIALS){
@@ -1167,8 +1169,9 @@ function render(){
     h+=`<button class="act" data-sr="${s.id}" ${S.sr[s.id]<=0||S.turn.sr<=0?'aria-disabled="true"':""}>${""}<span class="n">${s.name}</span><span class="big">${big}</span><span class="d">${ctrHtml(S.sr[s.id],c.prof,"short")}${S.turn.sr<=0?`<b class="spent">${SRW_()}</b> `:""}${s.note}</span></button>`;
   }
   h+=`</div></section>`;
-  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&!a.hakiAct&&!hid("a:"+a.xid)&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
+  const free=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="gratis"&&!a.role&&!a.fruitAct&&!hakiPas(a)&&!hid("a:"+a.xid)&&(!a.only||S[a.only])&&known(a)&&formShows(c,a));
   if(free.length)h+=`<section><h2>${COST.gratis}</h2><div class="list">${free.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
+  h+=hakiSec(c);
   const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role&&!hid("a:"+a.xid));
   if(out.length)h+=`<section><h2>${COST.fuera}</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   h+=invSec(c);
@@ -1350,9 +1353,28 @@ function roleSec(c){
     ${r.out?`<p class="note" style="margin-top:8px">${r.out}</p>`:""}</section>`;
 }
 
-/* hakiDc: sección Haki con su CD y las acciones con hakiAct:true (Ryuga) */
-function hakiSec(c){const acts=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.hakiAct&&!hid("a:"+a.xid));
-  return acts.length?`<section id="sec-haki"><h2><span class="h2t">${sico("haki")}Haki</span> <small>${tx("CD","DC")} ${c.hakiDc}</small></h2><div class="list">${acts.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`:""}
+/* Sección Haki (todos): por color, cuántos rasgos y hasta qué Tier compra; sus rasgos con origen (toca: va a su tarjeta; mantener: explicación);
+   CD de Haki (hakiDc), Purista del Haki y tienda. Los activos siguen en su sección de acción; los pasivos (hakiPas) solo aquí */
+function hakiList(k){const b=CHARS_SRC[k]||{},F=b.hakiFrom||{},bought=(PROG[k]||{}).haki||[];
+  return[...(b.hakiCls||[]).map(x=>({id:x.id,c:x.c,n:tl(x.n),from:tl(x.from)})),...hakiOwned(k).map(id=>{const e=hakiE(id),f=bought.includes(id)?"pres":F[id],am=HAKI.find(x=>x.up===id);
+    return e&&{id,c:e.c,n:tl(e.n),e,from:f==="pres"?tx("Comprado con prestigio","Bought with prestige"):f==="up"?tx("Aficionado mejorado","Upgraded amateur")+(am?` (${tl(am.n)})`:""):f?tl(f):tx("De la hoja","From the sheet")}}).filter(Boolean)]}
+const HKC=()=>({arm:tx("Armadura","Armament"),obs:tx("Observación","Observation"),king:tx("Rey","King")});
+const hakiLine=k=>Object.entries(HKC()).map(([col,n])=>`${n} ${hakiCount(k,col)}`).join(" · ");
+function hakiSec(c){const k=cur,L=hakiList(k),pas=c.actions.map((a,i)=>[a,i]).filter(([a])=>hakiPas(a)&&!a.hakiId&&!hid("a:"+a.xid));
+  const col=x=>{const n=hakiCount(k,x);return`<div class="hkc"><span><b>${hakiCol(x)}</b> · ${n?tx(`${n} ${n===1?"rasgo":"rasgos"} · puedes comprar hasta Tier ${hakiTop(n)}`,`${n} ${n===1?"feature":"features"} · you can buy up to Tier ${hakiTop(n)}`):tx("Sin rasgos · Tier 1","No features · Tier 1")}</span>
+    <button class="btn" data-do="shop" data-c="${x}" aria-label="${tx(`Gastar prestigio en ${hakiCol(x)}`,`Spend prestige on ${hakiCol(x)}`)}">${tx("Gastar prestigio","Spend prestige")}</button></div>`};
+  const row=x=>{const a=c.actions.find(a=>a.hakiId===x.id);
+    return`<button class="act" data-hk="${x.id}"><span class="n">${sico("haki")}${x.n}${x.e?hint(x.e.n.en):""}</span><span class="d">${[hakiCol(x.c),x.e?rarOf(x.e.r)[0]:tx("rasgo de clase","class feature"),x.e&&x.e.t?"Tier "+x.e.t:tx("sin tier","no tier"),x.from].join(" · ")}<br>${a&&!hakiPas(a)?tx(`${COST[a.cost]} · toca para ir a su tarjeta`,`${COST[a.cost]} · tap to go to its card`):tx("Pasivo","Passive")}</span></button>`};
+  const pur=(CHARS_SRC[k]||{}).fruit?tx("Purista del Haki: no, porque tienes Fruta del Diablo.","Haki Purist: no, because you have a Devil Fruit.")
+    :c.actions.some(a=>a.purist)?"":tx("Purista del Haki: sí, porque no tienes fruta. Todavía no tienes una mejora anotada (niveles 4, 10 y 16; la aplica el DM).","Haki Purist: yes, because you have no fruit. No improvement noted yet (levels 4, 10 and 16; the DM applies it).");
+  return`<section id="sec-haki"><h2><span class="h2t">${sico("haki")}Haki</span>${c.hakiDc?` <small>${tx("CD","DC")} ${c.hakiDc}</small>`:""}</h2><div class="box2">${["arm","obs","king"].map(col).join("")}</div>
+    <div class="list" style="margin-top:8px">${L.map(row).join("")}${pas.map(([a,i])=>actBtn(a,i)).join("")}</div>
+    ${L.length?"":`<p class="note">${tx("Todavía no tienes rasgos de Haki.","You don't have any Haki features yet.")}</p>`}${pur?`<p class="note" style="margin-top:8px">${pur}</p>`:""}</section>`}
+/* Toque: va a la tarjeta en su sección (resaltada); si no está a la vista (pasivo, oculta o fuera de su estado), abre su ficha. ex: explicación detallada */
+function hakiGo(id,ex){const c=C(),i=c.actions.findIndex(a=>a.hakiId===id),el=!ex&&i>=0&&document.querySelector(`#main .act[data-act="${i}"]`);
+  if(el&&!el.closest("#sec-haki")){el.scrollIntoView({behavior:reduceM()?"auto":"smooth",block:"center"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1200);return}
+  if(i>=0)return openSheet("act",i,ex);
+  const e=hakiE(id);if(e)explainView(tl(e.n),`${cur}:${e.n.es}`,e.a||"",[["what",hakiSum(e,((PROG[cur]||{}).hakiN||{})[id]??hakiSug(e,c.level))],...hakiRows(cur,e)])}
 
 /* ===================== FRUTA DEL DIABLO ===================== */
 function fruitSec(c){
@@ -1679,7 +1701,7 @@ const hakiOwned=k=>[...((CHARS_SRC[k]||{}).haki||[]),...((PROG[k]||{}).haki||[])
 /* Tier de Haki (regla de la casa, 28-10-2026): Tier 2 pide 1 rasgo del mismo color y Tier 3, 2 (los aficionados no cuentan; los de clase o subclase sí) */
 const hakiNeed=t=>t===2?1:t===3?2:0,hakiTop=have=>have>=2?3:have>=1?2:1;
 const hakiCol=c=>tl(HAKI_COLORS[c]).replace(/^Color (de |del |of the |of )/,"");
-function hakiCount(k,col){return hakiOwned(k).filter(id=>{const e=hakiE(id);return e&&e.c===col&&e.r>0}).length+(((CHARS_SRC[k]||{}).hakiCls||{})[col]||0)}
+function hakiCount(k,col){return hakiOwned(k).filter(id=>{const e=hakiE(id);return e&&e.c===col&&e.r>0}).length+((CHARS_SRC[k]||{}).hakiCls||[]).filter(x=>x.c===col).length}
 /* Motivo por el que no se puede pedir (vacío = se puede) */
 function hakiWhy(k,e){const P=PROG[k]||{},o=hakiOwned(k),cost=rarOf(e.r)[1],p=prestOf(k);
   if(o.includes(e.id)||HAKI.some(x=>x.repl===e.id&&o.includes(x.id)))return tx("Ya lo tienes","You already have it");
@@ -1843,8 +1865,8 @@ function condsOpen(){show({title:tx("Estados","Conditions"),sheet:true,conds:1,h
   <div class="resrow" style="margin-top:12px"><span>${tx("Agotamiento","Exhaustion")}<br><small style="font-weight:400">${tx("baja 1 con descanso largo","drops 1 with a long rest")}</small></span><div class="cnt"><b>${S.exh}<small>/6</small></b><button class="btn" data-exh="-1" aria-label="${tx("Quitar 1 nivel","Remove 1 level")}">−1</button><button class="btn" data-exh="1" aria-label="${tx("Sumar 1 nivel","Add 1 level")}">+1</button></div></div>
   <p class="note">${tl(EXPL["stat:exh"])}</p>`})}
 /* Mantener pulsado (medio segundo) una tarjeta, estadística o número abre su explicación detallada; el toque normal sigue igual */
-const LP_SEL="[data-hbuy],[data-fx],[data-act],[data-sr],[data-spell],[data-tech],[data-item],[data-cact],[data-free],[data-mwatk],[data-x],[data-save],[data-skill],[data-cond],[data-jump],[data-do=init],[data-do=conds]";
-function lpOpen(el){const d=el.dataset;if(d.hbuy)return hakiOpen(d.hbuy,true);if(d.fx)return fxOpen(d.fx);
+const LP_SEL="[data-hbuy],[data-hk],[data-fx],[data-act],[data-sr],[data-spell],[data-tech],[data-item],[data-cact],[data-free],[data-mwatk],[data-x],[data-save],[data-skill],[data-cond],[data-jump],[data-do=init],[data-do=conds]";
+function lpOpen(el){const d=el.dataset;if(d.hbuy)return hakiOpen(d.hbuy,true);if(d.hk)return hakiGo(d.hk,true);if(d.fx)return fxOpen(d.fx);
   for(const k of ["act","sr","spell","tech","item","cact","free","mwatk"])if(d[k]!==undefined)return openSheet(k,d[k],true);
   if(d.x)return explainStat(d.x);if(d.save)return explainStat("save:"+d.save);if(d.skill)return explainStat("skill:"+d.skill);if(d.cond)return explainStat("cond:"+d.cond);
   if(d.jump)return explainStat(d.jump==="sec-especial"?"special":"econ");if(d.do==="init")return explainStat("init");if(d.do==="conds")return condsOpen()}
@@ -2173,7 +2195,7 @@ function gate(){
       ${mesa.state[k]?`<div class="hptxt"><span><b>${s.hp}</b> / ${mhp(c,s)} ${tx("PV","HP")}${s.temp?` (+${s.temp} temp.)`:""}${s.hp<=0?tx(" · inconsciente"," · unconscious"):""}</span><span>${s.conds.map(condT).join(", ")||tx("Sin estados","No conditions")}</span></div>
       <div class="track"><div class="fill ${pct<25?"low":pct<50?"mid":""}" style="width:${pct}%"></div></div>
       <p class="note">${c.resources.map(r=>`${r.name} ${s.res[r.id]}/${r.max}`).join(" · ")} · ${tx("Sueño","Dream")} ${s.dream}/${c.level}${s.hard>0?` · ${tx("Haki activo","Haki active")} (${s.hard} t.)`:""}${c.caster?` · ${tx("Espacios","Slots")} ${s.slots.map((v,i)=>`${tx("N","L")}${i+1} ${v}/${c.caster.slots[i]}`).join(", ")}`:""}${s.conc.id?` · ${tx("Concentrado en","Concentrating on")} ${concOf(c,s.conc.id).n}`:""}${s.sea?tx(" · Sin fruta (agua o kairoseki)"," · No fruit (water or seastone)"):""}${s.form&&c.forms?" · "+c.forms[s.form].name:""}${c.companion?` · ${c.companion.name} ${s.comp.hp}/${c.companion.hp} ${tx("PV","HP")}${c.companion.heads?tx(`, ${s.comp.heads} cabezas`,`, ${s.comp.heads} heads`):""}`:""}${s.frenzy?" · "+c.frenzy.label:""}${s.trans&&c.transform?" · "+c.transform.name:""}${s.exh?` · ${tx("Agotamiento","Exhaustion")} ${s.exh}`:""}${s.mw&&c.fruit?` · ${c.fruit.weapons[s.mw].name}`:""}</p>
-      ${s.log[0]?`<p class="note">${tx("Último","Latest")}: ${s.log[0]}</p>`:""}`:`<p class="note">${tx("Sin datos todavía: aparecerán cuando su jugador abra la app.","No data yet: it will show up when their player opens the app.")}</p>`}${prestDm(k)}${buyDm(k)}${invDm(k,s)}${lvDmCard(k,c)}</div>`}).join("")}</div></section>
+      ${s.log[0]?`<p class="note">${tx("Último","Latest")}: ${s.log[0]}</p>`:""}`:`<p class="note">${tx("Sin datos todavía: aparecerán cuando su jugador abra la app.","No data yet: it will show up when their player opens the app.")}</p>`}<p class="note"><b>Haki</b> · ${hakiLine(k)}</p>${prestDm(k)}${buyDm(k)}${invDm(k,s)}${lvDmCard(k,c)}</div>`}).join("")}</div></section>
     <section><h2>${tx("Jugadores","Players")} <small>${tx("un personaje por cuenta","one character per account")}</small></h2><div class="box2">${mesa.players.some(p=>p.id!==user.uid)?mesa.players.filter(p=>p.id!==user.uid).map(p=>`<div class="resrow"><span>${esc(p.name||p.email)}<br><small style="font-weight:400">${esc(p.email)}</small></span>
       <select data-assign="${esc(p.id)}" aria-label="${tx("Personaje de","Character for")} ${esc(p.name||p.email)}">${opts(p.char)}</select></div>`).join(""):`<p class="note">${tx("Todavía no ha entrado ningún jugador. Pídeles que abran la app y entren con Google.","No player has signed in yet. Ask them to open the app and sign in with Google.")}</p>`}</div></section>
     <p class="note">${tx("Conectado como DM","Signed in as DM")}: ${esc(user.email)}</p>${outBtn()}`;
@@ -2698,6 +2720,7 @@ document.addEventListener("click",e=>{
   if(ds.x){explainStat(ds.x);return}
   if(ds.fx){fxOpen(ds.fx);return}
   if(ds.hbuy){hakiOpen(ds.hbuy);return}
+  if(ds.hk){hakiGo(ds.hk);return}
   if(ds.sbview){sandboxOpen(ds.sbview);return}
   if(ds.hok){buyDecide(ds.hok,true);return}
   if(ds.hno){buyDecide(ds.hno,false);return}
@@ -2824,7 +2847,7 @@ document.addEventListener("click",e=>{
   if(act==="hide"){S.hid=[...new Set([...S.hid,ds.h])];$("tray").classList.add("hide");save();render();cbToast(tx("Oculta: la encuentras al final, en Ocultas.","Hidden: you'll find it at the end, under Hidden."));return}
   if(act==="fxend"){const x=S.fx.find(y=>y.id===ds.id);if(x){const n=fxName(c,x);fxEnd(c,x,false);log(tx(`Terminaste <b>${n}</b>`,`You ended <b>${n}</b>`))}$("tray").classList.add("hide");save();render();return}
   if(act==="thrill"){if(ds.y==="0"&&S.frenzy){S.frenzy=false;S.muscle="";log(tx(`Termina ${c.frenzy.name}: no atacaste ni recibiste daño`,`${c.frenzy.name} ends: you didn't attack or take damage`))}$("tray").classList.add("hide");save();render();return}
-  if(act==="shop"){shopOpen();return}
+  if(act==="shop"){shopOpen(ds.c);return}
   if(act==="shoptab"){shopOpen(ds.c);return}
   if(act==="hreq"){const e=hakiE(ds.id);if(!e||hakiWhy(cur,e))return;progWrite(cur,{buy:{id:e.id,st:"pend",at:Date.now()}});if(!SANDBOX)cbToast(`<b>${tx("Solicitud enviada al DM","Request sent to the DM")}</b> · ${esc(tl(e.n))}`);$("tray").classList.add("hide");return}
   if(act==="buycancel"){progWrite(cur,{buy:null});$("tray").classList.add("hide");return}
