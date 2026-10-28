@@ -6,5 +6,8 @@
 !conjuros.js
 !progresion.js
 !explicaciones.js
+!manifest.json
 !imagenes/
 !imagenes/*.jpg
+!imagenes/icono/
+!imagenes/icono/icono-*.png
