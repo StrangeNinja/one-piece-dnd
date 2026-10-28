@@ -150,7 +150,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-10-28 09:30";
+const APP_VERSION="2026-10-28 09:51";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -236,7 +236,7 @@ const SEED={round:1,cur:null,list:[
   {name:"Udon",type:"pc",init:null,ac:15,max:66},
   {name:"Sungsopp",type:"pc",init:null,ac:15,max:42},
   {name:"Codel",type:"pc",init:null,ac:18,max:62},
-  {name:"Ryuga",type:"pc",init:null,ac:null,max:null},
+  {name:"Ryuga",type:"pc",init:null,ac:19,max:89},
   {name:"Fluffy",type:"ally",init:null,ac:15,max:68,owner:"Sungsopp"}
 ].map(c=>({...c,hp:c.max,temp:0,id:nid(),conds:[],...(c.type==="pc"?{char:c.name.toLowerCase()}:{})}))};
 /* Personajes con fruta del diablo: icono y recordatorio en su tarjeta */
@@ -277,6 +277,8 @@ if(S.v<5){S.list=S.list.filter(c=>!(c.type==="pc"&&(c.name==="Fate"||c.name==="K
   if(!S.list.some(c=>c.id===S.cur))S.cur=S.list.length?sorted()[0].id:null;S.v=5;save()}
 /* v6: cada jugador queda enlazado a su personaje (char) para avisarle su turno; el combate empieza inactivo */
 if(S.v<6){for(const c of S.list){const n=c.name.toLowerCase();if(c.type==="pc"&&CHAR_KEYS.includes(n))c.char=n}S.active=false;S.turnId=S.turnId||0;S.v=6;save()}
+/* v7: llegó la hoja de Ryuga: CA 19 y 89 PV (antes "Hoja pendiente") */
+if(S.v<7){for(const c of S.list)if(c.type==="pc"&&c.name==="Ryuga"&&c.max==null){c.ac=19;c.max=89;c.hp=89}S.v=7;save()}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function sorted(){return S.list.map((c,i)=>[c,i]).sort((a,b)=>(b[0].init??-99)-(a[0].init??-99)||a[1]-b[1]).map(x=>x[0])}
@@ -316,7 +318,7 @@ async function cloudInit(){
       unsubs.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>LIVE.state[d.id]=d.data());liveMax();render()}));
       unsubs.push(F.onSnapshot(F.collection(db,"progress"),q=>{q.forEach(d=>LIVE.prog[d.id]=d.data());liveMax();render()}))}
     render()})}
-/* max null: personaje sin hoja todavía (Ryuga) */
+/* max null: personaje sin hoja todavía */
 function band(c){if(c.max==null)return"pend";if(c.hp<=0)return"ko";const p=c.hp/c.max;return p>.5?"ok":p>.25?"mid":"low"}
 const BAND={ok:["s-ok",{es:"Sano",en:"Healthy"}],mid:["s-mid",{es:"Herido",en:"Hurt"}],low:["s-low",{es:"Grave",en:"Critical"}],ko:["s-ko",{es:"KO",en:"KO"}],pend:["s-mid",{es:"Hoja pendiente",en:"Sheet pending"}]};
 /* Cambia los textos fijos del HTML (data-en, data-enph, data-entitle); el español original queda en data-es, data-esph y data-estitle */
