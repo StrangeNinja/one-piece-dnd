@@ -164,7 +164,7 @@ Campos principales (la app ignora o corrige cualquier campo desconocido o de tip
 | `spells` | `{c: string[], p: string[]}` | Trucos y conjuros preparados (ids de `SPELLS`). |
 | `fore` | `{v, u}[]` | Presagios de Vistazo al futuro (Codel): valor y si se usó. |
 | `sea` | boolean | Kairoseki activo (anula la fruta). |
-| `frenzy`, `trans`, `muscle`, `form`, `formOpts`, `humanHp`, `float`, `stageAC`, `advNext`, `hard`, `mw` | varios | Estados propios de rasgos: frenesí, Sulong, Músculos de Haki (`"def"`/`"atk"`/`""`), forma Zoan, Paso de nube, Endurecimiento, arma de mochi, etc. |
+| `frenzy`, `trans`, `muscle`, `form`, `formOpts`, `humanHp`, `float`, `stageAC`, `advNext`, `hard`, `mw`, `swapHands` | varios | Estados propios de rasgos: frenesí, Sulong, Músculos de Haki (`"def"`/`"atk"`/`""`), forma Zoan, Paso de nube, Endurecimiento, arma de mochi, armas cambiadas de mano (`swapHands`), etc. |
 | `fury` | string[] | Técnicas de furia conocidas (Bruiser). `furyDone`: último desbloqueo del DM ya usado. |
 | `comp` | `{hp, temp, heads, tf, turnDmg}` | Mascota (Fluffy, en `state/sungsopp`). Vacío `{}` si no hay mascota. |
 | `inv` | `{money, items[]}` | Inventario. `money` en berries (entero ≥ 0). Cada objeto: `{id, n, q, note, eq, w?, k?}` (nombre texto o `{es,en}`, cantidad, nota, equipado, arma enlazada, clave de consumible). |
@@ -320,6 +320,7 @@ Criatura de `list`:
 | `char` | string (solo `pc`) | Id del personaje enlazado. |
 | `owner` | string (aliados) | Nombre del dueño (Fluffy: `"Sungsopp"`): lo enlaza como mascota. |
 | `init` | número o `null` | Iniciativa (orden de mayor a menor; empate: orden de la lista). |
+| `mod` | número (opcional) | Modificador de iniciativa de un aliado (Fluffy: 3); lo usa el botón d20. |
 | `ac` | número | CA. |
 | `max` | número o `null` | PV máximos (`null` = hoja pendiente). |
 | `hp`, `temp` | número | PV y PV temporales. Para jugadores con datos en vivo, `dm.html` muestra los de `state` en lugar de estos. |
