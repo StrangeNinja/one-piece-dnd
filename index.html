@@ -186,6 +186,7 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 .warn{font-size:13px;color:var(--bad);font-weight:700}
 .tip{font-size:13px;color:var(--muted)}
 .trayact{display:flex;gap:8px;flex-wrap:wrap}
+.cron-t{white-space:pre-wrap;line-height:1.6;padding:4px 2px 8px;overflow-wrap:anywhere}
 .trayact .btn{flex:1;min-width:140px}
 .multi{display:flex;flex-direction:column;gap:4px;font-size:15px}
 .multi div{display:flex;justify-content:space-between;padding:6px 10px;border-radius:8px;background:var(--bg)}
@@ -339,7 +340,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-20 20:28";
+const APP_VERSION="2026-11-22 19:42";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -984,7 +985,7 @@ function fresh(c){return{lvl:CHARS_SRC[cur]?Math.min(c.level,CHARS_SRC[cur].leve
   slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,comp:c.companion?{hp:c.companion.hp,temp:0,heads:c.companion.heads||0,tf:false,turnDmg:0}:{},frenzy:false,muscle:"",trans:false,exh:0,form:"",formOpts:[],humanHp:c.maxHp,stageAC:false,
   inv:invSeed(keyOf(c)),ilog:[],gotG:[],used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
   fore:c.foretell?[{v:phys()?0:d(20),u:false},{v:phys()?0:d(20),u:false}]:[],
-  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],fx:[],turnEnded:false,float:0,advNext:false}} // en modo físico el jugador anota los presagios
+  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],fx:[],turnEnded:false,float:0,advNext:false,clog:[],ccid:"",seaT:0}} // en modo físico el jugador anota los presagios
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
   const f=fresh(c);if(!s||typeof s!=="object")return f;
@@ -1005,11 +1006,12 @@ function merge(c,s){
     comp:obj(f.comp,s.comp),
     sea:pick(false,s.sea),frenzy:pick(false,s.frenzy),muscle:["def","atk"].includes(s.muscle)?s.muscle:"",trans:pick(false,s.trans),exh:Math.min(6,Math.max(0,pick(0,s.exh))),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(0,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)})),
-    fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),fx:fxClean(s),turnEnded:pick(false,s.turnEnded),hid:Array.isArray(s.hid)?s.hid.filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,80):[],float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext)};
+    fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),fx:fxClean(s),turnEnded:pick(false,s.turnEnded),hid:Array.isArray(s.hid)?s.hid.filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,80):[],float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext),
+    clog:clogClean(s.clog),ccid:typeof s.ccid==="string"?s.ccid.slice(0,24):"",seaT:Math.min(2,Math.max(0,pick(0,s.seaT)))};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===CHARS.udon.maxHp&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
 function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P);if(P&&!admin)invGrants(P)}
-function save(){if(SANDBOX)return;store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}else if(view==="char")store.set("mc:dirty",cur)}
+function save(){if(SANDBOX)return;clogHp();store.set("mc2:"+cur,S);store.set("mc:cur",cur);if(fb&&user){clearTimeout(pushT);pushT=setTimeout(push,700)}else if(view==="char")store.set("mc:dirty",cur)}
 
 /* ===================== DADOS ===================== */
 const d=n=>1+Math.floor(Math.random()*n);
@@ -1106,7 +1108,25 @@ function wOf(c,a){return c.weapons[wKey(c,a)]}
   &&wKey(u,u.actions.find(a=>a.kind==="deflect"),true)==="sc"&&!offKey(CHARS.kalgo)&&!offKey(CHARS.ryuga)&&!offKey(CHARS.codel)&&!offKey(CHARS.sungsopp),"cambiar de mano")}
 function handOf(c,k){const o=offKey(c),sw=c===C()&&S.swapHands;return!o?"":k===(sw?o:"main")?tx("Mano derecha","Right hand"):k===(sw?"main":o)?tx("Mano izquierda","Left hand"):""}
 const swapUi=c=>offKey(c)?`<div class="trayact"><button class="btn" data-swaphands="1">${tx("Cambiar de mano","Swap hands")}</button></div><p class="note">${tx("Cambiar de mano es una interacción con objeto","Swapping hands is an object interaction")}</p>`:"";
-function log(t){S.log.unshift(t);S.log=S.log.slice(0,12)}
+function log(t,ev){S.log.unshift(t);S.log=S.log.slice(0,12);if(ev!==false)clogLine(String(t),ev)}
+/* ===== Crónica del combate: S.clog (máx. 200, solo con combate activo en combat/live, marcado con su cid) =====
+   Lo lee dm.html desde state/{personaje} para narrar el combate. Eventos: use (carta usada: m nombre, tot, dmg, ty, crit, ph dados físicos),
+   dmg (daño recibido: n, ty, src, sv), heal, down, up, ds (salvación de muerte), dream (No abandonaré mis sueños), dp (punto de sueño), sea (kairoseki on/off). pet: de la mascota */
+const CLOG_K=["use","dmg","heal","down","up","ds","dream","dp","sea"];
+function clogClean(v){return Array.isArray(v)?v.slice(-200).filter(x=>x&&typeof x==="object"&&CLOG_K.includes(x.k)).map(x=>{const o={t:+x.t||0,r:+x.r||0,tid:+x.tid||0,k:x.k,a:String(x.a||"").slice(0,40)};
+  for(const f of["m","ty","src","sv"])if(typeof x[f]==="string")o[f]=x[f].slice(0,60);for(const f of["n","tot","dmg"])if(Number.isFinite(x[f]))o[f]=x[f];
+  for(const f of["crit","ph","pet","on"])if(typeof x[f]==="boolean")o[f]=x[f];return o}):[]}
+function clogAdd(e){if(!CB||!CB.cid||!S||!Array.isArray(S.clog))return;if(S.ccid!==CB.cid){S.ccid=CB.cid;S.clog=[]}const c=C(),pt=CB.cur.kind==="pet"&&CB.cur.char===cur;
+  S.clog.push({t:Date.now(),r:CB.round,tid:CB.turnId,a:(e.pet||pt&&e.k==="use")&&c.companion?c.companion.name:c.name,...e});S.clog=S.clog.slice(-200)}
+function clogLine(t,ev){if(ev)return clogAdd(ev);const num=x=>{const m=/(\d+)/.exec(x);return m?+m[1]:undefined};
+  for(const [p,k] of[[DS_(),"ds"],[DREAMS_(),"dream"],[DP_(),"dp"]])if(t.startsWith(p))return clogAdd({k,n:num(t.slice(p.length))});
+  const m=/^<b>([^<]{1,60})<\/b>(.*)$/.exec(t);if(!m||m[1]===INIT_())return;const r=m[2],tot=/^:\s*(\d+)/.exec(r),dm=/·\s*(\d+)\s+([^\s·<]+)/.exec(r);
+  clogAdd({k:"use",m:m[1],...(tot?{tot:+tot[1]}:{}),...(dm?{dmg:+dm[1],ty:dm[2]}:{}),...(/crític|critical/.test(r)?{crit:true}:{}),...(phys()?{ph:true}:{})})}
+/* Caer a 0 PV y levantarse: se compara al guardar (HPW: PV de la última vez) */
+let HPW=null;
+function clogHp(){if(!S)return;const h=[S.hp,S.comp&&S.comp.hp];
+  if(HPW&&HPW.cur===cur)h.forEach((v,i)=>{const o=HPW.h[i];if(!Number.isFinite(v)||!Number.isFinite(o))return;if(o>0&&v<=0)clogAdd({k:"down",...(i?{pet:true}:{})});else if(o<=0&&v>0)clogAdd({k:"up",...(i?{pet:true}:{})})});
+  HPW={cur,h}}
 
 /* ===================== RENDER ===================== */
 const $=id=>document.getElementById(id);
@@ -1200,6 +1220,7 @@ function render(){
   const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role&&!hid("a:"+a.xid));
   if(out.length)h+=`<section><h2>${COST.fuera}</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   h+=invSec(c);
+  h+=cronSec();
 
   h+=`<section><h2>${tx("Salvaciones","Saving Throws")}</h2><div class="saves">${Object.entries(c.saves).map(([k,[,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${abT(k)}<span>${sgn(sv(c,k))}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
   if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>${tx("Habilidades","Skills")}</span><small>${tx("Percepción pasiva","Passive Perception")} ${10+skillBonus(c,"percepcion")+(c.ppB||0)} · ${tx("Perspicacia pasiva","Passive Insight")} ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
@@ -1731,7 +1752,13 @@ function fxAdvance(c,min){fxSweep(c);for(const x of [...S.fx]){
 function thrillAsk(c,hint){if(!S.frenzy||S.hp<=0)return;
   show({title:c.frenzy.name,html:`<div class="trayact"><button class="btn primary" data-do="thrill" data-y="1">${tx("Sí: sigue","Yes: it continues")}</button><button class="btn" data-do="thrill" data-y="0">${tx("No: termina","No: it ends")}</button></div>`,
     tip:tx("¿Atacaste o recibiste daño desde tu último turno? ","Did you attack or take damage since your last turn? ")+(hint?tx("La app registró que sí.","The app recorded that you did."):tx("La app no registró ataques ni daño.","The app didn't record attacks or damage."))})}
-function endTurn(c){if(S.turnEnded)return;const hint=S.turn.attacked||S.turn.hurt||S.hurt;fxEndTurn(c);S.turnEnded=true;thrillAsk(c,hint);fxNotice()}
+/* Kairoseki (o agua): el interruptor de la sección de la fruta y el aviso del DM (progress.sea) usan esta función */
+function seaSet(c,on){if(!c.fruit||S.sea===on)return;S.sea=on;if(S.sea&&S.form){log(HUMAN_(formOf(c).name));endForm(c)}if(S.sea){S.mw="";if(S.conc.id.startsWith("f:")){log(LOSTC_(concOf(c,S.conc.id).n));S.conc={id:"",lvl:0}}}
+  log(S.sea?`<b>${c.fruit.seaLabel}</b>: ${tx("sin poderes de la fruta","no fruit powers")}`:tx("Vuelve la fruta","The fruit powers are back"),{k:"sea",on})}
+/* Kairoseki temporal (del DM): hasta el final de tu próximo turno. seaT = finales de turno que faltan (2 si llegó durante tu turno) */
+const seaTemp=()=>CB&&cbMine(CB.cur)&&CB.cur.kind==="pc"?2:1;
+function seaTick(c){if(S.seaT>0&&--S.seaT===0&&S.sea){seaSet(c,false);cbToast(tx("Terminó el kairoseki: vuelve tu fruta","The seastone wore off: your fruit is back"))}}
+function endTurn(c){if(S.turnEnded)return;const hint=S.turn.attacked||S.turn.hurt||S.hurt;fxEndTurn(c);seaTick(c);S.turnEnded=true;thrillAsk(c,hint);fxNotice()}
 function fxOpen(id){const c=C(),x=S.fx.find(y=>y.id===id);if(!x)return;const n=fxName(c,x);
   const why={r:tx("Las rondas bajan al inicio de cada uno de tus turnos (1 minuto = 10 rondas). Avanzar tiempo del DM y los descansos también lo descuentan.","Rounds go down at the start of each of your turns (1 minute = 10 rounds). The DM's Advance time and rests also count it down."),
     start:tx("Termina al empezar tu próximo turno.","It ends when your next turn starts."),end:tx("Termina al final de tu próximo turno (cuando el DM pasa el turno, o al tocar Nuevo turno).","It ends at the end of your next turn (when the DM passes the turn, or when you tap New Turn)."),
@@ -1952,7 +1979,7 @@ function offerUndo(p){let d=$("undo");if(!d){d=document.createElement("div");d.i
   const t=document.createElement("div");t.innerHTML=S.log[0]||"";d._p=p;
   d.innerHTML=`<span>${esc(t.textContent)}</span><button data-undo>${tx("Deshacer","Undo")}</button>`;d.hidden=false;clearTimeout(d._t);d._t=setTimeout(()=>{d.hidden=true;d._p=null},6000)}
 function undo(){const d=$("undo"),p=d&&d._p;d.hidden=true;if(!p||p.cur!==cur)return;d._p=null;
-  S=JSON.parse(p.s);foreArm=p.fa;dropPrev=p.dp;lastHit=p.lh;T=null;$("tray").classList.add("hide");const r=$("rcard");if(r)r.hidden=true;save();render()}
+  S=JSON.parse(p.s);HPW=null;foreArm=p.fa;dropPrev=p.dp;lastHit=p.lh;T=null;$("tray").classList.add("hide");const r=$("rcard");if(r)r.hidden=true;save();render()}
 
 /* ===================== ECONOMÍA DEL TURNO ===================== */
 function spend(cost){
@@ -2161,6 +2188,7 @@ async function signedIn(u){
   const {F,db}=fb;
   try{admin=(await F.getDoc(F.doc(db,"admins",u.uid))).exists()}catch(e){}
   unsub.push(F.onSnapshot(F.doc(db,"combat","live"),d=>onCombat(d.exists()?d.data():null),()=>onCombat(null)));
+  unsub.push(F.onSnapshot(F.doc(db,"combat","chronicle"),d=>onCron(d.exists()?d.data():null),()=>{}));
   if(admin){
     unsub.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>mesa.state[d.id]=d.data());if(view==="mesa")render()}));
     unsub.push(F.onSnapshot(F.collection(db,"progress"),q=>q.forEach(d=>onProg(d.id,d.data()))));
@@ -2193,7 +2221,7 @@ function openChar(k){
 /* La apariencia viaja en el documento del jugador (o del DM) para seguirlo a otros dispositivos */
 function lookToCloud(v){if(fb&&user)fb.F.setDoc(fb.F.doc(fb.db,"players",user.uid),{look:v},{merge:true}).catch(e=>console.warn("No se pudo guardar la apariencia",e))}
 function push(){clearTimeout(pushT);pushT=null;if(!fb||!user||SANDBOX)return;
-  fb.F.setDoc(fb.F.doc(fb.db,"state",cur),{...S,maxHp:C().maxHp,by:user.uid,at:fb.F.serverTimestamp()}).catch(e=>console.warn("No se pudo guardar en la nube",e))}
+  fb.F.setDoc(fb.F.doc(fb.db,"state",cur),{...S,maxHp:C().maxHp,concN:S.conc.id?concOf(C(),S.conc.id).n:"",by:user.uid,at:fb.F.serverTimestamp()}).catch(e=>console.warn("No se pudo guardar en la nube",e))}
 
 /* Inicio de sesión obligatorio: Google o correo y contraseña (Firebase Authentication). LOGIN.m: formulario de correo (in, new, reset).
    NEWNAME: nombre de la cuenta nueva, por si el documento del jugador se crea antes de que llegue updateProfile */
@@ -2267,7 +2295,7 @@ document.addEventListener("input",e=>{const t=e.target;if(t.id==="in-d20")setD20
 let lastLang=look.lang;
 function onLook(){if(look.lang!==lastLang){lastLang=look.lang;localize();$("tray").classList.add("hide")}if(S)render()}
 addEventListener("resize",()=>{if(view==="char")document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px")});
-document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("hidsec"))hidOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
+document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("cron"))cronOpen=e.target.open;else if(l.contains("hidsec"))hidOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="lvtarget")lvTarget=t.value;if(t.dataset.rvdie)render();
   if(t.dataset.rvck){const e2=RV[t.dataset.rvck],f=t.dataset.f;if(e2){if(f==="ok")e2.ok=t.checked?[...e2.ok,t.dataset.id]:e2.ok.filter(x=>x!==t.dataset.id);else e2[f]=t.checked}render()}});
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
@@ -2302,21 +2330,27 @@ function dmgSteps(c,who,n,ty,mag){
 console.assert(dmgSteps({def:[{k:"res",on:"cortante",src:"a"},{k:"red",n:4,not:"fuerza",src:"b"}]},"me",15,"cortante",false).txt===tx("15 cortante → resistencia por a → 7 → b −4 → 3","15 slashing → resistance from a → 7 → b −4 → 3")
   &&dmgSteps({def:[{k:"imm",on:"cortante",nm:1,src:"a"}]},"me",9,"cortante",true).v===9&&dmgSteps({def:[{k:"red",n:4,not:"fuerza",src:"b"}]},"me",9,"fuerza",false).v===9,"daño");
 /* Panel de Daño, Curar o Temp.: cantidad (y tipo de daño y "Mágico / con Haki", o la fuente de la curación) y el cálculo antes de aplicarlo */
-function hpOpen(k,who){const c=C(),cp=who==="comp"&&c.companion,nm=cp?cp.name:c.name;
-  show({title:`${{dmg:tx("Daño","Damage"),heal:tx("Curar","Heal"),temp:tx("PV temporales","Temporary HP")}[k]} · ${esc(nm)}`,sheet:true,hp:{k,who,ty:"",mag:false},
-    html:`<div class="hp"><input class="hpin" id="hpn" type="number" inputmode="numeric" min="1" placeholder="0" aria-label="${tx("Cantidad","Amount")}" style="width:84px">${k==="heal"?`<input class="hpin" id="hpsrc" type="text" maxlength="40" placeholder="${tx("Fuente (opcional)","Source (optional)")}" aria-label="${tx("De dónde viene la curación (opcional)","Where the healing comes from (optional)")}" style="flex:1;width:auto;text-align:left;font-size:15px">`:""}</div>
+function hpOpen(k,who,hit=null){const c=C(),cp=who==="comp"&&c.companion,nm=cp?cp.name:c.name;
+  show({title:`${{dmg:tx("Daño","Damage"),heal:tx("Curar","Heal"),temp:tx("PV temporales","Temporary HP")}[k]} · ${esc(nm)}`,sheet:true,hp:{k,who,ty:hit?hit.ty:"",mag:false,hit,sv:""},
+    html:`${hit?hitHtml(c,who,hit):""}<div class="hp"><input class="hpin" id="hpn" type="number" inputmode="numeric" min="0" placeholder="0" value="${hit?hit.n:""}" aria-label="${tx("Cantidad","Amount")}" style="width:84px">${k==="heal"?`<input class="hpin" id="hpsrc" type="text" maxlength="40" placeholder="${tx("Fuente (opcional)","Source (optional)")}" aria-label="${tx("De dónde viene la curación (opcional)","Where the healing comes from (optional)")}" style="flex:1;width:auto;text-align:left;font-size:15px">`:""}</div>
     ${k==="dmg"?`<div class="chips" role="group" aria-label="${tx("Tipo de daño","Damage type")}">${DMG.map(t=>`<button data-dty="${t}" aria-pressed="false">${dmgT(t)}</button>`).join("")}</div>
     <button class="btn tgl" data-dmag aria-pressed="false">${tx("Mágico / con Haki","Magical / with Haki")}</button>`:""}
     <ol class="calc" id="hpcalc" aria-live="polite"></ol><button class="btn primary use" data-do="hpgo" disabled>${{dmg:tx("Aplicar daño","Apply damage"),heal:tx("Curar","Heal"),temp:tx("Aplicar PV temporales","Apply temporary HP")}[k]}</button><button class="btn" data-do="close">${tx("Cancelar","Cancel")}</button>`,
     tip:k==="dmg"?tx("Elige el tipo para aplicar tus resistencias. El Haki de Armadura cuenta como mágico.","Pick the type to apply your resistances. Armament Haki counts as magical."):k==="temp"?tx("No se acumulan: queda el valor más alto.","They don't stack: the higher value stays."):""});
   hpCalc();$("hpn").focus()}
+function hitHtml(c,who,x){return`<p class="note"><b>${x.src||tx("Golpe del DM","Hit from the DM")}</b>${x.crit?tx(" · crítico"," · critical"):""} · ${x.n} ${x.ty?dmgT(x.ty):""}</p>${x.ab?`<p class="note"><b>${SVT_(x.ab)} ${tx("CD","DC")} ${x.dc}</b>${who!=="comp"?` · ${tx("tira","roll")} 1d20 ${sgnS(sv(c,x.ab))}`:""}${x.half?tx(" · mitad si superas"," · half on a success"):tx(" · nada si superas"," · nothing on a success")}${x.sea?tx(" · si fallas, kairoseki"," · on a failure, seastone"):""}</p>
+    <div class="trayact"><button class="btn big" data-hsv="ok" aria-pressed="false">${tx("Superé","I succeeded")}</button><button class="btn big" data-hsv="ko" aria-pressed="false">${tx("Fallé","I failed")}</button>${!phys()&&who!=="comp"?`<button class="btn" data-hsv="roll">${tx("Tirar","Roll")} (${sgn(sv(c,x.ab))})</button>`:""}</div>`:""}`}
 /* Cálculo en vivo del panel (sin redibujar la bandeja, para no perder lo escrito) */
 function hpCalc(){const h=T&&T.hp,el=$("hpcalc");if(!h||!el)return;
   const c=C(),cp=h.who==="comp"&&c.companion,k=cp?S.comp:S,max=cp?cp.hp:mhp(c),n=parseInt($("hpn").value,10),L=[];
   document.querySelectorAll("#trayin [data-dty]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.dty===h.ty));
   const m=document.querySelector("#trayin [data-dmag]");if(m)m.setAttribute("aria-pressed",h.mag);
-  document.querySelector('#trayin [data-do="hpgo"]').disabled=!(n>0);
-  if(!(n>0)){el.innerHTML="";return}
+  document.querySelectorAll("#trayin [data-hsv]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.hsv===h.sv));
+  const need=h.hit&&h.hit.ab&&!h.sv,ok=!need&&(n>0||!!(h.hit&&h.sv)&&n===0);
+  document.querySelector('#trayin [data-do="hpgo"]').disabled=!ok;
+  if(need){el.innerHTML=`<li>${tx("Tira tu salvación y elige el resultado.","Roll your saving throw and pick the result.")}</li>`;return}
+  if(h.hit&&h.sv)L.push(`${h.roll?h.roll+" · ":""}${h.sv==="ok"?tx("Superaste la salvación","You succeeded on the save"):tx("Fallaste la salvación","You failed the save")}: ${h.hit.n} → <b>${n||0}</b>${evasionOf(c)&&h.who!=="comp"&&h.hit.ab==="DES"&&h.hit.half?tx(" (Evasión)"," (Evasion)"):""}`);
+  if(!(n>0)){el.innerHTML=ok?[...L,`<b>${tx("No recibes daño","You take no damage")}</b>`].map(x=>`<li>${x}</li>`).join(""):"";return}
   if(h.k==="dmg"){const r=dmgSteps(c,h.who,n,h.ty,h.mag),ab=Math.min(k.temp,r.v),left=Math.max(0,k.hp-(r.v-ab));
     L.push(h.ty?`${n} ${dmgT(h.ty)}`:tx(`${n} de daño (sin tipo: no se aplican resistencias)`,`${n} damage (no type: resistances don't apply)`),...r.st.map(([l,v])=>`${l} → <b>${v}</b>`));
     if(ab)L.push(cp?tx(`Sus PV temporales absorben ${ab}`,`${cp.name}'s temporary HP absorb ${ab}`):tx(`Tus PV temporales absorben ${ab}`,`Your temporary HP absorb ${ab}`));
@@ -2342,6 +2376,7 @@ function takeDamage(c,raw,ty="",mag=false,why=""){
   const f=formOf(c);
   if(f&&f.hp&&rest>=S.hp){const ex=rest-S.hp;S.hp=S.humanHp;S.form="";S.formOpts=[];rest=ex;log(tx(`Vuelves a forma humana${ex?`: ${ex} de daño sobrante`:""}`,`Back to human form${ex?`: ${ex} leftover damage`:""}`))}
   S.hp=Math.max(0,S.hp-rest);if(n>0){S.hurt=true;S.turn.hurt=true}
+  clogAdd({k:"dmg",n,ty,...(why?{src:String(why).slice(0,60)}:{})});
   const w=why?` (${why})`:"",line=tx(`Recibiste <b>${n}</b> de ${dmgName(ty)}${w}${calc?` · ${calc}`:""}${ab?` · tus PV temporales absorbieron ${ab}`:""}`,`You took <b>${n}</b> ${dmgName(ty)}${w}${calc?` · ${calc}`:""}${ab?` · your temporary HP absorbed ${ab}`:""}`);log(line);
   if(S.hp<=0&&S.form){log(HUMAN_(formOf(c).name));endForm(c)}
   const offA=c.actions.map((x,i)=>[x,i]).filter(([x])=>x.trigger&&!S.used[x.once]&&(x.trigger==="half"?S.hp>0&&S.hp<=mhp(c)/2:S.hp<=0&&before>0));
@@ -2367,7 +2402,7 @@ function takeDamage(c,raw,ty="",mag=false,why=""){
     zero&&(names?tx(`Antes de caer, puedes usar ${names}.`,`Before you fall, you can use ${names}.`):tx("Empiezas a tirar salvaciones de muerte. Con tres fallos, No abandonaré mis sueños: d20, con 12 o más te levantas con 1 PV.","You start making death saving throws. At three failures, I Won't Abandon My Dreams: d20, on 12 or higher you get back up with 1 HP."))],
     tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):""))}
 /* Una reacción cambia el último golpe (Esquiva asombrosa, Bloquear golpe, Desviar proyectil, Desvío, Paso relámpago): vuelve a los PV de antes y aplica el daño nuevo */
-function rehit(n,why){const h=lastHit;if(!hitOk())return false;Object.assign(S,h.snap);S.turn.hurt=h.th;S.log=S.log.filter(l=>l!==h.line);takeDamage(C(),Math.max(0,n),h.ty,h.mag,why);lastHit.pre=h.pre;return true}
+function rehit(n,why){const h=lastHit;if(!hitOk())return false;Object.assign(S,h.snap);if(Array.isArray(S.clog)){const i=S.clog.map(e=>e.k==="dmg"&&!e.pet).lastIndexOf(true);if(i>=0)S.clog.splice(i)}if(!quiet)HPW={cur,h:[h.snap.hp,S.comp&&S.comp.hp]};S.turn.hurt=h.th;S.log=S.log.filter(l=>l!==h.line);takeDamage(C(),Math.max(0,n),h.ty,h.mag,why);lastHit.pre=h.pre;return true}
 /* Respuesta al golpe: k = "a"+índice de la acción o "s"+id de la reacción especial. respRun la aplica; respSim la corre sobre una copia
    (quiet: sin bandeja ni tarjeta) para la vista previa, así lo que se ve es exactamente lo que hará Confirmar */
 const respOf=(c,k)=>k[0]==="a"?{a:c.actions[+k.slice(1)],i:+k.slice(1)}:{a:SPECIALS.find(s=>s.id===k.slice(1)),sr:k.slice(1)};
@@ -2417,7 +2452,7 @@ function respHtml(c,R){const k=R.sel,a=k&&respOf(c,k).a,v=k?R.rv[k]:{},dz=a&&res
   <button class="btn primary use" data-do="rconf" ${k&&!respNeed(c,a,v)?"":"disabled"}>${tx("Confirmar","Confirm")}</button>`}
 const NOHIT_=()=>hitOk()?`<div class="trayact"><button class="btn primary" data-do="nohit">${tx("Lo evitaste: quitar el daño que anotaste","You avoided it: remove the damage you entered")}</button></div>`:"";
 function compDamage(c,raw,ty,mag){const cp=c.companion,k=S.comp,{v:n,txt}=dmgSteps(c,"comp",raw,ty,mag),calc=txt.includes("→")?txt:"",before=k.hp;
-  const ab=Math.min(k.temp,n);k.temp-=ab;k.hp=Math.max(0,k.hp-(n-ab));k.turnDmg+=n;
+  const ab=Math.min(k.temp,n);k.temp-=ab;k.hp=Math.max(0,k.hp-(n-ab));k.turnDmg+=n;clogAdd({k:"dmg",n,ty,pet:true});
   log(tx(`${cp.name} recibió <b>${n}</b> de ${dmgName(ty)}${calc?` · ${calc}`:""}${ab?` · sus PV temporales absorbieron ${ab}`:""}`,`${cp.name} took <b>${n}</b> ${dmgName(ty)}${calc?` · ${calc}`:""}${ab?` · ${cp.name}'s temporary HP absorbed ${ab}`:""}`));
   const took=tx(`${cp.name} recibió ${n} de ${dmgName(ty)}`,`${cp.name} took ${n} ${dmgName(ty)}`),zero=k.hp<=0&&before>0;
   resCard("dmg","comp",zero?tx(`¡${cp.name} cayó a 0 PV!`,`${cp.name} dropped to 0 HP!`):took,[zero&&took,calc,ab&&tx(`Sus PV temporales absorbieron ${ab}`,`${cp.name}'s temporary HP absorbed ${ab}`)],tx(`Le quedan ${k.hp} / ${cp.hp} PV`,`${cp.name} has ${k.hp} / ${cp.hp} HP left`));
@@ -2426,6 +2461,7 @@ function compDamage(c,raw,ty,mag){const cp=c.companion,k=S.comp,{v:n,txt}=dmgSte
     html:`<div class="trayact"><button class="btn primary" data-do="chead" data-y="1">${tx("Sí, muere una cabeza","Yes, a head dies")}</button><button class="btn" data-do="chead" data-y="0">No</button></div>`,tip:tx("¿Muere una cabeza?","Does a head die?")})}
 function healHp(c,who,n,src){const cp=who==="comp"&&c.companion,k=cp?S.comp:S,max=cp?cp.hp:mhp(c),old=Math.max(0,k.hp);k.hp=Math.min(max,old+n);const g=k.hp-old,s=src?` (${esc(src)})`:"";
   if(!cp){S.ds={ok:0,ko:0};S.dead=false}
+  clogAdd({k:"heal",n:g,...(cp?{pet:true}:{}),...(src?{src:String(src).slice(0,60)}:{})});
   log(cp?tx(`${cp.name} recuperó <b>${g}</b> PV${s}`,`${cp.name} regained <b>${g}</b> HP${s}`):tx(`Recuperaste <b>${g}</b> PV${s}`,`You regained <b>${g}</b> HP${s}`));
   resCard("heal",who,cp?tx(`${cp.name} recuperó ${g} PV`,`${cp.name} regained ${g} HP`):tx(`Recuperaste ${g} PV`,`You regained ${g} HP`),[src&&esc(src),g<n&&tx(`De ${n}: el resto pasa del máximo`,`Out of ${n}: the rest goes over the maximum`)],
     cp?tx(`Ahora tiene ${k.hp} / ${max} PV`,`${cp.name} now has ${k.hp} / ${max} HP`):tx(`Ahora tienes ${k.hp} / ${max} PV`,`Now you have ${k.hp} / ${max} HP`))}
@@ -2454,8 +2490,34 @@ function onProg(k,raw){if(!CHARS_SRC[k])return;
   if(W&&!W.test&&W.k===k&&(!P.event||P.event.id!==W.ev.id||P.pending)){W=null;lvDraw()}
   if(k===cur&&S&&!admin&&P.level>S.lvl)lvApplied(buildChar(k,progAt(P,S.lvl)),CHARS[k],P);
   if(k===cur&&S&&!admin)invGrants(P);
+  if(k===cur&&S&&!admin&&view==="char"){dmSea(raw&&raw.sea);dmHit(raw&&raw.hit)}
   if(k===cur)lvCheck();
   render()}
+/* ===== Golpes y kairoseki que manda el DM (dm.html escribe progress/{personaje}.hit y .sea) =====
+   Cada id se aplica una vez por teléfono (mc:hitseen, mc:seaseen) y solo si tiene menos de 10 minutos.
+   hit = {id, n, type, save, dc, half, src, sea, pet, crit, at}: abre el panel de Daño con todo anotado; con salvación, Superé / Fallé */
+const seenAdd=(k,id)=>{const L=store.get(k)||[];if(L.includes(id))return false;store.set(k,[...L,id].slice(-20));return true};
+const fresh10=v=>v&&typeof v==="object"&&typeof v.id==="string"&&isInt(v.at,0,1e14)&&Date.now()-v.at<6e5;
+function dmHit(h){if(!fresh10(h)||!seenAdd("mc:hitseen",h.id))return;const c=C(),pet=h.pet===true&&!!c.companion,n=isInt(h.n,0,9999)?h.n:0,ty=DMG.includes(h.type)?h.type:"",
+    ab=ABS.includes(h.save)&&isInt(h.dc,1,40)?h.save:"",src=String(h.src||"").replace(/[<>&"]/g,"").slice(0,40),sv=ab?`${SVT_(ab)} ${tx("CD","DC")} ${h.dc}`:"";
+  buzz([200,80,200]);NAVSRC=false;
+  cbBanner(pet?tx(`¡${src||"Un golpe"} alcanza a ${esc(c.companion.name)}!`,`${src||"A hit"} hits ${esc(c.companion.name)}!`):h.crit===true?tx(`¡Golpe crítico${src?" de "+src:""}!`,`Critical hit${src?" from "+src:""}!`):tx(`¡Te alcanza ${src||"un golpe"}!`,`${src||"A hit"} hits you!`),
+    sv||`${n} ${ty?dmgT(ty):tx("de daño","damage")}`);
+  hpOpen("dmg",pet?"comp":"me",{n,ty,src,ab,dc:ab?h.dc:0,half:h.half!==false,sea:h.sea===true&&!pet,crit:h.crit===true})}
+function dmSea(v){if(!fresh10(v)||!seenAdd("mc:seaseen",v.id))return;const c=C();if(!c.fruit||typeof v.on!=="boolean")return;
+  const ch=S.sea!==v.on;seaSet(c,v.on);S.seaT=v.on&&v.temp===true?seaTemp():0;if(!ch&&!v.temp)return;buzz([160,60,160]);
+  cbToast(v.on?tx(`El DM marcó kairoseki: pierdes tu fruta${v.temp?" hasta el final de tu próximo turno":""}`,`The DM marked seastone: you lose your fruit${v.temp?" until the end of your next turn":""}`):tx("El DM quitó el kairoseki: vuelve tu fruta","The DM removed the seastone: your fruit is back"));save();render()}
+/* Daño con salvación: Superé o Fallé (o la tirada de la app en dados digitales). Evasión (DES, mitad): 0 si supera y la mitad si falla */
+const evasionOf=c=>/^Evasi/.test(c.passive||""); // shortcut: lo detecta por el texto de la pasiva (Sungsopp); si otro personaje gana Evasión, darle un campo propio
+function hitEff(c,x,r,who){const ev=who!=="comp"&&x.ab==="DES"&&x.half&&evasionOf(c);return r==="ok"?(x.half&&!ev?Math.floor(x.n/2):0):ev?Math.floor(x.n/2):x.n}
+console.assert(hitEff({passive:"Evasión: …"},{n:25,ab:"DES",half:true},"ok","me")===0&&hitEff({passive:"Evasión: …"},{n:25,ab:"DES",half:true},"ko","me")===12
+  &&hitEff({},{n:25,ab:"DES",half:true},"ok","me")===12&&hitEff({},{n:25,ab:"CON",half:false},"ok","me")===0&&hitEff({},{n:25,ab:"CON",half:false},"ko","me")===25,"golpe del DM");
+/* ===== Crónica del último combate (combat/chronicle, la escribe dm.html con "Compartir con los jugadores") ===== */
+let CRON=null,cronOpen=false;
+function onCron(v){const ok=v&&typeof v==="object"&&typeof v.text==="string"&&isInt(v.at,0,1e14);CRON=ok?{title:String(v.title||"").slice(0,120),text:v.text.slice(0,30000),at:v.at}:null;
+  if(CRON&&CRON.at!==store.get("mc:cronseen")){const was=store.get("mc:cronseen");store.set("mc:cronseen",CRON.at);if(was!=null&&Date.now()-CRON.at<36e5)cbToast(tx(`Nueva crónica: <b>${esc(CRON.title)}</b>`,`New chronicle: <b>${esc(CRON.title)}</b>`))}
+  if(view==="char")render()}
+const cronSec=()=>CRON?`<section id="sec-cron"><details class="skills cron" ${cronOpen?"open":""}><summary><h2><span>${tx("Crónica del último combate","Chronicle of the last combat")}</span><small>${esc(CRON.title)}</small></h2></summary><div class="cron-t">${esc(CRON.text)}</div></details></section>`:"";
 /* Progreso al nivel L, rearmado con el historial (lo que tenía la ficha antes de las subidas que este teléfono todavía no aplicó) */
 function progAt(P,L){let Q={};for(const h of P.hist||[])if(h.to<=L)Q=lvApply(Q,{...h,die:h.die},{ok:h.ok});return Q}
 /* El DM aprobó: sube los PV y los recursos en lo que creció su máximo, renueva los puntos de sueño y agrega los trucos elegidos */
@@ -2660,7 +2722,7 @@ function lvSheet(c){const P=PROG[cur]||{},g=c.gained||[],hi=P.hist||[];if(!g.len
     ${hi.length?`<details class="lvhist"><summary>${tx("Historial de niveles","Level history")} (${hi.length})</summary>${hi.map(h=>lvHist(cur,h)).reverse().join("")}</details>`:""}</div></section>`}
 
 /* Inicio de turno: economía, efectos por turno y duraciones (botón "Nuevo turno" o aviso del DM) */
-function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.turn.hurt||S.hurt;if(!S.turnEnded)fxEndTurn(c);S.turnEnded=false;S.turn=newTurn(c);S.turn.hurt=S.hurt;S.hurt=false;S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;fxTick(c);$("tray").classList.add("hide");log(tx("— Nuevo turno —","— New turn —"));
+function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.turn.hurt||S.hurt;if(!S.turnEnded){fxEndTurn(c);seaTick(c)}S.turnEnded=false;S.turn=newTurn(c);S.turn.hurt=S.hurt;S.hurt=false;S.muscle="";S.stageAC=false;if(c.companion)S.comp.turnDmg=0;fxTick(c);$("tray").classList.add("hide");log(tx("— Nuevo turno —","— New turn —"));
   /* En frenesí, Postura de hierro se ofrece al inicio de cada turno */
   const ir=c.actions.findIndex(x=>x.kind==="temproll"&&x.perTurn&&x.only&&S[x.only]);
   if(ir>=0)show({title:tx("Inicio de turno · ","Start of turn · ")+c.frenzy.label,html:`<div class="trayact"><button class="btn primary" data-act="${ir}">${c.actions[ir].name}: +${c.actions[ir].temp} ${tx("PV temporales","temporary HP")}</button></div>`,tip:c.frenzy.note});if(ask)thrillAsk(c,hint);fxNotice()}
@@ -2671,7 +2733,7 @@ function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.t
 let CB=null;
 const CB_KINDS=["pc","pet","ally","foe"],CB_CHARS=["udon","codel","kalgo","sungsopp","ryuga"];
 const cbWho=x=>x&&typeof x==="object"&&CB_KINDS.includes(x.kind)?{kind:x.kind,char:CB_CHARS.includes(x.char)?x.char:null,name:x.kind==="foe"?"":String(x.name||"").slice(0,40)}:null;
-const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next)}:null;
+const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next),cid:typeof v.cid==="string"?v.cid.replace(/[^\w-]/g,"").slice(0,24):""}:null;
 console.assert(cleanCB({active:true,round:2,turnId:5,cur:{kind:"foe",name:"Kaido"},next:{kind:"pc",char:"udon",name:"Udon"}}).cur.name===""&&cleanCB({active:false})===null,"combate");
 /* Turno de quién, visto desde este teléfono: mine (es mi personaje), name (escapado) */
 const cbMine=x=>!!x&&!admin&&view==="char"&&x.char===cur;
@@ -2741,6 +2803,7 @@ document.addEventListener("click",e=>{
   /* Panel de daño: tipo y "Mágico / con Haki" (sin redibujar la bandeja) */
   if(ds.dty!==undefined&&T&&T.hp){T.hp.ty=T.hp.ty===ds.dty?"":ds.dty;hpCalc();return}
   if(ds.dmag!==undefined&&T&&T.hp){T.hp.mag=!T.hp.mag;hpCalc();return}
+  if(ds.hsv&&T&&T.hp&&T.hp.hit){const h=T.hp,x=h.hit;let r=ds.hsv;h.roll=0;if(r==="roll"){h.roll=d(20)+sv(c,x.ab);r=h.roll>=x.dc?"ok":"ko"}h.sv=r;$("hpn").value=hitEff(c,x,r,h.who);hpCalc();return}
   /* Respuesta al golpe: elegir solo muestra el efecto (la app tira una vez por opción, para que cambiar no vuelva a tirar) */
   if(ds.resp&&T&&T.resp){const R=T.resp,k=ds.resp;R.sel=R.sel===k?"":k;
     if(R.sel&&!R.rv[k]){const a=respOf(c,k).a,v=R.rv[k]={},dz=respDice(c,a);
@@ -2841,8 +2904,7 @@ document.addEventListener("click",e=>{
     const warn=spend(a.cost);S.res[a.res]-=n;
     show({title:a.name,warn,boxes:[{l:ds.n?tx("Enfermedad o veneno","Disease or poison"):tx("Curación","Healing"),v:ds.n?tx("Curado","Cured"):"+"+n,s:tx(`gasta ${n} de la reserva`,`spends ${n} from the pool`)},{l:tx("Reserva","Pool"),v:S.res[a.res],s:tx("PV restantes","HP left")}]});
     log(`<b>${a.name}</b>: ${ds.n?tx("cura enfermedad o veneno","cures disease or poison"):"+"+n+" "+tx("PV","HP")}`)}
-  if(act==="sea"){S.sea=!S.sea;if(S.sea&&S.form){log(HUMAN_(formOf(c).name));endForm(c)}if(S.sea){S.mw="";if(S.conc.id.startsWith("f:")){log(LOSTC_(concOf(c,S.conc.id).n));S.conc={id:"",lvl:0}}}
-    log(S.sea?`<b>${c.fruit.seaLabel}</b>: ${tx("sin poderes de la fruta","no fruit powers")}`:tx("Vuelve la fruta","The fruit powers are back"))}
+  if(act==="sea"){seaSet(c,!S.sea);S.seaT=0}
   if(act==="rep")return S.conc.id.startsWith("f:")?useTech(S.conc.id.slice(2),S.conc.lvl,{rep:true}):castSpell(S.conc.id,S.conc.lvl,{rep:true});
   if(act==="endconc"){log(tx(`Termina la concentración en ${concOf(c,S.conc.id).n}`,`Concentration on ${concOf(c,S.conc.id).n} ends`));S.conc={id:"",lvl:0};trayDone()}
   if(act==="concsave"&&phys()){const v=sv(c,"CON"),dc=+ds.dc;
@@ -2931,10 +2993,12 @@ document.addEventListener("click",e=>{
   if(act==="init"){const r=d20();show({title:INIT_(),d20:0,boxes:[{l:INIT_(),v:r.v+ini(c),s:`d20 ${r.txt} ${sgn(ini(c))}`}]});log(`<b>${INIT_()}</b>: ${r.v+ini(c)}`)}
   if(act==="turn")startTurn(c);
   if(act==="hpopen"){hpOpen(ds.k,ds.who);return}
-  if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0))return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"",pet=h.who==="comp",hp=()=>pet?S.comp.hp:S.hp,h0=hp();
+  if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0||h.hit&&h.sv&&n===0)||h.hit&&h.hit.ab&&!h.sv)return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"",pet=h.who==="comp",hp=()=>pet?S.comp.hp:S.hp,h0=hp();
     trayDone();
-    if(h.k==="dmg")(pet?compDamage:takeDamage)(c,n,h.ty,h.mag);else if(h.k==="heal")healHp(c,h.who,n,src);else tempHp(c,h.who,n);
+    if(h.k==="dmg")(pet?compDamage:takeDamage)(c,n,h.ty,h.mag,h.hit?h.hit.src:"");else if(h.k==="heal")healHp(c,h.who,n,src);else tempHp(c,h.who,n);
     /* DM con una ficha abierta desde Mesa: vista previa del aviso al grupo (dm.html no avisa los cambios hechos con la cuenta del DM) */
+    if(h.hit){const e=(S.clog||[])[S.clog.length-1];if(e&&e.k==="dmg"&&h.sv)e.sv=h.sv;
+      if(h.hit.sea&&h.sv==="ko"&&c.fruit&&!S.sea){seaSet(c,true);S.seaT=seaTemp();cbToast(tx("Fallaste contra el kairoseki: pierdes tu fruta hasta el final de tu próximo turno","You failed against the seastone: you lose your fruit until the end of your next turn"))}}
     const ev=h0>0&&hp()<=0?"down":h0<=0&&hp()>0?"up":"";if(admin&&ev)fallAlert({char:cur,kind:pet?"pet":"pc",name:pet?c.companion.name:c.name,ev},false,true)}
   if(act==="death"&&phys()){show({title:DS_(),boxes:[{l:tx("Tira","Roll"),v:"1d20",s:tx("10 o más: éxito · 1: dos fallos · 20: vuelves con 1 PV","10 or higher: success · 1: two failures · 20: back with 1 HP")}],apply:{ds:{label:tx("Anotar el d20","Enter the d20"),fn:n=>deathSave(Math.min(20,Math.max(1,n)))}}});return}
   if(act==="death")deathSave(d(20));
@@ -2944,7 +3008,7 @@ document.addEventListener("click",e=>{
   if(act==="short"||act==="long"){
     if(armed!==act){armed=act;render();return}
     armed=null;
-    if(act==="long"){const keep={lvl:S.lvl,dream:S.dream,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),inv:S.inv,ilog:S.ilog,gotG:S.gotG,fury:S.fury,furyDone:S.furyDone,hid:S.hid},
+    if(act==="long"){const keep={lvl:S.lvl,dream:S.dream,log:S.log,conds:S.conds,spells:S.spells,exh:Math.max(0,S.exh-1),inv:S.inv,ilog:S.ilog,gotG:S.gotG,fury:S.fury,furyDone:S.furyDone,hid:S.hid,clog:S.clog,ccid:S.ccid},
         manual=c.resources.filter(r=>r.rest==="none").map(r=>[r.id,S.res[r.id]]);
       S=Object.assign(fresh(c),keep);manual.forEach(([k,v])=>S.res[k]=v);foreArm=null;log(tx("<b>Descanso largo</b>: PV y usos recuperados","<b>Long rest</b>: HP and uses recovered"));
       if(S.fore.length&&phys()){S.fore.forEach(f=>{f.v=0;f.u=false});

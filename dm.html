@@ -150,6 +150,32 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 .tag.live{background:var(--good);color:var(--bg)}
 .note{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
 .empty{padding:20px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:12px}
+/* Bestiario, cartas de criaturas, daño en área, editor y crónica (diálogo .pan) */
+.pan{max-height:calc(100dvh - 24px);overflow:auto;overscroll-behavior:contain}
+.pan .lk-in{gap:10px}
+.pan h3{margin:8px 0 0}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fgrid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fgrid label,.pan label.f{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
+.fgrid .w2{grid-column:1 / -1}
+.ck{display:flex!important;flex-direction:row!important;align-items:center;gap:10px;min-height:44px;cursor:pointer;font-size:15px!important;text-transform:none!important;letter-spacing:0!important;color:var(--ink)!important}
+.ck input{width:22px;height:22px;flex-shrink:0;accent-color:var(--accent)}
+.aor{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface)}
+.aor .btn[aria-pressed="true"],.bcd .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.bsh{display:flex;flex-direction:column;gap:8px}
+.bcd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.bcd b{font-size:15px}
+.cnt{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cnt b{flex:1;min-width:0}
+.cnt .btn{min-width:48px}
+.btn:disabled{opacity:.45;cursor:default}
+.tag.ok{background:var(--good);color:var(--bg)}
+.edc{border:1px solid var(--line);border-radius:10px;padding:6px 10px;display:flex;flex-direction:column;gap:8px}
+.edc summary{font-weight:700;cursor:pointer;min-height:40px;display:flex;align-items:center}
+.edc[open]{padding-bottom:10px}
+textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:10px;width:100%;min-height:45vh;line-height:1.55;resize:vertical}
+.pan input,.pan select{width:100%}
+.pan .ck input{width:22px}
 @media (max-width:520px){
   .add{grid-template-columns:repeat(2,minmax(0,1fr))}
   .add .w3,.add .w2,.add .w6{grid-column:span 2} .add .w1{grid-column:span 1}
@@ -161,7 +187,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-20 20:28";
+const APP_VERSION="2026-11-22 19:42";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -218,6 +244,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
   <header id="top"></header>
   <div class="list" id="list"></div>
   <!-- Textos fijos: data-en (texto), data-enph (placeholder) y data-entitle (title) en inglés; staticT() los cambia según el idioma -->
+  <section><h2 data-en="Bestiary">Bestiario</h2><div id="best"></div></section>
   <section><h2 data-en="Add Creature">Agregar criatura</h2>
     <form class="add" id="addf">
       <label class="w3"><span data-en="Name">Nombre</span><input id="f-name" required placeholder="Marine raso" data-enph="Marine grunt"></label>
@@ -315,7 +342,7 @@ function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx
   const pub=c=>{if(!c)return null;if(c.type==="foe")return{kind:"foe",char:null,name:""};const l=linkOf(c);return{kind:l?l.kind:"ally",char:l?l.char:null,name:c.name}};
   /* Caídos y avisos: solo jugadores y mascotas (nombre, tipo y estado; nada privado) */
   const fallen=Object.entries(S.fall||{}).map(([k,st])=>{const c=S.list.find(x=>{const l=linkOf(x);return l&&fallKey(l)===k});return c&&{...linkOf(c),name:c.name,st}}).filter(Boolean);
-  return{active:!!S.active&&!!cu,round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,at:Date.now()}}
+  return{active:!!S.active&&!!cu,cid:S.active&&S.cid||"",round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,at:Date.now()}}
 function syncOut(){if(typeof sorted!=="function")return;
   if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
     F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
@@ -332,13 +359,16 @@ async function cloudInit(){
     try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){db=F.getFirestore(app)}
     fb={U,F,db,auth:U.getAuth(app)}}catch(e){return} // sin internet y sin la librería: sigue solo en el teléfono
   render();
-  fb.U.onAuthStateChanged(fb.auth,async u=>{unsubs.forEach(f=>f());unsubs=[];user=u;isDM=false;firstDm=true;LIVE={state:{},prog:{}};
+  fb.U.onAuthStateChanged(fb.auth,async u=>{unsubs.forEach(f=>f());unsubs=[];user=u;isDM=false;firstDm=true;firstBest=true;LIVE={state:{},prog:{}};
     if(u)try{isDM=(await fb.F.getDoc(fb.F.doc(fb.db,"admins",u.uid))).exists()}catch(e){}
     if(isDM){const {F,db}=fb;
       /* Otro dispositivo del DM: gana el combate guardado más nuevo */
       unsubs.push(F.onSnapshot(F.doc(db,"combat","dm"),d=>{const v=d.exists()&&d.data();
         if(v&&v.S&&Array.isArray(v.S.list)&&(v.at||0)>(S.at||0)&&!d.metadata.hasPendingWrites){S=v.S;store.set("dm:combat2",S);render()}
         if(firstDm){firstDm=false;syncOut()}}));
+      unsubs.push(F.onSnapshot(F.doc(db,"combat","bestiary"),d=>{const v=d.exists()&&d.data();
+        if(v&&v.B&&Array.isArray(v.B.list)&&(v.at||0)>(BEST.at||0)&&!d.metadata.hasPendingWrites){BEST={...v.B,pre:1};store.set("dm:best",BEST);render()}
+        if(firstBest){firstBest=false;if(!v||(BEST.at||0)>(v.at||0))bestOut()}}));
       unsubs.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>LIVE.state[d.id]=d.data());liveMax();render()}));
       unsubs.push(F.onSnapshot(F.collection(db,"progress"),q=>{q.forEach(d=>LIVE.prog[d.id]=d.data());liveMax();render()}))}
     render()})}
@@ -363,8 +393,8 @@ function dmToast(cls,html){let d=$("dmt");if(!d){d=document.createElement("div")
 function applyHeal(c,n){c.hp=Math.min(c.max,c.hp+n)}
 
 /* Gesto Atrás: la tarjeta abierta cuenta como un nivel (ver navSync en el script de apariencia) */
-function navDepth(){return open?1:0}
-function navPop(){open=null;armed=null;render()}
+function navDepth(){return(open?1:0)+(PANEL?1:0)}
+function navPop(){if(PANEL){panClose();return}open=null;armed=null;render()}
 function render(){navLater();
   watchFall();
   const L=sorted(),cur=L.find(c=>c.id===S.cur);document.title=tx("Panel del DM","DM Panel");
@@ -375,8 +405,10 @@ function render(){navLater();
     <div class="sync">${S.active?`<b>${tx("Combate en curso","Combat in progress")}</b>`:tx("Sin combate: «Siguiente» lo empieza","No combat: “Next” starts it")} · ${!fb?tx("solo en este teléfono","this phone only")
       :!user?`<button class="btn" data-do="login">${tx("Entrar con Google para avisar los turnos","Sign in with Google to announce turns")}</button>`
       :isDM?tx("en la nube: los jugadores ven los turnos","in the cloud: players see the turns"):`${tx("esta cuenta no es del DM","this account isn't the DM's")} <button class="btn" data-do="logout">${tx("Cerrar sesión","Sign out")}</button>`}</div>`;
+  put($("best"),bestHtml());
   put($("list"),L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`);
  $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["crew",tx("Agregar tripulación","Add crew")],["reset",tx("Vaciar combate (también jugadores)","Clear combat (players too)")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("")
+   +`<button class="btn primary" data-do="aoe">${tx("Daño en área","Area damage")}</button>`+(!S.active&&(S.clog||[]).length?`<button class="btn" data-do="cronshow">${tx("Crónica del último combate","Chronicle of the last combat")}</button>`:"")
    +`<div class="advt"><b>${tx("Avanzar tiempo","Advance time")}</b>${[1,10,60].map(m=>`<button class="btn" data-do="adv" data-m="${m}">+${m===60?"1 h":m+" min"}</button>`).join("")}</div>`;
 }
 /* ===== Caídos: aviso a todo el grupo =====
@@ -416,6 +448,7 @@ function card(c0){
    </div>
    ${pend?`<p class="note">${tx("Su hoja llega más adelante. Puedes ponerle CA y PV máx. tocando su nombre.","Their sheet comes later. You can set AC and max HP by tapping their name.")}</p>`:`<div class="track" aria-hidden="true"><i class="hp ${b==="mid"?"mid":b==="low"?"low":""}" style="width:${hpW}%"></i><i class="tp" style="width:${tW}%"></i></div>`}
    ${c.conds.length?`<div class="conds">${c.conds.map(x=>`<b>${condT(x)}</b>`).join("")}</div>`:""}
+   ${liveBadges(c0)}${sentTag(c0,lv)}${moraleWarn(c0)}${concRow(c0)}
    ${fxHtml(c0,lv)}
    ${canDie(c0)?`<div class="row"><button class="btn ${armed==="dead"+c.id?"arm":""}" data-dead="${c.id}">${armed==="dead"+c.id?tx("Toca para confirmar: avisa a todos","Tap to confirm: tells everyone"):tx("Confirmar muerte","Confirm death")}</button></div>`:""}
    ${pend?"":lv?`<p class="note">${own?tx("PV y estados en vivo desde la app del jugador: los cambia el jugador.","Live HP and conditions from the player's app: the player changes them."):tx("PV en vivo desde la app de su dueño.","Live HP from the owner's app.")}</p>`:`<div class="ctrl"><input type="number" inputmode="numeric" min="0" id="n-${c.id}" placeholder="0" aria-label="${tx(`Cantidad para ${esc(c.name)}`,`Amount for ${esc(c.name)}`)}">
@@ -424,6 +457,7 @@ function card(c0){
    ${isOpen?`<div class="more">
      ${own?"":`<div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>`}
      ${own?"":fxForm(c0)}
+     ${bestCard(c0)}${linkOf(c0)?linkForms(c0):""}
      <div class="edit">
        <label>${tx("Nombre","Name")}<input id="e-name-${c.id}" value="${esc(c.name)}"></label>
        <label>${tx("Iniciativa","Initiative")}<input id="e-init-${c.id}" type="number" inputmode="numeric" value="${c.init??""}"></label>
@@ -441,7 +475,7 @@ function card(c0){
    Los efectos de los jugadores los maneja su app: aquí se ven en vivo (state.fx) */
 const fxLeftDm=x=>x.t==="r"?(x.left>=10&&x.left%10===0?`${x.left/10} min`:tx(`${x.left} r.`,`${x.left} rd.`)):x.t==="end"?(x.ends>1?tx("fin de su próximo turno","end of its next turn"):tx("fin de este turno","end of this turn"))
   :x.t==="start"?tx("inicio de su próximo turno","start of its next turn"):x.t==="long"?(x.min>=60?`${Math.round(x.min/6)/10} h`:`${x.min} min`):x.t==="conc"?tx("concentración","concentration"):x.t==="until"?tx("mientras dure","while it lasts"):tx("sin límite","no limit");
-function fxDrop(L){for(const [c,x] of L){c.fx=(c.fx||[]).filter(y=>y!==x);if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond)}
+function fxDrop(L){for(const [c,x] of L){c.fx=(c.fx||[]).filter(y=>y!==x);clog({k:"fx",target:c.name,n:x.n,on:false});if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond)}
   if(L.length)dmToast("t",L.map(([c,x])=>tx(`Terminó <b>${esc(x.n)}</b> en ${esc(c.name)}`,`<b>${esc(x.n)}</b> ended on ${esc(c.name)}`)).join("<br>"))}
 function fxTurn(prevId,newId){const L=[];
   for(const c of S.list)for(const x of c.fx||[]){if(x.t==="end"&&x.own===prevId&&--x.ends<=0)L.push([c,x]);else if(x.own===newId&&(x.t==="start"||x.t==="r"&&--x.left<=0))L.push([c,x])}fxDrop(L)}
@@ -455,42 +489,537 @@ function fxForm(c){return`<div class="fxadd"><b>${tx("Agregar efecto o estado","
   <select id="fxo-${c.id}" aria-label="${tx("Cuenta en el turno de","Counts on the turn of")}">${sorted().map(o=>`<option value="${o.id}" ${o.id===c.id?"selected":""}>${tx("cuenta en el turno de","counts on the turn of")} ${esc(o.name)}</option>`).join("")}</select>
   <button class="btn" data-fxadd="${c.id}">${tx("Agregar","Add")}</button>
   <p class="note">${tx("Si el nombre es un estado (Asustado, Aturdido…), también se marca y se quita solo al terminar.","If the name is a condition (Frightened, Stunned…), it's also marked and removed by itself when it ends.")}</p></div>`}
-function num(id){const v=parseInt($(id).value,10);return isNaN(v)?null:v}
+function num(id){const el=$(id),v=el?parseInt(el.value,10):NaN;return isNaN(v)?null:v}
+/* ===================== BESTIARIO =====================
+   Hojas de criaturas guardadas: combat/bestiary {B, at} (solo el DM, como combat/dm) y copia en este teléfono (dm:best). Gana la más nueva.
+   Hoja: {id, name, type foe|ally, ac, hp, init, speed, ab {FUE…CAR} (puntuaciones), sv {DES:10…} (salvaciones competentes; sin dato, el modificador),
+   res, imm (tipos de daño), flavor (línea épica de la crónica), morale, moraleHp (umbral de PV), lr (resistencias legendarias por día), la (acciones legendarias por ronda), cards}.
+   Carta: {id, k atk|save|feat|react|leg, n, hit, dmg, ty, xd, xty, ab, dc, half, area, uses (0 = sin límite), per dia|desc, rech (5 = recarga 5–6), cost, sea, note}.
+   Los textos pueden ser texto simple o {es,en}. Cada copia en combate guarda bid (su hoja) y sus contadores: u (usos), rch (recarga lista), lr, la */
+const ABS=["FUE","DES","CON","INT","SAB","CAR"],AB_EN={FUE:"STR",DES:"DEX",CON:"CON",INT:"INT",SAB:"WIS",CAR:"CHA"};
+const abT=a=>tx(a,AB_EN[a]||a),sgn=n=>(n>=0?"+":"−")+Math.abs(n),tl2=v=>v==null?"":typeof v==="string"?v:tl(v);
+const tyT=t=>!t?"":DMG.includes(t)?tx(t,DMG_EN[t]):t;
+const setL=(old,v)=>old&&typeof old==="object"?{...old,[look.lang]:v}:v; // al editar un texto en dos idiomas cambia solo el del idioma activo
+const d20=()=>1+Math.floor(Math.random()*20);
+/* Dados: "1d8+6", "2d6", "10d10", "5". crit: dados dobles */
+function rollDice(ex,crit){let tot=0;const parts=[];for(const m of String(ex||"").replace(/\s/g,"").matchAll(/([+-]?)(\d*)d(\d+)|([+-]?)(\d+)/g)){
+    if(m[3]){const k=(+m[2]||1)*(crit?2:1),s=+m[3],sg=m[1]==="-"?-1:1;let r=[];for(let i=0;i<k;i++)r.push(1+Math.floor(Math.random()*s));tot+=sg*r.reduce((a,b)=>a+b,0);parts.push(`${sg<0?"−":""}[${r.join(",")}]`)}
+    else if(m[5]){const v=(m[4]==="-"?-1:1)*+m[5];tot+=v;parts.push(sgn(v))}}
+  return{tot:Math.max(0,tot),txt:parts.join(" ")}}
+{const r=rollDice("1d8+6",false),k=rollDice("2d6",true);console.assert(r.tot>=7&&r.tot<=14&&k.tot>=4&&k.tot<=24&&rollDice("5").tot===5,"dados")}
+const L2=(es,en)=>({es,en});
+const blank=()=>({id:"",name:"",type:"foe",ac:12,hp:20,init:0,speed:"30 pies",ab:{FUE:10,DES:10,CON:10,INT:10,SAB:10,CAR:10},sv:{},res:[],imm:[],flavor:"",morale:"",moraleHp:null,lr:0,la:0,cards:[]});
+/* Hojas que trae el panel (una sola vez: BEST.pre). Ids fijos para no duplicarlas entre dispositivos */
+function preSheets(){const C=(k,n,o={})=>({k,n,uses:0,per:"dia",...o});
+  const zahir={...blank(),id:"b-zahir",name:L2("Zahir Manchasol, el Leopardo Verde","Zahir Sunspot, the Green Leopard"),ac:17,hp:225,init:9,speed:L2("40 pies, trepar 30 pies","40 ft., climb 30 ft."),
+    ab:{FUE:12,DES:22,CON:16,INT:12,SAB:15,CAR:14},sv:{DES:10,CON:7,SAB:6},lr:3,la:3,moraleHp:40,morale:L2("Huye por los tejados bajo 40 PV.","Flees across the rooftops below 40 HP."),
+    flavor:L2("Un felino de capa verde que salta de toldo en toldo con dos hojas curvas","A green-cloaked feline who leaps from awning to awning with two curved blades"),cards:[
+    C("feat",L2("Evasión","Evasion"),{note:L2("En salvaciones de DES de mitad de daño: 0 si supera y la mitad si falla.","On DEX saves for half damage: 0 on a success and half on a failure.")}),
+    C("feat",L2("Zarpazo","Claw Swipe"),{dmg:"5d6",ty:"cortante",note:L2("1 vez por turno: +5d6 si tiene ventaja o un aliado a 5 pies del objetivo.","Once per turn: +5d6 if it has advantage or an ally within 5 ft. of the target.")}),
+    C("feat",L2("Furia del leopardo","Leopard's Fury"),{note:L2("Con 112 PV o menos, hace 4 ataques en el Multiataque.","At 112 HP or fewer, it makes 4 attacks with Multiattack.")}),
+    C("react",L2("Mantra","Mantra"),{uses:3,note:L2("Reacción: desventaja en un ataque que vea venir.","Reaction: disadvantage on an attack it sees coming.")}),
+    C("feat",L2("Haki de Armadura","Armament Haki"),{uses:3,note:L2("Acción adicional, 1 minuto: +2 CA y +1d8 de fuerza por golpe; ignora resistencias e inmunidades, incluida la inmunidad de mochi de Codel.","Bonus action, 1 minute: +2 AC and +1d8 force per hit; ignores resistances and immunities, including Codel's mochi immunity.")}),
+    C("feat",L2("Multiataque","Multiattack"),{note:L2("3 Hoja Creciente (4 con Furia del leopardo).","3 Crescent Blade attacks (4 with Leopard's Fury).")}),
+    C("atk",L2("Hoja Creciente","Crescent Blade"),{hit:10,dmg:"1d8+6",ty:"cortante"}),
+    C("atk",L2("Cuchilla dentada","Serrated Cleaver"),{hit:10,dmg:"1d6+6",ty:"cortante",note:L2("El objetivo no puede recuperar PV hasta el final de su siguiente turno.","The target can't regain HP until the end of its next turn.")}),
+    C("save",L2("Danza de Garras","Claw Dance"),{rech:5,ab:"CON",dc:17,note:L2("Se mueve 20 pies sin provocar ataques y ataca a cada criatura que pase. Si falla la salvación: sangrado de 2d4 al inicio de sus turnos.","Moves 20 ft. without provoking attacks and attacks each creature it passes. On a failed save: 2d4 bleeding at the start of its turns.")}),
+    C("react",L2("Parada de dos hojas","Twin-Blade Parry"),{note:L2("+3 CA contra un ataque cuerpo a cuerpo.","+3 AC against one melee attack.")}),
+    C("leg",L2("Salto","Leap"),{cost:1,note:L2("Se mueve su velocidad sin provocar ataques.","Moves its speed without provoking attacks.")}),
+    C("leg",L2("Corte rápido","Quick Cut"),{cost:1,hit:10,dmg:"1d8+6",ty:"cortante",note:L2("Una Hoja Creciente.","One Crescent Blade attack.")}),
+    C("leg",L2("Silbido","Whistle"),{cost:2,note:L2("Un aliado a 60 pies se mueve y ataca como reacción.","An ally within 60 ft. moves and attacks as a reaction.")}),
+    C("leg",L2("Tajo Acorazado","Armored Slash"),{cost:3,ab:"DES",dc:17,dmg:"8d10",ty:"fuerza",half:true,area:L2("Línea de 60 × 5 pies","60 × 5 ft. line"),note:L2("10d10 con Haki. Si falla: empujado 10 pies y derribado. Si supera: la mitad, sin efectos.","10d10 with Haki. On a failure: pushed 10 ft. and knocked prone. On a success: half, no effects.")})]};
+  const lys={...blank(),id:"b-lysander",name:L2("Lysander Vel, el Espadachín Vanidoso","Lysander Vel, the Vain Swordsman"),ac:16,hp:120,init:4,speed:L2("30 pies","30 ft."),
+    ab:{FUE:12,DES:18,CON:16,INT:12,SAB:10,CAR:18},sv:{DES:7,CAR:7},morale:L2("Se rinde si cae Zahir.","Surrenders if Zahir falls."),
+    flavor:L2("Un duelista de sonrisa perfecta que nunca deja de hablar","A duelist with a perfect smile who never stops talking"),cards:[
+    C("feat",L2("Guardaespaldas","Bodyguard"),{note:L2("A 5 pies de Zahir, los ataques contra Zahir tienen −2.","Within 5 ft. of Zahir, attacks against Zahir take −2.")}),
+    C("feat",L2("Haki de Armadura","Armament Haki"),{uses:2,dmg:"1d6",ty:"fuerza",note:L2("+1d6 de fuerza durante 1 minuto; sus ataques son mágicos.","+1d6 force for 1 minute; its attacks are magical.")}),
+    C("feat",L2("Multiataque","Multiattack"),{dmg:"2d6",ty:"perforante",note:L2("3 estoques; si dos impactan al mismo objetivo, +2d6 perforante.","3 rapier attacks; if two hit the same target, +2d6 piercing.")}),
+    C("atk",L2("Estoque","Rapier"),{hit:7,dmg:"1d8+4",ty:"perforante"}),
+    C("save",L2("Fanfarronada","Bravado"),{ab:"SAB",dc:15,note:L2("Acción adicional. Si falla: desventaja al atacar a cualquiera que no sea Lysander hasta el final de su siguiente turno.","Bonus action. On a failure: disadvantage on attacks against anyone but Lysander until the end of its next turn.")}),
+    C("save",L2("Frasco Cegador","Blinding Flask"),{uses:2,ab:"CON",dc:15,area:L2("Esfera de 10 pies a 30 pies","10-ft. sphere within 30 ft."),note:L2("Si falla: cegado hasta el final de su siguiente turno.","On a failure: blinded until the end of its next turn.")}),
+    C("react",L2("Interponerse","Interpose"),{note:L2("Cambia de lugar con Zahir y se vuelve el objetivo.","Swaps places with Zahir and becomes the target.")}),
+    C("react",L2("Parada","Parry"),{note:L2("+3 CA contra un ataque.","+3 AC against one attack.")})]};
+  const raider=(id,n,twin)=>({...blank(),id,name:L2(`${n}, saqueador químico`,`${n}, chemical raider`),ac:15,hp:90,init:3,speed:L2("30 pies","30 ft."),
+    ab:{FUE:14,DES:16,CON:16,INT:14,SAB:10,CAR:8},res:["ácido","veneno"],morale:L2(`Si cae ${twin}, lanza todas las bombas y huye.`,`If ${twin} falls, it throws every bomb and flees.`),
+    flavor:L2("Gemelos con bandoleras de frascos que burbujean","Twins with bandoliers of bubbling flasks"),cards:[
+    C("feat",L2("Bandolera frágil","Brittle Bandolier"),{note:L2("Si recibe un crítico, estalla una bomba al azar en su espacio y alcanza a sus aliados a 5 pies.","If it takes a critical hit, a random bomb bursts in its space and hits its allies within 5 ft.")}),
+    C("feat",L2("Haki de Armadura","Armament Haki"),{uses:1,note:L2("Garras mágicas durante 1 minuto.","Magical claws for 1 minute.")}),
+    C("feat",L2("Multiataque","Multiattack"),{note:L2("2 garras, o garra y bomba.","2 claws, or a claw and a bomb.")}),
+    C("atk",L2("Garras envenenadas","Poisoned Claws"),{hit:6,dmg:"1d6+3",ty:"cortante",xd:"2d6",xty:"veneno"}),
+    C("save",L2("Bomba de ácido","Acid Bomb"),{uses:2,ab:"DES",dc:15,dmg:"4d6",ty:"ácido",half:true,area:L2("Esfera de 10 pies a 60 pies","10-ft. sphere within 60 ft.")}),
+    C("save",L2("Bomba de pegamento","Glue Bomb"),{uses:2,ab:"FUE",dc:15,note:L2("Si falla: velocidad 0 hasta que salga con una acción y una prueba de FUE CD 15.","On a failure: speed 0 until it gets free with an action and a DC 15 STR check.")}),
+    C("feat",L2("Bomba de humo","Smoke Bomb"),{uses:1,note:L2("Nube de 20 pies muy oscurecida durante 1 minuto.","20-ft. heavily obscured cloud for 1 minute.")}),
+    C("save",L2("Polvo de kairoseki","Seastone Dust"),{uses:1,ab:"CON",dc:15,sea:true,note:L2("Los usuarios de fruta que fallen pierden la fruta hasta el final de su siguiente turno.","Fruit users who fail lose their fruit until the end of their next turn.")}),
+    C("react",L2("Frasco de escape","Escape Flask"),{uses:1,note:L2("Al recibir daño se mueve 15 pies sin provocar ataques y deja humo de 5 pies.","When it takes damage, it moves 15 ft. without provoking attacks and leaves 5 ft. of smoke.")})]});
+  const capa={...blank(),id:"b-capa",name:L2("Capa Verde","Green Cloak"),ac:14,hp:33,init:3,speed:L2("30 pies","30 ft."),ab:{FUE:12,DES:16,CON:12,INT:10,SAB:10,CAR:10},
+    morale:L2("Huyen si Zahir cae o huye.","They flee if Zahir falls or flees."),flavor:L2("Matones de capa verde que atacan en manada","Green-cloaked thugs who attack in packs"),cards:[
+    C("feat",L2("Táctica de banda","Pack Tactics"),{note:L2("Ventaja si un aliado está a 5 pies del objetivo.","Advantage if an ally is within 5 ft. of the target.")}),
+    C("feat",L2("Multiataque","Multiattack"),{note:L2("2 cimitarras.","2 scimitar attacks.")}),
+    C("atk",L2("Cimitarra","Scimitar"),{hit:5,dmg:"1d6+3",ty:"cortante"}),
+    C("atk",L2("Ballesta ligera","Light Crossbow"),{hit:5,dmg:"1d8+3",ty:"perforante",note:L2("80/320 pies.","80/320 ft.")})]};
+  const L=[zahir,lys,raider("b-grisk","Grisk","Grask"),raider("b-grask","Grask","Grisk"),capa];
+  L.forEach(b=>b.cards.forEach((x,i)=>x.id=b.id+"-"+i));return L}
+let BEST=store.get("dm:best")||{list:[],at:0};
+/* pre: hojas iniciales ya cargadas. Sin subir la fecha (at): si la nube ya tiene el bestiario, gana la nube */
+if(!BEST.pre){const have=new Set(BEST.list.map(b=>b.id));BEST.list.push(...preSheets().filter(b=>!have.has(b.id)));BEST.pre=1;store.set("dm:best",BEST)}
+let bestT=null,firstBest=true;
+function saveBest(){BEST.at=Date.now();store.set("dm:best",BEST);bestOut()}
+function bestOut(){if(!fb||!isDM||firstBest)return;clearTimeout(bestT);bestT=setTimeout(()=>fb.F.setDoc(fb.F.doc(fb.db,"combat","bestiary"),{B:JSON.parse(JSON.stringify(BEST)),at:BEST.at||0}).catch(e=>console.warn("No se pudo guardar el bestiario",e)),300)}
+const sheetOf=c=>c&&c.bid?BEST.list.find(b=>b.id===c.bid)||null:null;
+const short=n=>tl2(n).split(",")[0].trim();
+const svB=(b,a)=>b&&b.sv&&Number.isFinite(b.sv[a])?b.sv[a]:b&&b.ab?Math.floor(((b.ab[a]??10)-10)/2):0;
+const resOf=(b,ty)=>!b||!ty?"":(b.imm||[]).includes(ty)?"imm":(b.res||[]).includes(ty)?"res":"";
+/* Daño a una criatura con su hoja: inmunidad = 0, resistencia = la mitad (hacia abajo). Daño en área: primero la mitad por superar la salvación, después la resistencia */
+function aoeDmg(n,o){let v=o.saved===true?(o.half?Math.floor(n/2):0):n;if(o.r==="imm")v=0;else if(o.r==="res")v=Math.floor(v/2);return v}
+const concDc=n=>Math.max(10,Math.floor(n/2));
+const recOf=x=>[x.k==="leg"?tx(`cuesta ${x.cost||1}`,`costs ${x.cost||1}`):"",Number.isFinite(x.hit)?sgn(x.hit):"",x.ab?`${abT(x.ab)} ${tx("CD","DC")} ${x.dc||"?"}`:"",
+  x.dmg?`${x.dmg} ${tyT(x.ty)}`:"",x.xd?`+ ${x.xd} ${tyT(x.xty)}`:"",x.ab&&x.dmg?(x.half?tx("mitad si supera","half on a success"):tx("nada si supera","nothing on a success")):"",x.area?tl2(x.area):"",x.sea?tx("kairoseki si falla","seastone on a failure"):""].filter(Boolean).join(" · ");
+const KIND={atk:L2("Ataque","Attack"),save:L2("Salvación","Saving throw"),feat:L2("Rasgo","Feature"),react:L2("Reacción","Reaction"),leg:L2("Legendaria","Legendary")};
+const usesT=(c,x)=>x.rech?((c.rch||{})[x.id]===false?tx(`recarga ${x.rech}–6`,`recharge ${x.rech}–6`):tx(`lista · recarga ${x.rech}–6`,`ready · recharge ${x.rech}–6`))
+  :x.uses>0?`${(c.u||{})[x.id]??x.uses}/${x.uses} ${x.per==="desc"?tx("por descanso","per rest"):tx("al día","per day")}`:"";
+/* Copias en combate (numeradas como hoy). Iniciativa: d20 + modificador de la hoja en cada copia, salvo que el DM escriba una */
+function addFromSheet(b,qty,init){qty=Math.min(20,Math.max(1,qty||1));const nm=short(b.name);
+  for(let k=1;k<=qty;k++)S.list.push({id:nid(),name:qty>1?`${nm} ${k}`:nm,type:b.type||"foe",init:init!=null?init:d20()+(b.init||0),mod:b.init||0,ac:b.ac,max:b.hp,hp:b.hp,temp:0,conds:[],fx:[],
+    bid:b.id,u:Object.fromEntries(b.cards.filter(x=>x.uses>0).map(x=>[x.id,x.uses])),rch:Object.fromEntries(b.cards.filter(x=>x.rech).map(x=>[x.id,true])),lr:b.lr||0,la:b.la||0});
+  if(!S.cur)S.cur=sorted()[0].id;dmToast("h",tx(`Se agregó ${esc(nm)}${qty>1?" ×"+qty:""} al combate`,`${esc(nm)}${qty>1?" ×"+qty:""} added to combat`))}
+/* Inicio del turno de una criatura del bestiario: vuelven sus acciones legendarias y tira d6 para cada recarga gastada */
+function bTurnStart(c){const b=sheetOf(c);if(!b)return;c.la=b.la||0;const L=[];
+  for(const x of b.cards)if(x.rech&&(c.rch=c.rch||{})[x.id]===false){const r=1+Math.floor(Math.random()*6),ok=r>=x.rech;c.rch[x.id]=ok;clog({k:"rech",m:tl2(x.n),ok,n:r});
+    L.push(ok?tx(`<b>${esc(tl2(x.n))}</b> se recargó (d6: ${r})`,`<b>${esc(tl2(x.n))}</b> recharged (d6: ${r})`):tx(`${esc(tl2(x.n))} no se recargó (d6: ${r})`,`${esc(tl2(x.n))} didn't recharge (d6: ${r})`))}
+  if(L.length)dmToast("t",`${esc(c.name)}: `+L.join(" · "))}
+/* Daño aplicado por el DM (tarjeta o daño en área): crónica, concentración, moral y caída */
+function hurt(c,v,ty,meta={}){const b=sheetOf(c),h0=c.hp;applyDamage(c,v);const out=[];
+  clog({k:"dmg",target:c.name,n:v,ty,...meta});
+  if(v>0&&c.conds.includes("Concentrado")&&!linkOf(c)){c.cs=concDc(v);out.push(tx(`Salvación de concentración: ${abT("CON")} CD ${c.cs}`,`Concentration save: CON DC ${c.cs}`))}
+  if(b&&Number.isFinite(b.moraleHp)&&h0>=b.moraleHp&&c.hp<b.moraleHp&&c.hp>0&&b.morale)out.push(tx("Moral: ","Morale: ")+esc(tl2(b.morale)));
+  if(h0>0&&c.hp<=0)clog({k:"down",target:c.name});return out}
+/* Usar una carta: gasta usos, recarga o acciones legendarias, da la receta (dados físicos) o tira (roll) y lo anota para la crónica */
+function bUse(c,id,roll){const b=sheetOf(c),x=b&&b.cards.find(y=>y.id===id);if(!x)return;const nm=tl2(x.n);c.u=c.u||{};c.rch=c.rch||{};
+  if(x.k==="leg"){const k=x.cost||1;if((c.la??0)<k)return dmToast("d",tx(`A ${esc(c.name)} no le quedan acciones legendarias para ${esc(nm)}`,`${esc(c.name)} doesn't have legendary actions left for ${esc(nm)}`));c.la-=k}
+  if(x.uses>0){if((c.u[x.id]??x.uses)<=0)return;c.u[x.id]=(c.u[x.id]??x.uses)-1}
+  if(x.rech){if(c.rch[x.id]===false)return;c.rch[x.id]=false}
+  const e={k:x.k==="leg"?"leg":x.k==="react"?"react":"use",m:nm,cx:x.id,rec:recOf(x)};let txt=`<b>${esc(nm)}</b>${e.rec?" · "+esc(e.rec):""}`;
+  if(roll){const atk=Number.isFinite(x.hit),nat=atk?d20():0,crit=nat===20,dm=x.dmg?rollDice(x.dmg,crit):null,xd=x.xd?rollDice(x.xd,crit):null;
+    if(atk){e.tot=nat+x.hit;e.nat=nat;if(crit)e.crit=true}if(dm){e.dmg=dm.tot+(xd?xd.tot:0);e.ty=x.ty}
+    txt=`<b>${esc(nm)}</b>`+(atk?tx(`: <b>${e.tot}</b> para impactar (d20 ${nat})`,`: <b>${e.tot}</b> to hit (d20 ${nat})`)+(crit?tx(" · ¡crítico!"," · critical!"):""):"")
+      +(dm?` · <b>${dm.tot}</b> ${esc(tyT(x.ty))}`:"")+(xd?` + <b>${xd.tot}</b> ${esc(tyT(x.xty))}`:"")}
+  clog(e);S.lastUse={m:nm,tid:S.turnId||0,ty:x.ty||""};dmToast("t",`${esc(c.name)}: ${txt}`);
+  if(x.ab&&(x.dmg||x.sea))aoeOpen({src:nm,cx:x.id,n:e.dmg??"",ty:x.ty||"",ab:x.ab,dc:x.dc||"",half:!!x.half,sea:!!x.sea,rec:x.dmg?`${x.dmg} ${tyT(x.ty)}`:"",by:c.id})}
+/* Lo que se ve de la hoja en la tarjeta abierta */
+function bestCard(c){const b=sheetOf(c);if(!b)return"";
+  const sv=ABS.filter(a=>Number.isFinite((b.sv||{})[a])).map(a=>`${abT(a)} ${sgn(b.sv[a])}`).join(", "),rs=[...(b.res||[]).map(t=>tyT(t)),...(b.imm||[]).map(t=>tx("inmune a ","immune to ")+tyT(t))].join(", ");
+  const cnt=(k,lbl,v,max)=>max?`<div class="cnt"><b>${lbl} ${v}/${max}</b><button class="btn" data-bc="${c.id}" data-k="${k}" data-v="-1" aria-label="${lbl} −1">−</button><button class="btn" data-bc="${c.id}" data-k="${k}" data-v="1" aria-label="${lbl} +1">+</button></div>`:"";
+  return`<div class="bsh"><p class="note">${esc(tl2(b.speed))}${sv?` · ${tx("Salvaciones","Saves")} ${sv}`:""}${rs?` · ${tx("Resistencias","Resistances")}: ${esc(rs)}`:""}</p>
+    ${cnt("la",tx("Acciones legendarias","Legendary actions"),c.la??0,b.la)}${cnt("lr",tx("Resistencia legendaria","Legendary resistance"),c.lr??0,b.lr)}
+    ${b.cards.map(x=>{const left=x.uses>0?((c.u||{})[x.id]??x.uses):1,off=left<=0||x.rech&&(c.rch||{})[x.id]===false||x.k==="leg"&&(c.la??0)<(x.cost||1),can=Number.isFinite(x.hit)||!!x.dmg,r=recOf(x),u=usesT(c,x);
+      return`<div class="bcd"><div><b>${esc(tl2(x.n))}</b> <span class="tag">${tl(KIND[x.k])}</span>${u?` <span class="tag">${esc(u)}</span>`:""}${r?`<span class="note" style="display:block">${esc(r)}</span>`:""}${x.note?`<span class="note" style="display:block">${esc(tl2(x.note))}</span>`:""}</div>
+        <div class="row"><button class="btn primary" data-bu="${c.id}" data-x="${x.id}" ${off?"disabled":""}>${tx("Usar","Use")}</button>${can?`<button class="btn" data-bu="${c.id}" data-x="${x.id}" data-roll="1" ${off?"disabled":""}>${tx("Tirar","Roll")}</button>`:""}</div></div>`}).join("")}
+    ${b.morale?`<p class="note"><b>${tx("Moral","Morale")}:</b> ${esc(tl2(b.morale))}</p>`:""}
+    <div class="row">${["flee","surr"].map(f=>`<button class="btn ${armed===f+c.id?"arm":""}" data-flee="${c.id}" data-f="${f}">${armed===f+c.id?tx("Toca para confirmar","Tap to confirm"):f==="flee"?tx("Huye","Flees"):tx("Se rinde","Surrenders")}</button>`).join("")}</div></div>`}
+/* Sección Bestiario: lista de hojas; al tocar una, Agregar al combate (cantidad e iniciativa), Editar, Duplicar y Borrar */
+let bOpen=null;
+function bestHtml(){return`<div class="list">${BEST.list.map(b=>{const o=bOpen===b.id;return`<div class="card"><div class="head"><button class="name" data-bx="open" data-b="${b.id}" aria-expanded="${o}"><b>${esc(tl2(b.name))}</b>
+    <span><span class="tag ${b.type==="foe"?"foe":""}">${tl(TYPE[b.type]||TYPE.foe)}</span> · ${tx("CA","AC")} ${b.ac??"–"} · ${b.hp} ${tx("PV","HP")} · ${tx("Inic.","Init.")} ${sgn(b.init||0)} · ${b.cards.length} ${tx("cartas","cards")}</span></button></div>
+    ${o?`<div class="more">${b.flavor?`<p class="note"><i>${esc(tl2(b.flavor))}</i></p>`:""}<div class="fgrid g3"><label>${tx("Cant.","Qty.")}<input id="bq-${b.id}" type="number" inputmode="numeric" min="1" max="20" value="1"></label>
+      <label class="w2">${tx("Iniciativa (vacío: d20","Initiative (empty: d20")} ${sgn(b.init||0)})<input id="bi-${b.id}" type="number" inputmode="numeric" placeholder="–"></label></div>
+      <button class="btn primary big" data-bx="add" data-b="${b.id}">${tx("Agregar al combate","Add to combat")}</button>
+      <div class="row"><button class="btn" data-bx="edit" data-b="${b.id}">${tx("Editar","Edit")}</button><button class="btn" data-bx="dup" data-b="${b.id}">${tx("Duplicar","Duplicate")}</button>
+      <button class="btn ${armed==="bdel"+b.id?"arm":""}" data-bx="del" data-b="${b.id}">${armed==="bdel"+b.id?tx("Toca para borrar","Tap to delete"):tx("Borrar","Delete")}</button></div></div>`:""}</div>`}).join("")}
+    ${BEST.list.length?"":`<div class="empty">${tx("No hay hojas guardadas.","No saved sheets.")}</div>`}</div><button class="btn" data-bx="new" style="margin-top:8px">${tx("Nueva hoja","New sheet")}</button>`}
+
+/* ===================== PANEL (diálogo): editor de hojas, daño en área y crónica =====================
+   PANEL.k: edit | aoe | cron. Cuenta como un nivel para el gesto Atrás (navDepth) */
+let PANEL=null;
+function panOpen(p){PANEL=p;let d=$("pan");
+  if(!d){d=document.createElement("dialog");d.id="pan";d.className="lk pan";document.body.append(d);d.addEventListener("close",()=>{PANEL=null;navLater()})}
+  drawPan();if(!d.open)d.showModal();navLater()}
+function panClose(){const d=$("pan");PANEL=null;if(d&&d.open)d.close()}
+function drawPan(){const d=$("pan");if(!d||!PANEL)return;d.setAttribute("aria-label",PANEL.title||"");put(d,`<div class="lk-in">${{edit:edHtml,aoe:aoeHtml,cron:cronHtml}[PANEL.k]()}</div>`)}
+const panTop=t=>`<div class="lk-top"><b>${t}</b><button class="btn" data-pan="close">${tx("Cerrar","Close")}</button></div>`;
+const tySel=(attr,v,none)=>`<select ${attr}><option value="">${none}</option>${DMG.map(t=>`<option value="${t}" ${t===v?"selected":""}>${tyT(t)[0].toUpperCase()+tyT(t).slice(1)}</option>`).join("")}</select>`;
+const abSel=(attr,v,none)=>`<select ${attr}><option value="">${none}</option>${ABS.map(a=>`<option value="${a}" ${a===v?"selected":""}>${abT(a)}</option>`).join("")}</select>`;
+
+/* ----- Editor de hojas: ED es una copia; cada casilla escribe su ruta (data-ef) sin redibujar; agregar o quitar cartas sí redibuja ----- */
+const EF={atk:["hit","dmg","ty","xd","xty","uses","per","note"],save:["ab","dc","dmg","ty","half","area","uses","per","rech","sea","note"],feat:["dmg","ty","uses","per","rech","note"],react:["uses","per","note"],leg:["cost","hit","ab","dc","dmg","ty","half","area","note"]};
+const EFL={hit:L2("Bono de ataque","Attack bonus"),dmg:L2("Daño (dados + mod.)","Damage (dice + mod.)"),ty:L2("Tipo","Type"),xd:L2("Daño extra","Extra damage"),xty:L2("Tipo extra","Extra type"),ab:L2("Salvación","Save"),dc:L2("CD","DC"),
+  half:L2("Mitad si supera","Half on a success"),area:L2("Área","Area"),uses:L2("Usos (0: sin límite)","Uses (0: unlimited)"),per:L2("Por","Per"),rech:L2("Recarga (5 = 5–6)","Recharge (5 = 5–6)"),cost:L2("Coste (1–3)","Cost (1–3)"),sea:L2("Kairoseki si falla","Seastone on a failure"),note:L2("Nota","Note")};
+const NUMF=["hit","dc","uses","rech","cost","ac","hp","init","lr","la","moraleHp"];
+let ED=null,EDO=new Set();
+function edOpen(b){ED=JSON.parse(JSON.stringify(b||blank()));EDO=new Set();panOpen({k:"edit",title:tx("Hoja de criatura","Creature sheet")})}
+function edField(path,f,x){const v=x[f],a=`data-ef="${path}.${f}"`,lb=tl(EFL[f]);
+  if(f==="ty"||f==="xty")return`<label>${lb}${tySel(a,v,tx("Sin tipo","No type"))}</label>`;
+  if(f==="ab")return`<label>${lb}${abSel(a,v,tx("Ninguna","None"))}</label>`;
+  if(f==="per")return`<label>${lb}<select ${a}><option value="dia" ${v!=="desc"?"selected":""}>${tx("día","day")}</option><option value="desc" ${v==="desc"?"selected":""}>${tx("descanso","rest")}</option></select></label>`;
+  if(f==="half"||f==="sea")return`<label class="ck w2"><input type="checkbox" ${a} ${v?"checked":""}>${lb}</label>`;
+  if(f==="note"||f==="area")return`<label class="w2">${lb}<input ${a} value="${esc(tl2(v))}" maxlength="${f==="note"?300:60}"></label>`;
+  return`<label>${lb}<input ${a} ${NUMF.includes(f)?`type="number" inputmode="numeric"`:`placeholder="1d8+3"`} value="${v??""}"></label>`}
+function edHtml(){const b=ED,chips=k=>`<div class="chips">${DMG.map(t=>`<button data-edt="${k}" data-t="${t}" aria-pressed="${(b[k]||[]).includes(t)}">${tyT(t)}</button>`).join("")}</div>`;
+  const inp=(f,lb,num,w)=>`<label class="${w||""}">${lb}<input data-ef="${f}" ${num?`type="number" inputmode="numeric"`:""} value="${esc(num?b[f]??"":tl2(b[f]))}"></label>`;
+  return panTop(b.id?tx("Editar hoja","Edit sheet"):tx("Nueva hoja","New sheet"))+`
+  <div class="fgrid">${inp("name",tx("Nombre","Name"),0,"w2")}<label>${tx("Tipo","Type")}<select data-ef="type"><option value="foe" ${b.type!=="ally"?"selected":""}>${tl(TYPE.foe)}</option><option value="ally" ${b.type==="ally"?"selected":""}>${tl(TYPE.ally)}</option></select></label>
+    ${inp("ac",tx("CA","AC"),1)}${inp("hp",tx("PV máx.","Max HP"),1)}${inp("init",tx("Mod. de iniciativa","Initiative mod."),1)}${inp("speed",tx("Velocidad","Speed"),0,"w2")}</div>
+  <h3>${tx("Características y salvaciones","Ability scores and saves")}</h3>
+  <div class="fgrid g3">${ABS.map(a=>`<label>${abT(a)}<input data-ef="ab.${a}" type="number" inputmode="numeric" value="${b.ab[a]??10}"></label>`).join("")}</div>
+  <p class="note">${tx("Salvaciones competentes (vacío: el modificador)","Proficient saves (empty: the modifier)")}</p>
+  <div class="fgrid g3">${ABS.map(a=>`<label>${abT(a)}<input data-ef="sv.${a}" type="number" inputmode="numeric" value="${b.sv[a]??""}" placeholder="${sgn(Math.floor(((b.ab[a]??10)-10)/2))}"></label>`).join("")}</div>
+  <h3>${tx("Resistencias","Resistances")}</h3>${chips("res")}<h3>${tx("Inmunidades","Immunities")}</h3>${chips("imm")}
+  <div class="fgrid">${inp("lr",tx("Resist. legendarias al día","Legendary resist. per day"),1)}${inp("la",tx("Acciones legendarias por ronda","Legendary actions per round"),1)}
+    ${inp("morale",tx("Moral (nota)","Morale (note)"),0,"w2")}${inp("moraleHp",tx("Avisar bajo estos PV","Warn below this HP"),1)}${inp("flavor",tx("Línea épica (crónica)","Epic line (chronicle)"),0,"w2")}</div>
+  <h3>${tx("Cartas","Cards")} (${b.cards.length})</h3>
+  ${b.cards.map((x,i)=>`<details class="edc" data-edo="${i}" ${EDO.has(i)?"open":""}><summary>${esc(tl2(x.n)||"?")} · ${tl(KIND[x.k])}</summary><div class="fgrid">
+    <label class="w2">${tx("Nombre","Name")}<input data-ef="cards.${i}.n" value="${esc(tl2(x.n))}" maxlength="60"></label>${EF[x.k].map(f=>edField("cards."+i,f,x)).join("")}</div>
+    <button class="btn" data-edx="${i}">${tx("Quitar carta","Remove card")}</button></details>`).join("")}
+  <div class="row">${Object.keys(KIND).map(k=>`<button class="btn" data-edadd="${k}">+ ${tl(KIND[k])}</button>`).join("")}</div>
+  <div class="row"><button class="btn primary big" data-pan="edsave">${tx("Guardar hoja","Save sheet")}</button><button class="btn" data-pan="close">${tx("Cancelar","Cancel")}</button></div>`}
+function edSet(path,el){const ks=path.split("."),last=ks.pop();let o=ED;for(const k of ks)o=o[k];const f=last,raw=el.type==="checkbox"?el.checked:el.value;
+  if(el.type==="checkbox")o[f]=raw;else if(NUMF.includes(f)||ks[0]==="ab"||ks[0]==="sv"){const n=parseInt(raw,10);if(isNaN(n))delete o[f];else o[f]=n}
+  else o[f]=["name","speed","flavor","morale","n","note","area"].includes(f)?setL(o[f],raw.slice(0,300)):raw}
+
+/* ----- Daño en área: varias criaturas, salvación opcional, mitad si supera, kairoseki y fuente. Las enlazadas (jugadores y Fluffy) reciben el golpe en su teléfono ----- */
+function aoeOpen(o={}){panOpen({k:"aoe",title:tx("Daño en área","Area damage"),src:o.src||"",n:o.n??"",ty:o.ty||"",ab:o.ab||"",dc:o.dc??"",half:o.half!==false,sea:!!o.sea,rec:o.rec||"",by:o.by||"",cx:o.cx||"",sel:{},sv:{},roll:{}})}
+function aoeRow(c){const P=PANEL,on=!!P.sel[c.id],l=linkOf(c),b=sheetOf(c),n=parseInt(P.n,10),r=resOf(b,P.ty),s=P.sv[c.id];
+  let body="";if(on){if(l)body=`<span class="note">${tx("Se envía a su teléfono: tira su propia salvación","Sent to their phone: they roll their own save")}</span>`;
+    else{const v=n>=0?aoeDmg(n,{saved:P.ab?s==="ok":false,half:P.half,r}):null;
+      body=(P.ab?`<div class="row"><button class="btn" data-aor="${c.id}" data-r="roll">${tx("Tirar","Roll")} (${sgn(svB(b,P.ab))})</button><button class="btn" data-aor="${c.id}" data-r="ok" aria-pressed="${s==="ok"}">${tx("Superó","Saved")}</button><button class="btn" data-aor="${c.id}" data-r="ko" aria-pressed="${s==="ko"}">${tx("Falló","Failed")}</button></div>`:"")
+        +`<span class="note">${P.roll[c.id]?P.roll[c.id]+" · ":""}${v==null||P.ab&&!s?tx("Falta el resultado","Result missing"):`→ <b>${v}</b>${r==="imm"?tx(" (inmune)"," (immune)"):r==="res"?tx(" (resistente: la mitad)"," (resistant: half)"):""}${P.ab&&s==="ok"?(P.half?tx(" · superó: la mitad"," · saved: half"):tx(" · superó: nada"," · saved: nothing")):""}`}</span>`}}
+  return`<div class="aor"><label class="ck"><input type="checkbox" data-aosel="${c.id}" ${on?"checked":""}><b>${esc(c.name)}</b> <span class="tag ${c.type==="foe"?"foe":""}">${tl(TYPE[c.type])}</span></label>${body}</div>`}
+function aoeMissing(){const P=PANEL;return!P.ab?[]:sorted().filter(c=>P.sel[c.id]&&!linkOf(c)&&!P.sv[c.id]).map(c=>c.name)}
+function aoeHtml(){const P=PANEL,miss=aoeMissing(),n=parseInt(P.n,10),any=sorted().some(c=>P.sel[c.id]);
+  return panTop(tx("Daño en área","Area damage"))+`<div class="fgrid">
+    <label class="w2">${tx("Fuente (opcional)","Source (optional)")}<input id="ao-src" data-ao="src" maxlength="40" value="${esc(P.src)}"></label>
+    <label>${tx("Daño total","Total damage")}<input id="ao-n" data-ao="n" type="number" inputmode="numeric" min="0" value="${P.n}"></label>
+    <label>${tx("Tipo","Type")}${tySel('id="ao-ty" data-ao="ty"',P.ty,tx("Sin tipo","No type"))}</label>
+    <label>${tx("Salvación","Save")}${abSel('id="ao-ab" data-ao="ab"',P.ab,tx("Sin salvación","No save"))}</label>
+    <label>${tx("CD","DC")}<input id="ao-dc" data-ao="dc" type="number" inputmode="numeric" value="${P.dc}"></label>
+    <label class="ck w2"><input type="checkbox" data-ao="half" ${P.half?"checked":""}>${tx("Mitad si supera","Half on a success")}</label>
+    <label class="ck w2"><input type="checkbox" data-ao="sea" ${P.sea?"checked":""}>${tx("Aplica kairoseki a quienes fallen","Seastone on those who fail")}</label></div>
+    ${P.rec?`<p class="note">${tx("Tira","Roll")} ${esc(P.rec)}</p>`:""}
+    <div class="row"><button class="btn" data-aoall="foe">${tx("Todos los enemigos","All enemies")}</button><button class="btn" data-aoall="pc">${tx("Todos los jugadores","All players")}</button><button class="btn" data-aoall="">${tx("Nadie","Nobody")}</button></div>
+    ${sorted().map(aoeRow).join("")}
+    ${miss.length?`<p class="note">${tx("Falta la salvación de: ","Save missing for: ")}${esc(miss.join(", "))}</p>`:""}
+    <button class="btn primary big" data-pan="aoego" ${any&&n>=0&&!miss.length&&(!P.ab||parseInt(P.dc,10)>0)?"":"disabled"}>${tx("Aplicar","Apply")}</button>`}
+function aoeGo(){const P=PANEL,n=parseInt(P.n,10),dc=parseInt(P.dc,10)||0,out=[];let need=false;
+  for(const c of sorted()){if(!P.sel[c.id])continue;const l=linkOf(c);
+    if(l){if(sendHit(c,l,{n,type:P.ty,save:P.ab,dc,half:P.half,src:P.src,sea:P.sea}))out.push(`${esc(c.name)}: ${tx("enviado","sent")}`);else need=true;continue}
+    const b=sheetOf(c),saved=P.ab?P.sv[c.id]==="ok":null,v=aoeDmg(n,{saved,half:P.half,r:resOf(b,P.ty)});
+    const extra=hurt(c,v,P.ty,{aoe:true,...(P.ab?{saved}:{}),...(P.src?{src:P.src}:{}),...(P.cx?{cx:P.cx}:{})});out.push(`${esc(c.name)}: <b>${v}</b>${P.ab?` (${saved?tx("superó","saved"):tx("falló","failed")})`:""}${extra.length?" · "+extra.join(" · "):""}`)}
+  panClose();save();render();dmToast("d",(P.src?`<b>${esc(P.src)}</b><br>`:"")+out.join("<br>")+(need?"<br>"+tx("Sin sesión de DM no se puede avisar a los jugadores","Without a DM session the players can't be notified"):""))}
+
+/* ----- Golpes y kairoseki para los jugadores: progress/{personaje}.hit y .sea (merge: no toca nivel, prestigio, propuestas…) ----- */
+let SENT={};
+function progMerge(ch,data){if(!fb||!isDM)return false;fb.F.setDoc(fb.F.doc(fb.db,"progress",ch),data,{merge:true}).catch(e=>{console.warn("No se pudo enviar",e);dmToast("d",tx("No se pudo enviar al jugador","Couldn't send to the player"))});return true}
+function sendHit(c,l,h){const lv=liveView(c),id=nid(),ok=progMerge(l.char,{hit:{id,n:h.n,type:h.type||"",save:h.save||"",dc:h.dc||0,half:!!h.half,src:String(h.src||"").slice(0,40),sea:!!h.sea,pet:l.kind==="pet",crit:!!h.crit,at:Date.now()}});
+  if(ok){SENT[c.id]={hp:lv?lv.hp:null};clog({k:"hit",target:c.name,n:h.n,ty:h.type||"",src:h.src||"",...(h.save?{save:h.save,dc:h.dc}:{}),...(h.crit?{crit:true}:{}),...(h.save?{aoe:true}:{})})}return ok}
+const seaName=n=>n==="Codel"?tx("Kairoseki","Seastone"):tx("Agua o kairoseki","Water or seastone");
+/* Lo que se ve en vivo del jugador: reacción, reacciones especiales y concentración (state/{personaje}) */
+function liveBadges(c){const l=linkOf(c),s=l&&l.kind==="pc"&&isDM&&LIVE.state[l.char];if(!s)return"";const t=s.turn||{},sr=Number.isFinite(t.sr)?t.sr:null;
+  return`<div class="conds">${Number.isFinite(t.r)?`<span class="tag ${t.r>0?"ok":""}">${t.r>0?tx("Reacción lista","Reaction ready"):tx("Reacción usada","Reaction used")}</span>`:""}${sr!=null?`<span class="tag ${sr>0?"ok":""}">${tx("Especiales","Specials")} ${sr}/2</span>`:""}
+    ${s.conc&&s.conc.id?`<span class="tag live">${tx("Concentrado en","Concentrating on")} ${esc(String(s.concN||"…").slice(0,40))}</span>`:""}${FRUITS[c.name]&&s.sea?`<span class="tag foe">${seaName(c.name)}</span>`:""}</div>`}
+/* Formulario de la tarjeta abierta de un jugador o de Fluffy: Enviar golpe y, con fruta, el kairoseki */
+function linkForms(c){const l=linkOf(c);if(!l)return"";const s=LIVE.state[l.char]||{},lu=S.lastUse&&S.lastUse.tid===(S.turnId||0)?S.lastUse:null;
+  return`<div class="fxadd"><b>${tx("Enviar golpe","Send hit")}</b><div class="fgrid"><label>${tx("Daño","Damage")}<input id="sh-n-${c.id}" type="number" inputmode="numeric" min="1" placeholder="0"></label>
+    <label>${tx("Tipo","Type")}${tySel(`id="sh-ty-${c.id}"`,lu?lu.ty:"",tx("Sin tipo","No type"))}</label>
+    <label class="w2">${tx("Fuente","Source")}<input id="sh-src-${c.id}" maxlength="40" value="${esc(lu?lu.m:"")}"></label>
+    <label class="ck w2"><input type="checkbox" id="sh-cr-${c.id}">${tx("Crítico (solo para el texto)","Critical (text only)")}</label></div>
+    <button class="btn primary" data-sh="${c.id}">${tx("Enviar golpe","Send hit")}</button><p class="note">${tx("Un ataque que ya impactó: le abre el panel de Daño en su teléfono con sus resistencias.","An attack that already hit: opens the Damage panel on their phone with their resistances.")}</p></div>
+  ${FRUITS[c.name]&&l.kind==="pc"?`<div class="fxadd"><b>${seaName(c.name)}</b><span class="note">${isDM&&LIVE.state[l.char]?(s.sea?tx("Ahora: activo (en vivo)","Now: on (live)"):tx("Ahora: inactivo (en vivo)","Now: off (live)")):tx("Sin datos en vivo","No live data")}</span>
+    <label class="ck"><input type="checkbox" id="sea-t-${c.id}" checked>${tx("Solo hasta el final de su próximo turno","Only until the end of its next turn")}</label>
+    <div class="row"><button class="btn primary" data-seat="${c.id}" data-on="1">${tx("Marcar","Turn on")}</button><button class="btn" data-seat="${c.id}" data-on="0">${tx("Quitar","Turn off")}</button></div></div>`:""}`}
+
+/* ===================== CRÓNICA DEL COMBATE =====================
+   S.clog (máx. 600): eventos del panel mientras hay combate, con cid (S.cid, nace en el primer «Siguiente»), ronda, turnId y actor (de quién es el turno).
+   Se mezcla con state/{personaje}.clog de cada jugador del mismo cid y se narra con plantillas (sin API externa) */
+function clog(e){if(!S.active)return;S.clog=S.clog||[];const cu=S.list.find(c=>c.id===S.cur);S.clog.push({t:Date.now(),r:S.round,tid:S.turnId||0,a:cu?cu.name:"",...e});if(S.clog.length>600)S.clog=S.clog.slice(-600)}
+function cronEvents(cid){const E=(S.clog||[]).filter(e=>!cid||S.cid===cid).map(e=>({...e,o:"dm"}));
+  for(const ch of CHAR_KEYS){const s=LIVE.state[ch];if(s&&s.ccid===cid&&Array.isArray(s.clog))for(const e of s.clog)if(e&&typeof e==="object")E.push({...e,o:ch,a:String(e.a||"").slice(0,40)})}
+  return E.sort((a,b)=>(a.tid||0)-(b.tid||0)||(a.t||0)-(b.t||0))}
+/* Atribución: el daño que el DM aplica durante el turno de alguien es de ese alguien; el golpe toma el nombre de su última jugada en ese turno */
+const cardName=id=>{for(const b of BEST.list){const x=b.cards.find(y=>y.id===id);if(x)return tl2(x.n)}return""};
+const mvOf=e=>(e.cx&&cardName(e.cx))||e.m||e.src||"";
+function attrib(e,E){const u=E.filter(x=>x.tid===e.tid&&x.a===e.a&&(x.k==="use"||x.k==="leg"||x.k==="react")),pre=u.filter(x=>(x.t||0)<=(e.t||0)+30000);const m=(pre.length?pre:u).pop();return{by:e.a,m:e.src||e.cx?mvOf(e):m?mvOf(m):""}}
+console.assert((()=>{const E=[{tid:5,t:100,k:"turn",a:"Udon"},{tid:5,t:110,k:"use",a:"Udon",m:"Katana del Shogun Carmesí"},{tid:5,t:200,k:"dmg",a:"Udon",target:"Zahir",n:17}],r=attrib(E[2],E);return r.by==="Udon"&&r.m==="Katana del Shogun Carmesí"})(),"crónica: atribución");
+console.assert(aoeDmg(25,{saved:true,half:true,r:"res"})===6&&aoeDmg(25,{saved:false,half:true,r:"res"})===12&&aoeDmg(25,{saved:false,r:"imm"})===0&&aoeDmg(25,{saved:true,half:false})===0&&aoeDmg(9,{saved:null})===9,"daño en área");
+console.assert(concDc(9)===10&&concDc(25)===12&&concDc(40)===20,"concentración");
+/* ----- Narración: frases con {a} (quien actúa), {t} (objetivo), {m} (jugada), {n} (número), {d} (daño con su tipo), {x} (estado), {f} (detalle del personaje).
+   Narrador en tercera persona. Elige con un azar fijo por combate (semilla = cid), así la misma crónica sale igual al volver a abrirla ----- */
+const NARR={es:{
+  open:["{a} toma la iniciativa, {f}.","{a} da un paso al frente, {f}.","Llega el turno de {a}, {f}.","{a} no espera más: {f}.","Todas las miradas caen sobre {a}, {f}.","{a} entra en escena, {f}.","Es el momento de {a}, {f}.","{a} respira hondo y avanza, {f}."],
+  use:["{a} recurre a {m}.","{a} desata {m}.","{a} responde con {m}.","Con un grito, {a} lanza {m}.","{a} pone en juego {m}.","Sin dudar, {a} usa {m}.","{a} saca a relucir {m}.","{a} confía en {m}."],
+  usehit:["{a} lanza {m} y su golpe llega con un {n}.","{a} ataca con {m}: {n} para impactar.","Con {m}, {a} busca el hueco y saca un {n}.","{a} apunta con {m}; el dado marca {n}.","{m} sale de las manos de {a} con un {n} en el dado.","{a} se juega todo en {m} y logra un {n}.","Un {n} acompaña el {m} de {a}.","{a} descarga {m}: {n} contra la defensa."],
+  crit:["¡Golpe crítico!","¡Un impacto perfecto!","¡El dado brilla con un 20!","¡Nadie habría podido esquivar eso!","¡Crítico, y el suelo tiembla!","¡Un golpe de leyenda!","¡Justo en el punto débil!","¡Crítico que se recordará en cada taberna!"],
+  dmgm:["{m} de {a} alcanza a {t}: {d}.","{a} golpea a {t} con {m} y le arranca {d}.","{t} recibe de lleno {m} de {a}: {d}.","Con {m}, {a} le causa {d} a {t}.","{m} encuentra su blanco: {t} sufre {d} a manos de {a}.","{a} castiga a {t} con {m}: {d}.","El {m} de {a} hiere a {t} con {d}.","{t} se tambalea tras {m} de {a}: {d}."],
+  dmg:["{a} hiere a {t}: {d}.","{t} recibe {d} de {a}.","{a} castiga a {t} con {d}.","Un golpe de {a} le cuesta a {t} {d}.","{a} alcanza a {t} y le causa {d}.","{t} sufre {d} por obra de {a}.","{a} no perdona: {d} contra {t}.","El ataque de {a} deja a {t} con {d} encima."],
+  recv:["{t} recibe {d}.","{t} encaja {d}.","{t} aguanta {d}.","{d} caen sobre {t}.","{t} sufre {d}.","{t} absorbe {d} sin retroceder.","El golpe cuesta a {t} {d}.","{t} apenas resiste {d}."],
+  aoeKo:["{m} envuelve a {t}, que no logra escapar: {d}.","{t} no esquiva {m} y recibe {d}.","{m} atrapa a {t} de lleno: {d}.","{t} intenta salvarse, pero {m} lo alcanza: {d}.","Sin salida, {t} encaja {d} de {m}.","{m} barre a {t}: {d}.","{t} cae dentro de {m} y sufre {d}.","{m} no da tregua a {t}: {d}."],
+  aoeOk:["{t} salta a tiempo y solo recibe {d} de {m}.","{t} se cubre de {m}: apenas {d}.","{t} esquiva lo peor de {m}: {d}.","Con reflejos de acero, {t} reduce {m} a {d}.","{t} rueda fuera de {m} y se queda con {d}.","{m} roza a {t}: {d}.","{t} resiste {m} con aplomo: {d}.","{t} ve venir {m} y lo convierte en {d}."],
+  heal:["{t} recupera {n} PV.","Las heridas de {t} se cierran: +{n} PV.","{t} vuelve a respirar con fuerza: {n} PV.","Un respiro para {t}: {n} PV de vuelta.","{t} siente la vida regresar: +{n} PV.","{t} se recompone y gana {n} PV.","{n} PV devuelven el color a {t}.","{t} se levanta el ánimo y recupera {n} PV."],
+  temp:["{t} se blinda con {n} PV temporales.","Una coraza invisible cubre a {t}: {n} PV temporales.","{t} gana {n} PV temporales.","El valor de {t} se convierte en {n} PV temporales.","{t} se prepara para lo peor: {n} PV temporales.","{n} PV temporales protegen a {t}.","{t} aprieta los dientes: {n} PV temporales.","Una energía nueva envuelve a {t}: {n} PV temporales."],
+  condOn:["{t} queda {x}.","Ahora {t} está {x}.","{t} cae en estado {x}.","El combate deja a {t} {x}.","{t} sufre: queda {x}.","De pronto, {t} está {x}.","{t} no puede evitarlo: {x}.","{t} termina {x}."],
+  condOff:["{t} ya no está {x}.","{t} se libra de quedar {x}.","{t} sacude el estado {x}.","Se acabó el {x} para {t}.","{t} vuelve en sí: fuera {x}.","{t} supera el {x}.","El {x} abandona a {t}.","{t} se sobrepone al {x}."],
+  down:["¡{t} cae a 0 PV por obra de {a}!","{a} derriba a {t}, que se desploma.","¡{t} se derrumba ante {a}!","{t} cae al suelo tras el golpe de {a}.","El último golpe de {a} tumba a {t}.","¡{a} deja fuera de combate a {t}!","{t} no aguanta más y cae ante {a}.","Con {a} en pie, {t} se desploma."],
+  downx:["¡{t} cae a 0 PV!","{t} se desploma.","¡{t} se derrumba!","{t} cae al suelo.","{t} no aguanta más y cae.","¡{t} queda fuera de combate!","Las fuerzas abandonan a {t}.","{t} cae, inmóvil."],
+  up:["¡{t} vuelve a ponerse de pie!","Contra todo pronóstico, {t} se levanta.","¡{t} regresa del borde!","{t} abre los ojos y vuelve a la pelea.","¡{t} no se rinde y se levanta!","{t} se incorpora entre el polvo.","El corazón de {t} sigue latiendo: ¡de pie otra vez!","¡{t} vuelve a la batalla!"],
+  ds:["{t} lucha por su vida: salvación de muerte con {n}.","En el suelo, {t} se aferra a la vida ({n}).","{t} tira contra la muerte: {n}.","El destino de {t} pende de un {n}.","{t} resiste en el suelo con un {n}.","Un {n} decide el aliento de {t}.","{t} se niega a irse: {n}.","La vida de {t} parpadea: {n}."],
+  dream:["¡{t} grita que no abandonará sus sueños ({n})!","{t} se aferra a su sueño: {n}.","Con su sueño como bandera, {t} tira {n}.","{t} invoca su sueño contra la muerte: {n}.","¡Por su sueño! {t} tira {n}.","{t} recuerda por qué zarpó: {n}.","El sueño de {t} arde en su pecho: {n}.","{t} no abandonará sus sueños: {n}."],
+  dp:["{t} gasta un punto de sueño.","El sueño de {t} le da fuerzas.","{t} se inspira en su sueño.","Un punto de sueño empuja a {t}.","{t} recurre a su sueño.","El sueño de {t} cambia la suerte.","{t} se aferra a lo que persigue.","{t} quema un punto de sueño."],
+  seaOn:["El kairoseki alcanza a {t}: su fruta se apaga.","{t} siente el peso del kairoseki y pierde su fruta.","El polvo de kairoseki deja a {t} sin poderes.","Sin su fruta, {t} sigue en pie.","El kairoseki roba la fuerza de la fruta de {t}.","{t} queda sin fruta por el kairoseki.","La fruta de {t} se apaga ante el kairoseki.","El mar en forma de piedra debilita a {t}."],
+  seaOff:["{t} recupera su fruta.","La fruta de {t} vuelve a despertar.","Libre del kairoseki, {t} vuelve a ser {t}.","El poder de la fruta regresa a {t}.","{t} se sacude el kairoseki.","La fruta de {t} late de nuevo.","{t} vuelve a sentir su fruta.","Adiós kairoseki: {t} recupera sus poderes."],
+  leg:["En un parpadeo, {a} usa {m}.","{a} no deja respirar a nadie: {m}.","Fuera de su turno, {a} lanza {m}.","{a} aprovecha el hueco con {m}.","Como un relámpago, {a} hace {m}.","{a} demuestra por qué inspira miedo: {m}.","Sin aviso, {a} desata {m}.","{a} se mueve entre turnos: {m}."],
+  lres:["{a} se niega a caer en la trampa y resiste por pura leyenda.","{a} gasta una resistencia legendaria.","Por pura voluntad, {a} transforma el fallo en éxito.","{a} sonríe: esa trampa no funciona.","El instinto de {a} lo salva: resistencia legendaria.","{a} aguanta lo que tumbaría a cualquier otro.","{a} se sacude el efecto como si nada.","Una leyenda no cae tan fácil: {a} resiste."],
+  rech:["{a} recupera fuerzas para {m}.","{m} vuelve a estar lista para {a}.","{a} prepara de nuevo {m}.","El brillo en los ojos de {a} anuncia {m}.","{a} se prepara para repetir {m}.","{m} se recarga en manos de {a}.","{a} vuelve a tener {m} a mano.","Cuidado: {a} tiene otra vez {m}."],
+  rechKo:["{m} todavía no está lista para {a}.","{a} no logra recuperar {m}.","{m} sigue agotada para {a}.","{a} jadea: {m} tendrá que esperar.","{m} no se recarga para {a}.","{a} busca {m}, pero aún no.","Por ahora, {a} no puede repetir {m}.","{m} queda fuera del alcance de {a}."],
+  flee:["{t} huye del combate.","{t} da media vuelta y escapa.","{t} desaparece entre la confusión.","Con miedo, {t} se retira a toda prisa.","{t} abandona la pelea.","{t} escapa como puede.","{t} se escabulle lejos de la batalla.","{t} no quiere más y huye."],
+  surr:["{t} arroja sus armas y se rinde.","{t} levanta las manos: se rinde.","{t} se arrodilla y pide clemencia.","{t} acepta la derrota.","{t} se entrega.","Sin fuerzas, {t} se rinde.","{t} suelta el arma: se acabó la pelea.","{t} reconoce que ha perdido."],
+  react:["{a} reacciona al instante con {m}.","{a} responde con {m}.","Rápido como el viento, {a} usa {m}.","{a} se defiende con {m}.","{a} lo ve venir y usa {m}.","{a} contesta con {m}.","{m}: la respuesta de {a} no se hace esperar.","{a} se adelanta con {m}."],
+  concOk:["{t} mantiene la concentración.","{t} no pierde el hilo.","{t} no se distrae pese al golpe.","La mente de {t} no se quiebra.","{t} aguanta y sostiene su poder.","{t} aprieta los dientes y no se distrae.","{t} conserva el control.","Nada rompe la concentración de {t}."],
+  concKo:["{t} pierde la concentración.","El golpe rompe la concentración de {t}.","{t} se distrae y su poder se disipa.","La concentración de {t} se quiebra.","{t} no puede sostenerlo más.","Se apaga el poder de {t}.","{t} suelta el hilo de su concentración.","El dolor rompe el foco de {t}."],
+  round:["El primer choque","Acero y pólvora","El viento cambia","Nadie retrocede","Sangre en la cubierta","El todo por el todo","Sin tregua","El momento decisivo","Fuego cruzado","Los últimos en pie"],
+  pro:["{c} se plantaron frente a {o}.","Aquel día, {c} se cruzaron con {o}.","El aire se volvió pesado cuando {c} vieron a {o}.","No hubo palabras: {c} contra {o}.","{c} sabían que {o} no los dejarían pasar.","Entre gritos y acero, {c} se encontraron con {o}.","{c} desenvainaron frente a {o}.","La tripulación de {c} no retrocedió ante {o}."],
+  foe:["{n}: {x}.","Ahí estaba {n}: {x}.","Frente a ellos, {n}: {x}.","Y {n}, nada menos: {x}."],
+  tit:["La batalla contra {o}","La tormenta de {o}","El choque con {o}","Crónica del duelo contra {o}"],
+  win:["Cuando el polvo se asentó, la victoria era de {c}.","{c} se mantuvieron en pie: la batalla estaba ganada.","No quedó enemigo que se interpusiera: victoria para {c}.","El grito de victoria de {c} resonó en todo el lugar."],
+  esc:["Los enemigos huyeron y el campo quedó para {c}.","La batalla terminó con los rivales en fuga."],
+  lose:["La tripulación cayó, pero los sueños siguen vivos.","Fue una derrota dura; la próxima vez será distinto."],
+  open2:["El combate quedó en suspenso, con cuentas pendientes.","Nadie ganó del todo: la historia continuará."],
+  last:["{a} dio el golpe final a {t}.","El último golpe contra {t} fue de {a}.","{t} cayó ante {a}.","{a} acabó con {t}."],
+  most:["Nadie hizo más daño que {a}: {n} en total.","{a} fue la tormenta del combate con {n} de daño."],
+  endu:["{a} aguantó más que nadie: {n} de daño recibido.","El que más resistió fue {a}, con {n} de daño encima."],
+  hero:["El momento más heroico: {x}.","Lo que todos recordarán: {x}."]},
+en:{
+  open:["{a} seizes the initiative, {f}.","{a} steps forward, {f}.","It's {a}'s turn, {f}.","{a} waits no longer: {f}.","All eyes fall on {a}, {f}.","{a} enters the fray, {f}.","The moment belongs to {a}, {f}.","{a} takes a deep breath and advances, {f}."],
+  use:["{a} turns to {m}.","{a} unleashes {m}.","{a} answers with {m}.","With a roar, {a} launches {m}.","{a} brings {m} into play.","Without hesitation, {a} uses {m}.","{a} shows off {m}.","{a} trusts in {m}."],
+  usehit:["{a} launches {m}, and the blow comes in at {n}.","{a} attacks with {m}: {n} to hit.","With {m}, {a} looks for an opening and rolls {n}.","{a} aims {m}; the die shows {n}.","{m} leaves {a}'s hands with a {n} on the die.","{a} stakes everything on {m} and gets a {n}.","A {n} rides along with {a}'s {m}.","{a} unloads {m}: {n} against the guard."],
+  crit:["Critical hit!","A perfect strike!","The die shines with a 20!","Nobody could have dodged that!","A critical, and the ground shakes!","A legendary blow!","Right on the weak spot!","A critical they'll talk about in every tavern!"],
+  dmgm:["{a}'s {m} catches {t}: {d}.","{a} strikes {t} with {m} for {d}.","{t} takes {a}'s {m} head-on: {d}.","With {m}, {a} deals {d} to {t}.","{m} finds its mark: {t} suffers {d} at {a}'s hands.","{a} punishes {t} with {m}: {d}.","{a}'s {m} wounds {t} for {d}.","{t} staggers after {a}'s {m}: {d}."],
+  dmg:["{a} wounds {t}: {d}.","{t} takes {d} from {a}.","{a} punishes {t} with {d}.","A blow from {a} costs {t} {d}.","{a} reaches {t} and deals {d}.","{t} suffers {d} at {a}'s hands.","{a} shows no mercy: {d} against {t}.","{a}'s attack leaves {t} with {d}."],
+  recv:["{t} takes {d}.","{t} absorbs {d}.","{t} endures {d}.","{d} rain down on {t}.","{t} suffers {d}.","{t} takes {d} without backing down.","The blow costs {t} {d}.","{t} barely withstands {d}."],
+  aoeKo:["{m} engulfs {t}, who can't escape: {d}.","{t} fails to dodge {m} and takes {d}.","{m} catches {t} full on: {d}.","{t} tries to get clear, but {m} hits: {d}.","With nowhere to go, {t} takes {d} from {m}.","{m} sweeps {t}: {d}.","{t} lands right in {m} and suffers {d}.","{m} gives {t} no quarter: {d}."],
+  aoeOk:["{t} leaps clear in time and takes only {d} from {m}.","{t} shields against {m}: just {d}.","{t} dodges the worst of {m}: {d}.","With nerves of steel, {t} cuts {m} down to {d}.","{t} rolls out of {m} with {d}.","{m} grazes {t}: {d}.","{t} weathers {m} calmly: {d}.","{t} sees {m} coming and turns it into {d}."],
+  heal:["{t} regains {n} HP.","{t}'s wounds close: +{n} HP.","{t} breathes strongly again: {n} HP.","A breather for {t}: {n} HP back.","{t} feels life return: +{n} HP.","{t} pulls together and gains {n} HP.","{n} HP bring the color back to {t}.","{t}'s spirits lift with {n} HP."],
+  temp:["{t} armors up with {n} temporary HP.","An invisible shell covers {t}: {n} temporary HP.","{t} gains {n} temporary HP.","{t}'s courage becomes {n} temporary HP.","{t} braces for the worst: {n} temporary HP.","{n} temporary HP shield {t}.","{t} grits their teeth: {n} temporary HP.","Fresh energy wraps around {t}: {n} temporary HP."],
+  condOn:["{t} is now {x}.","{t} becomes {x}.","{t} falls {x}.","The fight leaves {t} {x}.","{t} suffers: now {x}.","Suddenly, {t} is {x}.","{t} can't avoid it: {x}.","{t} ends up {x}."],
+  condOff:["{t} is no longer {x}.","{t} breaks free of being {x}.","{t} shakes off {x}.","{x} is over for {t}.","{t} comes to: no longer {x}.","{t} overcomes {x}.","{x} leaves {t}.","{t} recovers from {x}."],
+  down:["{t} drops to 0 HP at {a}'s hands!","{a} brings {t} down.","{t} collapses before {a}!","{t} hits the ground after {a}'s blow.","{a}'s final strike floors {t}.","{a} knocks {t} out of the fight!","{t} can't take any more and falls before {a}.","With {a} standing, {t} collapses."],
+  downx:["{t} drops to 0 HP!","{t} collapses.","{t} goes down!","{t} hits the ground.","{t} can't take any more and falls.","{t} is out of the fight!","{t}'s strength gives out.","{t} falls, motionless."],
+  up:["{t} gets back on their feet!","Against all odds, {t} rises.","{t} comes back from the brink!","{t} opens their eyes and rejoins the fight.","{t} won't give up and stands!","{t} rises out of the dust.","{t}'s heart still beats: up again!","{t} is back in the battle!"],
+  ds:["{t} fights for their life: death save of {n}.","On the ground, {t} clings to life ({n}).","{t} rolls against death: {n}.","{t}'s fate hangs on a {n}.","{t} holds on with a {n}.","A {n} decides {t}'s next breath.","{t} refuses to go: {n}.","{t}'s life flickers: {n}."],
+  dream:["{t} shouts that they won't abandon their dreams ({n})!","{t} clings to their dream: {n}.","With their dream as a banner, {t} rolls {n}.","{t} calls on their dream against death: {n}.","For the dream! {t} rolls {n}.","{t} remembers why they set sail: {n}.","{t}'s dream burns in their chest: {n}.","{t} won't abandon their dreams: {n}."],
+  dp:["{t} spends a dream point.","{t}'s dream lends them strength.","{t} draws on their dream.","A dream point pushes {t} on.","{t} calls on their dream.","{t}'s dream turns their luck.","{t} holds on to what they chase.","{t} burns a dream point."],
+  seaOn:["The seastone reaches {t}: their fruit goes dark.","{t} feels the weight of seastone and loses their fruit.","Seastone dust leaves {t} powerless.","Without their fruit, {t} still stands.","Seastone steals the strength of {t}'s fruit.","{t} is left without their fruit by the seastone.","{t}'s fruit dims before the seastone.","The sea turned to stone weakens {t}."],
+  seaOff:["{t} gets their fruit back.","{t}'s fruit awakens again.","Free of the seastone, {t} is themselves again.","The fruit's power returns to {t}.","{t} shakes off the seastone.","{t}'s fruit pulses once more.","{t} feels their fruit again.","Farewell, seastone: {t} regains their powers."],
+  leg:["In the blink of an eye, {a} uses {m}.","{a} gives no one a breather: {m}.","Outside their turn, {a} launches {m}.","{a} seizes the opening with {m}.","Like lightning, {a} performs {m}.","{a} shows why everyone fears them: {m}.","Without warning, {a} unleashes {m}.","{a} moves between turns: {m}."],
+  lres:["{a} refuses to fall for it and resists through sheer legend.","{a} spends a legendary resistance.","By sheer will, {a} turns failure into success.","{a} smiles: the trick doesn't work on them.","{a}'s instinct saves them: legendary resistance.","{a} endures what would floor anyone else.","{a} shrugs off the effect.","A legend doesn't fall that easily: {a} resists."],
+  rech:["{a} regains strength for {m}.","{m} is ready again for {a}.","{a} readies {m} once more.","The gleam in {a}'s eyes announces {m}.","{a} is ready to repeat {m}.","{m} recharges in {a}'s hands.","{a} has {m} at hand again.","Careful: {a} has {m} again."],
+  rechKo:["{m} isn't ready yet for {a}.","{a} fails to recover {m}.","{m} is still spent for {a}.","{a} pants: {m} will have to wait.","{m} doesn't recharge for {a}.","{a} reaches for {m}, but not yet.","For now, {a} can't repeat {m}.","{m} stays out of {a}'s reach."],
+  flee:["{t} flees the fight.","{t} turns tail and escapes.","{t} vanishes in the confusion.","Frightened, {t} retreats in a hurry.","{t} abandons the fight.","{t} escapes however they can.","{t} slips away from the battle.","{t} has had enough and runs."],
+  surr:["{t} throws down their weapons and surrenders.","{t} raises their hands: they surrender.","{t} kneels and begs for mercy.","{t} accepts defeat.","{t} gives up.","Out of strength, {t} surrenders.","{t} drops their weapon: it's over for them.","{t} admits they've lost."],
+  react:["{a} reacts instantly with {m}.","{a} responds with {m}.","Swift as the wind, {a} uses {m}.","{a} defends with {m}.","{a} sees it coming and uses {m}.","{a} answers with {m}.","{m}: {a}'s response comes at once.","{a} gets ahead with {m}."],
+  concOk:["{t} keeps their concentration.","{t} doesn't lose focus.","{t} stays focused despite the blow.","{t}'s mind doesn't break.","{t} holds on and sustains their power.","{t} grits their teeth and stays focused.","{t} keeps control.","Nothing breaks {t}'s concentration."],
+  concKo:["{t} loses concentration.","The blow breaks {t}'s concentration.","{t} is distracted and their power fades.","{t}'s concentration shatters.","{t} can't hold it any longer.","{t}'s power goes out.","{t} lets go of their focus.","The pain breaks {t}'s focus."],
+  round:["The first clash","Steel and gunpowder","The wind shifts","No one backs down","Blood on the deck","All or nothing","No quarter","The decisive moment","Crossfire","The last ones standing"],
+  pro:["{c} stood their ground against {o}.","That day, {c} crossed paths with {o}.","The air grew heavy when {c} saw {o}.","No words were needed: {c} against {o}.","{c} knew {o} wouldn't let them pass.","Amid shouts and steel, {c} met {o}.","{c} drew their weapons before {o}.","The crew of {c} didn't back down before {o}."],
+  foe:["{n}: {x}.","There stood {n}: {x}.","Facing them, {n}: {x}.","And {n}, no less: {x}."],
+  tit:["The battle against {o}","The storm of {o}","The clash with {o}","Chronicle of the duel against {o}"],
+  win:["When the dust settled, victory belonged to {c}.","{c} were still standing: the battle was won.","No enemy was left in the way: victory for {c}.","{c}'s victory cry echoed all around."],
+  esc:["The enemies fled and the field was left to {c}.","The battle ended with the rivals on the run."],
+  lose:["The crew fell, but their dreams live on.","It was a hard defeat; next time will be different."],
+  open2:["The fight was left unfinished, with scores still to settle.","No one fully won: the story will continue."],
+  last:["{a} dealt the final blow to {t}.","The last strike against {t} came from {a}.","{t} fell before {a}.","{a} finished off {t}."],
+  most:["No one dealt more damage than {a}: {n} in total.","{a} was the storm of the fight with {n} damage."],
+  endu:["{a} endured more than anyone: {n} damage taken.","The toughest was {a}, with {n} damage taken."],
+  hero:["The most heroic moment: {x}.","What everyone will remember: {x}."]}};
+/* Detalle de cada personaje para abrir su turno ({f}) */
+const FLV={es:{udon:["con sus dos katanas listas","con la calma de un samurái","con el filo negro de su arma brillando","con la mirada fija en su rival","con una katana en cada mano","con el Arma Negra vibrando en sus manos","fiel a su código de samurái","con el acero desenvainado"],
+  codel:["con su cuerpo de mochi listo para estirarse","como sacerdote del cielo","con su maletín de doctor a mano","con el mochi listo para envolver","con una plegaria al cielo","con la serenidad de un doctor de guerra","con el poder del cielo en las manos","entre curar y golpear"],
+  kalgo:["con la gravedad de la Zushi Zushi doblándose a su alrededor","con los Puños del Cosmos cerrados","con el pelaje de mink erizado","haciendo temblar el aire con su gravedad","con los puños cargados de estrellas","con la furia de un mink","con el peso del cosmos sobre los hombros","con la tierra crujiendo bajo sus pies"],
+  sungsopp:["con su tirachinas tensado","como capitán que no deja atrás a nadie","con un puñado de Pop Greens","con los pasos de un duelista danzante","con una sonrisa de capitán","con la fuerza del simio a flor de piel","con un plan bajo la manga","bailando entre los golpes"],
+  ryuga:["con su kanabo al hombro","con el estilo del dragón oriental","con la furia de un oni","con el kanabo silbando en el aire","como un dragón que despierta","con cuernos de oni y ojos de fuego","con la fuerza de la montaña","con el aliento del dragón en el pecho"],
+  fluffy:["con sus tres cabezas gruñendo","con fuego entre los colmillos","como un Cerbero desatado","con seis ojos sobre su presa","con humo saliendo de sus fauces","con las tres cabezas en guardia","con un aullido de tres voces","con las brasas en el pecho"],
+  foe:["con una sonrisa cruel","sin dar tregua","con sed de pelea","sin un ápice de piedad","con el arma en alto","decidido a ganar","con los ojos encendidos","buscando una presa"]},
+en:{udon:["two katanas ready","with the calm of a samurai","the black edge of the blade gleaming","eyes fixed on the rival","a katana in each hand","the Black Weapon humming in hand","true to the samurai code","steel drawn"],
+  codel:["mochi body ready to stretch","as a priest of the sky","doctor's kit at hand","wrapped in mochi","with a prayer to the sky","with the serenity of a war doctor","the power of the sky at hand","ready to heal or strike"],
+  kalgo:["the gravity of the Zushi Zushi bending all around","the Fists of the Cosmos clenched","mink fur bristling","the air trembling with gravity","fists charged with stars","with the fury of a mink","carrying the weight of the cosmos","the ground cracking underfoot"],
+  sungsopp:["slingshot drawn","a captain who leaves no one behind","a handful of Pop Greens ready","with the steps of a dancing duelist","with a captain's grin","the ape's strength close to the surface","a plan up the sleeve","dancing between blows"],
+  ryuga:["kanabo on the shoulder","in the style of the eastern dragon","with the fury of an oni","the kanabo whistling through the air","like an awakening dragon","oni horns and eyes of fire","with the strength of the mountain","the dragon's breath within"],
+  fluffy:["three heads growling","fire between its fangs","like an unleashed Cerberus","six eyes on its prey","smoke rising from its jaws","all three heads on guard","with a three-voiced howl","embers in its chest"],
+  foe:["with a cruel smile","giving no quarter","hungry for a fight","without a shred of mercy","weapon raised","determined to win","eyes blazing","looking for prey"]}};
+/* Azar fijo por combate (mulberry32) */
+function seedRng(s){let h=1779033703;for(const ch of String(s))h=Math.imul(h^ch.charCodeAt(0),3432918353),h=h<<13|h>>>19;return()=>{h|=0;h=h+0x6D2B79F5|0;let t=Math.imul(h^h>>>15,1|h);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const fill=(t,v)=>cap(t.replace(/\{(\w)\}/g,(_,k)=>v[k]??""));
+const listJ=L=>L.length<2?L.join(""):L.slice(0,-1).join(", ")+tx(" y "," and ")+L[L.length-1];
+const dTxt=(n,ty)=>!ty?tx(`${n} de daño`,`${n} damage`):DMG.includes(ty)?tx(`${n} de ${dmgName(ty)}`,`${n} ${dmgName(ty)}`):tx(`${n} de daño ${ty}`,`${n} ${ty} damage`);
+/* Arma la crónica: título, prólogo, un capítulo por ronda (un párrafo por turno) y epílogo */
+function buildCron(cid){const E=cronEvents(cid),P=NARR[look.lang]||NARR.es,F=FLV[look.lang]||FLV.es,rnd=seedRng(cid||"x"),used={};
+  const pk=k=>{const L=P[k],u=used[k]=used[k]||[];if(u.length>=L.length)u.length=0;let i;do i=Math.floor(rnd()*L.length);while(u.includes(i));u.push(i);return L[i]};
+  const st=E.find(e=>e.k==="start"),who=st&&Array.isArray(st.who)?st.who:S.list.map(c=>({n:c.name,ty:c.type,bid:c.bid||""}));
+  const crew=who.filter(w=>w.ty!=="foe").map(w=>w.n),foes=who.filter(w=>w.ty==="foe"),foeN=foes.map(w=>w.n),isFoe=n=>foeN.includes(n)||S.list.some(c=>c.name===n&&c.type==="foe");
+  const epi=n=>{const w=who.find(x=>x.n===n),b=w&&w.bid&&BEST.list.find(x=>x.id===w.bid),p=b?tl2(b.name).split(","):[];return p.length>1?p.slice(1).join(",").trim():""};
+  const flv=n=>{const L=F[n.toLowerCase()]||F.foe;return L[Math.floor(rnd()*L.length)]};
+  /* Turnos: actor y ronda de cada turnId (del panel del DM) */
+  const TA={};for(const e of E)if(e.k==="turn"&&e.o==="dm")TA[e.tid]={a:e.a,r:e.r};
+  const pcDmg=new Set(E.filter(e=>e.o!=="dm"&&e.k==="dmg").map(e=>e.tid+"|"+e.a));
+  const dealt={},endu={},last={};let best=null,comeback=null;
+  const add=(o,k,n)=>{if(k&&n>0)o[k]=(o[k]||0)+n};
+  const line=e=>{const ta=TA[e.tid]||{},A=e.o==="dm"?e.a:e.a;
+    switch(e.k){
+      case"use":{if(e.o==="dm"&&!e.m)return"";const s=fill(Number.isFinite(e.tot)?pk("usehit"):pk("use"),{a:A,m:mvOf(e),n:e.tot});return s+(e.crit?" "+pk("crit"):"")}
+      case"leg":return e.m?fill(pk("leg"),{a:A,m:mvOf(e)})+(e.crit?" "+pk("crit"):""):"";
+      case"react":return fill(pk("react"),{a:A,m:mvOf(e)});
+      case"lres":return fill(pk("lres"),{a:A});
+      case"rech":return fill(pk(e.ok?"rech":"rechKo"),{a:A,m:e.m});
+      case"dmg":{const pc=e.o!=="dm",t=pc?e.a:e.target,by=pc?ta.a:e.a,mv=pc?(e.src||""):attrib(e,E).m,d=dTxt(e.n,e.ty);
+        add(endu,t,e.n);if(by&&by!==t&&isFoe(by)!==isFoe(t)){add(dealt,by,e.n);if(!best||e.n>best.n)best={a:by,m:mv,n:e.n,t}}
+        const sv=pc?e.sv:e.saved===true?"ok":e.saved===false?"ko":"";
+        if(sv)return fill(pk(sv==="ok"?"aoeOk":"aoeKo"),{t,d,m:mv||tx("el golpe","the blow")});
+        if(by&&by!==t)return fill(mv?pk("dmgm"):pk("dmg"),{a:by,t,m:mv,d})+(e.crit?" "+pk("crit"):"");return fill(pk("recv"),{t,d})}
+      case"hit":{if(pcDmg.has(e.tid+"|"+e.target))return"";add(endu,e.target,e.n);add(dealt,A,e.n);return fill(e.src?pk("dmgm"):pk("dmg"),{a:A,t:e.target,m:e.src,d:dTxt(e.n,e.ty)})}
+      case"heal":return e.n>0?fill(pk("heal"),{t:e.o==="dm"?e.target:e.a,n:e.n}):"";
+      case"temp":return fill(pk("temp"),{t:e.target,n:e.n});
+      case"cond":return fill(pk(e.on?"condOn":"condOff"),{t:e.target,x:condT(e.cond).toLowerCase()});
+      case"fx":return fill(pk(e.on?"condOn":"condOff"),{t:e.target,x:String(e.n||"").toLowerCase()});
+      case"conc":return fill(pk(e.ok?"concOk":"concKo"),{t:e.target});
+      case"down":{const t=e.o==="dm"?e.target:e.a,by=e.o==="dm"?e.a:ta.a;if(by&&by!==t){last[t]=by;return fill(pk("down"),{t,a:by})}return fill(pk("downx"),{t})}
+      case"up":{const t=e.o==="dm"?e.target:e.a;comeback=comeback||t;return fill(pk("up"),{t})}
+      case"ds":return fill(pk("ds"),{t:e.a,n:e.n});
+      case"dream":return fill(pk("dream"),{t:e.a,n:e.n});
+      case"dp":return fill(pk("dp"),{t:e.a});
+      case"sea":{const t=e.o==="dm"?e.target:e.a;if(e.o!=="dm"&&E.some(x=>x.o==="dm"&&x.k==="sea"&&x.tid===e.tid&&x.target===t))return"";return fill(pk(e.on?"seaOn":"seaOff"),{t})}
+      case"flee":return fill(pk(e.f==="surr"?"surr":"flee"),{t:e.target});
+      default:return""}};
+  /* Prólogo */
+  const main=foes.map(w=>({w,b:w.bid&&BEST.list.find(x=>x.id===w.bid)})).sort((x,y)=>((y.b&&y.b.hp)||0)-((x.b&&x.b.hp)||0))[0];
+  const o=main?main.w.n:tx("sus enemigos","their enemies"),cN=listJ(crew)||tx("la tripulación","the crew");
+  const title=fill(pk("tit"),{o});
+  const seen=new Set(),pro=[fill(pk("pro"),{c:cN,o:listJ(foeN)||o})];
+  for(const w of foes){const b=w.bid&&BEST.list.find(x=>x.id===w.bid);if(!b||seen.has(b.id)||!b.flavor)continue;seen.add(b.id);const fl=tl2(b.flavor);pro.push(fill(pk("foe"),{n:w.n.replace(/\s\d+$/,""),x:fl[0].toLowerCase()+fl.slice(1)}))}
+  /* Rondas y turnos */
+  const out=[tx("Prólogo","Prologue"),pro.join(" ")],tids=[...new Set(E.map(e=>e.tid))].filter(t=>TA[t]).sort((a,b)=>a-b);let rr=0;
+  for(const tid of tids){const ta=TA[tid],evs=E.filter(e=>e.tid===tid&&!["turn","start","end"].includes(e.k));
+    const s=evs.map(line).filter(Boolean);if(!s.length)continue;
+    if(ta.r!==rr){rr=ta.r;out.push("",`${tx("Ronda","Round")} ${rr} · ${pk("round")}`)}
+    const ep=isFoe(ta.a)?epi(ta.a):"";out.push(fill(pk("open"),{a:ta.a+(ep?`, ${ep},`:""),f:flv(isFoe(ta.a)?"foe":ta.a.replace(/\s\d+$/,""))}).replace(",,",",")+" "+s.join(" "))}
+  /* Epílogo */
+  const downS=new Set(E.filter(e=>e.k==="down").map(e=>e.o==="dm"?e.target:e.a)),upS=new Set(E.filter(e=>e.k==="up").map(e=>e.o==="dm"?e.target:e.a)),
+    fled=E.filter(e=>e.k==="flee").map(e=>e.target),standing=foeN.filter(n=>!downS.has(n)&&!fled.includes(n)),crewDown=crew.length&&crew.every(n=>downS.has(n)&&!upS.has(n));
+  const ep=[fill(pk(crewDown?"lose":foeN.length&&!standing.length?(fled.length&&!foeN.some(n=>downS.has(n))?"esc":"win"):"open2"),{c:cN})];
+  for(const [t,a] of Object.entries(last))if(isFoe(t))ep.push(fill(pk("last"),{a,t}));
+  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1])[0];const td=top(dealt),te=top(endu);
+  if(td)ep.push(fill(pk("most"),{a:td[0],n:td[1]}));if(te)ep.push(fill(pk("endu"),{a:te[0],n:te[1]}));
+  const hx=comeback?tx(`cuando ${comeback} se levantó desde los 0 PV`,`when ${comeback} rose back from 0 HP`):best?tx(`el golpe de ${best.a}${best.m?" con "+best.m:""} contra ${best.t}: ${best.n} de daño`,`${best.a}'s strike${best.m?" with "+best.m:""} against ${best.t}: ${best.n} damage`):"";
+  if(hx)ep.push(fill(pk("hero"),{x:hx}));
+  out.push("",tx("Epílogo","Epilogue"),ep.join(" "));return{title,text:out.join("\n")}}
+function cronOpen(){const cid=S.cid||"",r=buildCron(cid);panOpen({k:"cron",title:tx("Crónica del combate","Combat chronicle"),cid,...r})}
+function cronHtml(){const P=PANEL;return panTop(tx("Crónica del combate","Combat chronicle"))+`<p class="note">${tx("Puedes editar el texto antes de compartirlo.","You can edit the text before sharing it.")}</p>
+  <label class="f">${tx("Título","Title")}<input id="cr-title" maxlength="120" value="${esc(P.title)}"></label>
+  <textarea id="cr-txt" aria-label="${tx("Texto de la crónica","Chronicle text")}">${esc(P.text)}</textarea>
+  <div class="row"><button class="btn" data-pan="crcopy">${tx("Copiar texto","Copy text")}</button><button class="btn primary" data-pan="crshare">${tx("Compartir con los jugadores","Share with the players")}</button><button class="btn" data-pan="crclaude">${tx("Copiar para Claude","Copy for Claude")}</button></div>`}
+function copyTxt(t){const ok=()=>dmToast("h",tx("Copiado","Copied"));
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,()=>copyOld(t,ok));else copyOld(t,ok)}
+function copyOld(t,ok){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";($("pan")||document.body).append(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()}
+function cronClaude(cid){const E=cronEvents(cid).map(({t,o,...e})=>e);
+  return tx("Narra de forma épica, estilo One Piece, este combate de D&D, turno por turno, sin inventar resultados:","Narrate this D&D combat epically, One Piece style, turn by turn, without inventing results:")+"\n"+JSON.stringify(E)}
+/* ===================== Turnos, toques y casillas de lo nuevo ===================== */
+/* Cambio de turno (Siguiente, ◀ o Darle el turno). El primero empieza el combate: nace su cid y la crónica */
+function turnTo(id,fwd){const was=S.active;if(fwd)fxTurn(S.cur,id);S.cur=id;S.turnId=(S.turnId||0)+1;S.active=true;
+  if(!was){S.cid=nid();S.clog=[];clog({k:"start",who:sorted().map(c=>({n:c.name,ty:c.type,bid:c.bid||""}))})}
+  SENT={};clog({k:"turn"});if(fwd)bTurnStart(S.list.find(c=>c.id===id))}
+function delC(id){const L=sorted(),i=L.findIndex(c=>c.id===id);if(S.cur===id&&L.length>1)S.cur=L[(i+1)%L.length].id;
+  S.list=S.list.filter(c=>c.id!==id);open=null;if(!S.list.length)S.cur=null}
+const noDm=()=>dmToast("d",tx("Sin sesión de DM no se puede avisar a los jugadores","Without a DM session the players can't be notified"));
+function bestClick(d,find){
+  if(d.pan){const a=d.pan;
+    if(a==="close"){panClose();return true}
+    if(a==="edsave"){if(!tl2(ED.name).trim()||!(ED.hp>0)){dmToast("d",tx("La hoja necesita nombre y PV máx.","The sheet needs a name and max HP"));return true}
+      if(!ED.id)ED.id="b"+nid();ED.cards.forEach(x=>{if(!x.id)x.id=nid()});const i=BEST.list.findIndex(b=>b.id===ED.id);if(i>=0)BEST.list[i]=ED;else BEST.list.push(ED);
+      bOpen=ED.id;saveBest();panClose();render();return true}
+    if(a==="aoego"){aoeGo();return true}
+    if(a==="crcopy"){copyTxt($("cr-title").value+"\n\n"+$("cr-txt").value);return true}
+    if(a==="crclaude"){copyTxt(cronClaude(PANEL.cid));return true}
+    if(a==="crshare"){if(!fb||!isDM){noDm();return true}
+      fb.F.setDoc(fb.F.doc(fb.db,"combat","chronicle"),{cid:PANEL.cid||"",title:$("cr-title").value.slice(0,120),text:$("cr-txt").value.slice(0,30000),at:Date.now()})
+        .then(()=>dmToast("h",tx("Crónica compartida con los jugadores","Chronicle shared with the players")),e=>{console.warn(e);dmToast("d",tx("No se pudo compartir","Couldn't share"))});return true}
+    return true}
+  if(d.edadd){ED.cards.push({id:nid(),k:d.edadd,n:"",uses:0,per:"dia",...(d.edadd==="leg"?{cost:1}:{})});EDO.add(ED.cards.length-1);drawPan();return true}
+  if(d.edx!=null){ED.cards.splice(+d.edx,1);EDO=new Set();drawPan();return true}
+  if(d.edt){const L=ED[d.edt]=ED[d.edt]||[],i=L.indexOf(d.t);if(i>=0)L.splice(i,1);else L.push(d.t);drawPan();return true}
+  if(d.aoall!=null&&PANEL){PANEL.sel={};for(const c of S.list)if(d.aoall==="foe"?c.type==="foe"&&c.id!==PANEL.by:d.aoall==="pc"&&(c.type==="pc"||linkOf(c)))PANEL.sel[c.id]=true;drawPan();return true}
+  if(d.aor&&PANEL){const c=find(d.aor),P=PANEL;if(!c)return true;
+    if(d.r==="roll"){const b=sheetOf(c),r=d20(),m=svB(b,P.ab),v=r+m;P.sv[c.id]=v>=(parseInt(P.dc,10)||0)?"ok":"ko";P.roll[c.id]=`d20 ${r} ${sgn(m)} = ${v}`}
+    else{P.sv[c.id]=P.sv[c.id]===d.r?"":d.r;delete P.roll[c.id]}drawPan();return true}
+  if(d.bx){const a=d.bx,b=BEST.list.find(x=>x.id===d.b);if(a==="new"){edOpen(null);return true}if(!b)return true;
+    if(a==="open"){bOpen=bOpen===b.id?null:b.id;armed=null;render();return true}
+    if(a==="add"){addFromSheet(b,num("bq-"+b.id),num("bi-"+b.id));bOpen=null;save();render();return true}
+    if(a==="edit"){edOpen(b);return true}
+    if(a==="dup"){const n=JSON.parse(JSON.stringify(b));n.id="b"+nid();n.name=setL(n.name,tl2(n.name)+tx(" (copia)"," (copy)"));n.cards.forEach(x=>x.id=nid());
+      BEST.list.splice(BEST.list.indexOf(b)+1,0,n);bOpen=n.id;saveBest();render();return true}
+    if(a==="del"){if(armed!=="bdel"+b.id){armed="bdel"+b.id;render();return true}armed=null;BEST.list=BEST.list.filter(x=>x!==b);bOpen=null;saveBest();render();return true}
+    return true}
+  if(d.bu){const c=find(d.bu);if(c){bUse(c,d.x,!!d.roll);save();render()}return true}
+  if(d.bc){const c=find(d.bc),b=sheetOf(c);if(!c||!b)return true;const k=d.k,max=k==="la"?b.la:b.lr,o=c[k]??max,v=Math.max(0,Math.min(max,o+ +d.v));
+    if(v<o)clog({k:k==="la"?"leg":"lres",m:""});c[k]=v;save();render();return true}
+  if(d.flee){const c=find(d.flee),key=d.f+d.flee;if(!c)return true;if(armed!==key){armed=key;render();return true}armed=null;
+    clog({k:"flee",target:c.name,f:d.f});dmToast("t",d.f==="surr"?tx(`${esc(c.name)} se rinde`,`${esc(c.name)} surrenders`):tx(`${esc(c.name)} huye`,`${esc(c.name)} flees`));delC(c.id);save();render();return true}
+  if(d.cs){const c=find(d.cs);if(!c||!c.cs)return true;const b=sheetOf(c),nm=esc(c.name);let ok=d.r==="ok",t="";
+    if(d.r==="roll"){const r=d20(),m=svB(b,"CON"),v=r+m;ok=v>=c.cs;t=` (d20 ${r} ${sgn(m)} = ${v})`}
+    clog({k:"conc",target:c.name,ok});if(!ok)c.conds=c.conds.filter(x=>x!=="Concentrado");delete c.cs;
+    dmToast(ok?"h":"d",(ok?tx(`${nm} mantiene la concentración`,`${nm} keeps concentration`):tx(`${nm} pierde la concentración`,`${nm} loses concentration`))+t);save();render();return true}
+  if(d.sh){const c=find(d.sh),l=c&&linkOf(c),n=num("sh-n-"+d.sh);if(!l||!(n>0))return true;const ty=$("sh-ty-"+c.id).value,src=$("sh-src-"+c.id).value.trim().slice(0,40),crit=$("sh-cr-"+c.id).checked;
+    if(sendHit(c,l,{n,type:ty,src,crit})){$("sh-n-"+c.id).value="";dmToast("d",tx(`Golpe enviado a ${esc(c.name)}: <b>${n}</b> de ${dmgName(ty)}`,`Hit sent to ${esc(c.name)}: <b>${n}</b> ${dmgName(ty)}`))}else noDm();save();render();return true}
+  if(d.seat){const c=find(d.seat),l=c&&linkOf(c);if(!l)return true;const on=d.on==="1",temp=on&&$("sea-t-"+c.id).checked;
+    if(progMerge(l.char,{sea:{on,id:nid(),temp,at:Date.now()}})){clog({k:"sea",target:c.name,on});dmToast("t",on?tx(`${seaName(c.name)} para ${esc(c.name)}${temp?": hasta el final de su próximo turno":""}`,`${seaName(c.name)} for ${esc(c.name)}${temp?": until the end of its next turn":""}`):tx(`${esc(c.name)} recupera su fruta`,`${esc(c.name)} gets the fruit back`))}else noDm();
+    save();render();return true}
+  return false}
+/* Casillas del panel: el editor escribe en ED sin redibujar; el daño en área redibuja sus filas (put conserva el foco y lo escrito) */
+function panInput(e){const el=e.target;if(!PANEL||!el.closest||!el.closest("#pan"))return;
+  if(PANEL.k==="edit"&&el.dataset.ef){edSet(el.dataset.ef,el);return}
+  if(PANEL.k==="aoe"){const f=el.dataset.ao;if(f)PANEL[f]=el.type==="checkbox"?el.checked:el.value;else if(el.dataset.aosel)PANEL.sel[el.dataset.aosel]=el.checked;else return;drawPan()}}
+document.addEventListener("input",e=>{if(e.target.type!=="checkbox"&&e.target.tagName!=="SELECT")panInput(e)});
+document.addEventListener("change",e=>{if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
+document.addEventListener("toggle",e=>{const o=e.target.dataset&&e.target.dataset.edo;if(o!=null){if(e.target.open)EDO.add(+o);else EDO.delete(+o)}},true);
+/* Partes de la tarjeta: "enviado" hasta que cambian los PV en vivo, aviso de moral y salvación de concentración pendiente */
+function sentTag(c,lv){const s=SENT[c.id];if(!s)return"";if(lv&&s.hp!=null&&lv.hp!==s.hp){delete SENT[c.id];return""}return`<div class="conds"><span class="tag live">${tx("Golpe enviado","Hit sent")}</span></div>`}
+function moraleWarn(c){const b=sheetOf(c);return b&&b.morale&&Number.isFinite(b.moraleHp)&&c.hp>0&&c.hp<b.moraleHp?`<p class="note"><b>${tx("Moral","Morale")}:</b> ${esc(tl2(b.morale))}</p>`:""}
+function concRow(c){if(!c.cs)return"";const m=svB(sheetOf(c),"CON");return`<div class="aor"><b>${tx(`Salvación de concentración: ${abT("CON")} CD ${c.cs}`,`Concentration save: CON DC ${c.cs}`)}</b>
+  <div class="row"><button class="btn" data-cs="${c.id}" data-r="roll">${tx("Tirar","Roll")} (${sgn(m)})</button><button class="btn" data-cs="${c.id}" data-r="ok">${tx("Superó","Saved")}</button><button class="btn" data-cs="${c.id}" data-r="ko">${tx("Falló","Failed")}</button></div></div>`}
 
 document.addEventListener("click",e=>{
   const el=e.target.closest("button");if(!el)return;const d=el.dataset;
   const find=id=>S.list.find(c=>c.id===id);
+  if(bestClick(d,find))return;
   if(d.open){open=open===d.open?null:d.open;armed=null;render();return}
   if(d.dmg||d.heal||d.temp){const id=d.dmg||d.heal||d.temp,c=find(id),n=num("n-"+id);$("n-"+id).value="";if(n==null||n<0)return;
     const nm=esc(c.name),left=()=>tx(`Le quedan ${c.hp} / ${c.max} PV`,`${c.hp} / ${c.max} HP left`);
-    if(d.dmg){const ty=$("ty-"+id).value;applyDamage(c,n);dmToast("d",tx(`${nm} recibió <b>${n}</b> de ${dmgName(ty)}`,`${nm} took <b>${n}</b> ${dmgName(ty)}`)+" · "+left())}
-    else if(d.heal){const h0=c.hp;applyHeal(c,n);dmToast("h",tx(`${nm} recuperó <b>${c.hp-h0}</b> PV · Ahora tiene ${c.hp} / ${c.max} PV`,`${nm} regained <b>${c.hp-h0}</b> HP · Now at ${c.hp} / ${c.max} HP`))}
-    else{c.temp=n;dmToast("t",tx(`${nm} tiene <b>${n}</b> PV temporales`,`${nm} has <b>${n}</b> temporary HP`))}save();render();return}
+    if(d.dmg){const ty=$("ty-"+id).value,r=resOf(sheetOf(c),ty),v=r==="imm"?0:r==="res"?Math.floor(n/2):n,ex=hurt(c,v,ty);
+      dmToast("d",tx(`${nm} recibió <b>${v}</b> de ${dmgName(ty)}`,`${nm} took <b>${v}</b> ${dmgName(ty)}`)+(r?` (${r==="imm"?tx("inmune","immune"):tx(`resistente: ${n} → ${v}`,`resistant: ${n} → ${v}`)})`:"")+" · "+left()+(ex.length?"<br>"+ex.join("<br>"):""))}
+    else if(d.heal){const h0=c.hp;applyHeal(c,n);clog({k:"heal",target:c.name,n:c.hp-h0});dmToast("h",tx(`${nm} recuperó <b>${c.hp-h0}</b> PV · Ahora tiene ${c.hp} / ${c.max} PV`,`${nm} regained <b>${c.hp-h0}</b> HP · Now at ${c.hp} / ${c.max} HP`))}
+    else{c.temp=n;clog({k:"temp",target:c.name,n});dmToast("t",tx(`${nm} tiene <b>${n}</b> PV temporales`,`${nm} has <b>${n}</b> temporary HP`))}save();render();return}
   if(d.fxadd){const c=find(d.fxadd),n=$("fxn-"+c.id).value.trim().slice(0,40),v=$("fxd-"+c.id).value,own=$("fxo-"+c.id).value;if(!n)return;
     const cond=CONDS.find(x=>x.toLowerCase()===n.toLowerCase()||(CONDS_EN[x]||"").toLowerCase()===n.toLowerCase());
     const x={id:nid(),n,own,...(v[0]==="r"?{t:"r",left:+v.slice(1)}:v==="end"?{t:"end",ends:S.cur===own?2:1}:{t:v}),...(cond?{cond}:{})};
-    c.fx=[...(c.fx||[]),x];if(cond&&!c.conds.includes(cond))c.conds.push(cond);$("fxn-"+c.id).value="";save();render();return}
+    c.fx=[...(c.fx||[]),x];if(cond&&!c.conds.includes(cond))c.conds.push(cond);clog({k:"fx",target:c.name,n,on:true});$("fxn-"+c.id).value="";save();render();return}
   if(d.fxdel){const c=find(d.fxdel),x=c&&(c.fx||[]).find(y=>y.id===d.x);if(x){c.fx=c.fx.filter(y=>y!==x);if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond)}save();render();return}
   if(d.d20){const c=find(d.d20),r=1+Math.floor(Math.random()*20),m=c.mod??0;c.init=r+m;save();render();
     dmToast("h",`${esc(c.name)}: ${r} ${m<0?"−":"+"} ${Math.abs(m)} = <b>${c.init}</b>`);return}
-  if(d.cond){const c=find(d.cond);c.conds=c.conds.includes(d.c)?c.conds.filter(x=>x!==d.c):[...c.conds,d.c];save();render();return}
+  if(d.cond){const c=find(d.cond),on=!c.conds.includes(d.c);c.conds=on?[...c.conds,d.c]:c.conds.filter(x=>x!==d.c);if(!on&&d.c==="Concentrado")delete c.cs;clog({k:"cond",target:c.name,cond:d.c,on});save();render();return}
   if(d.save){const c=find(d.save);const nm=$("e-name-"+c.id).value.trim();if(nm)c.name=nm;c.init=num("e-init-"+c.id);c.ac=num("e-ac-"+c.id);
     const mx=num("e-max-"+c.id);if(mx>0){c.hp=c.max==null?mx:Math.min(c.hp,mx);c.max=mx}open=null;save();render();return}
-  if(d.turn){fxTurn(S.cur,d.turn);S.cur=d.turn;S.turnId=(S.turnId||0)+1;S.active=true;open=null;save();render();return}
+  if(d.turn){turnTo(d.turn,true);open=null;save();render();return}
   if(d.dead){if(armed!=="dead"+d.dead){armed="dead"+d.dead;render();return}
     const c=find(d.dead),l=linkOf(c);armed=null;if(c&&l){S.fall[fallKey(l)]="dead";addAlert(c,l,"dead");save()}render();return}
   if(d.del){if(armed!=="del"+d.del){armed="del"+d.del;render();return}
-    const L=sorted(),i=L.findIndex(c=>c.id===d.del);if(S.cur===d.del&&L.length>1)S.cur=L[(i+1)%L.length].id;
-    S.list=S.list.filter(c=>c.id!==d.del);armed=null;open=null;if(!S.list.length)S.cur=null;save();render();return}
+    delC(d.del);armed=null;save();render();return}
   const act=d.do;if(!act)return;
   if(act==="look"){openLook();return}
+  if(act==="aoe"){aoeOpen();return}
+  if(act==="cronshow"){cronOpen();return}
   if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>alert(tx("No se pudo entrar: ","Couldn't sign in: ")+(e.code||e)));return}
   if(act==="logout"){fb.U.signOut(fb.auth);return}
   if(act==="next"||act==="prev"){const L=sorted();if(!L.length)return;let i=L.findIndex(c=>c.id===S.cur);
     for(let k=0;k<L.length;k++){i+=act==="next"?1:-1;
       if(i>=L.length){i=0;S.round++}if(i<0){i=L.length-1;S.round=Math.max(1,S.round-1)}
       if(L[i].hp>0||L[i].type==="pc")break}
-    if(act==="next")fxTurn(S.cur,L[i].id);S.cur=L[i].id;S.turnId=(S.turnId||0)+1;S.active=true;armed=null;save();render();return}
+    turnTo(L[i].id,act==="next");armed=null;save();render();return}
   /* Avanzar tiempo: descuenta los efectos del DM y avisa a los teléfonos de los jugadores (combat/live.adv) */
   if(act==="adv"){const m=+d.m,L=[];for(const c of S.list)for(const x of c.fx||[]){if(x.t==="r"){x.left-=10*m;if(x.left<=0)L.push([c,x])}else if(x.t==="start"||x.t==="end")L.push([c,x])}
     fxDrop(L);S.adv={id:Date.now(),min:m};if(!L.length)dmToast("h",tx(`Pasaron ${m===60?"1 hora":m+(m===1?" minuto":" minutos")}: los jugadores descuentan sus efectos`,`${m===60?"1 hour":m+(m===1?" minute":" minutes")} passed: players count down their effects`));save();render();return}
@@ -502,10 +1031,10 @@ document.addEventListener("click",e=>{
     if(armed!==act){armed=act;render();return}armed=null;
     if(act==="heal")S.list.forEach(c=>{c.hp=c.max;c.temp=0;c.conds=[]});
     if(act==="foes"){S.list=S.list.filter(c=>c.type!=="foe");S.round=1;S.cur=sorted()[0]?.id||null}
-    if(act==="end"){S.active=false;S.round=1;
+    if(act==="end"){clog({k:"end"});S.active=false;S.round=1;
       if(S.list.some(c=>(c.fx||[]).length)&&confirm(tx("¿Borrar también los efectos de enemigos y aliados? (Cancelar: se conservan)","Also clear the effects on enemies and allies? (Cancel: keep them)")))S.list.forEach(c=>{for(const x of c.fx||[])if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond);c.fx=[]})}
     if(act==="reset"){S={round:1,cur:null,list:[],v:S.v,active:false,turnId:S.turnId}} // v: que no vuelvan a correr las migraciones
-    save();render();return}
+    save();render();if(act==="end"&&(S.clog||[]).length)cronOpen();return}
 });
 document.addEventListener("change",e=>{const id=e.target.dataset&&e.target.dataset.initfor;if(!id)return;
   const c=S.list.find(x=>x.id===id),v=parseInt(e.target.value,10);if(!c)return;c.init=isNaN(v)?null:v;save();render()});
@@ -525,7 +1054,8 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
 });
 /* Lo publicado nunca lleva nombre, PV ni CA de enemigos */
 {const t={...S};S={round:2,cur:"e",list:[{id:"e",name:"Kaido",type:"foe",init:20,ac:22,hp:500,max:500,temp:0,conds:[]},{id:"u",name:"Udon",char:"udon",type:"pc",init:10,ac:15,hp:66,max:66,temp:0,conds:[]}],active:true,turnId:3};
-  const p=JSON.stringify(liveOf());console.assert(!/Kaido|"hp"|"ac"|"max"/.test(p)&&/"char":"udon"/.test(p),"dm-live: "+p);
+  S.cid="ctest";S.clog=[{k:"dmg",target:"Kaido",n:5}];
+  const p=JSON.stringify(liveOf());console.assert(!/Kaido|"hp"|"ac"|"max"|clog/.test(p)&&/"char":"udon"/.test(p)&&/"cid":"ctest"/.test(p),"dm-live: "+p);
   /* Fluffy con iniciativa entra en orden y se publica como mascota de Sungsopp */
   S.list.push({id:"f",name:"Fluffy",type:"ally",owner:"Sungsopp",init:15,hp:68,max:68,temp:0,conds:[]});S.cur="f";const q=liveOf();
   console.assert(sorted().map(c=>c.id).join()==="e,f,u"&&JSON.stringify(q.cur)==='{"kind":"pet","char":"sungsopp","name":"Fluffy"}',"dm-pet: "+JSON.stringify(q));S=t}

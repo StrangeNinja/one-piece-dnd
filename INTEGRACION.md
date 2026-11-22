@@ -164,6 +164,10 @@ Campos principales (la app ignora o corrige cualquier campo desconocido o de tip
 | `spells` | `{c: string[], p: string[]}` | Trucos y conjuros preparados (ids de `SPELLS`). |
 | `fore` | `{v, u}[]` | Presagios de Vistazo al futuro (Codel): valor y si se usó. |
 | `sea` | boolean | Kairoseki activo (anula la fruta). |
+| `seaT` | número 0–2 | Kairoseki temporal del DM: finales de turno que faltan para quitarlo solo (0 = no se quita solo). |
+| `clog` | objeto[] | Crónica del combate de este personaje (máx. 200; ver 4.11). |
+| `ccid` | string | `cid` del combate al que pertenece `clog`. |
+| `concN` | string | Nombre de lo que concentra (solo para mostrarlo en `dm.html`; la app no lo lee). |
 | `frenzy`, `trans`, `muscle`, `form`, `formOpts`, `humanHp`, `float`, `stageAC`, `advNext`, `hard`, `mw`, `swapHands` | varios | Estados propios de rasgos: frenesí, Sulong, Músculos de Haki (`"def"`/`"atk"`/`""`), forma Zoan, Paso de nube, Endurecimiento, arma de mochi, armas cambiadas de mano (`swapHands`), etc. |
 | `fury` | string[] | Técnicas de furia conocidas (Bruiser). `furyDone`: último desbloqueo del DM ya usado. |
 | `comp` | `{hp, temp, heads, tf, turnDmg}` | Mascota (Fluffy, en `state/sungsopp`). Vacío `{}` si no hay mascota. |
@@ -230,6 +234,8 @@ Nivel, prestigio, Haki comprado, entregas del DM y el flujo de subida de nivel. 
 | `buy` | `{id, st, at, note?}` o `null` | **Jugador** (crea y cancela) y DM (responde) | Solicitud de compra en la tienda. `st`: `"pend"`, `"ok"` o `"no"`. |
 | `grants` | objeto[] | DM | Entregas de dinero u objetos, la más nueva primero, hasta 30: `{id, at, m, n, q, note}` (ver 4.8). |
 | `furyOpen` | número (fecha) | DM | El DM permitió cambiar las técnicas de furia. |
+| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. |
+| `sea` | objeto | DM (`dm.html`) | Kairoseki desde el panel (ver 4.10): `{on, id, temp, at}`. |
 
 Ejemplo:
 
@@ -248,6 +254,7 @@ Ejemplo:
 ```
 
 - **Escribe**:
+  - `dm.html` (DM): `hit` y `sea`, siempre con `setDoc` + `merge` (no toca los demás campos; crea el documento si no existe).
   - El DM desde Mesa (`index.html`): casi siempre con `setDoc` + `merge` (solo los campos que cambia). **Al aprobar una subida** escribe el **documento completo sin `merge`**: cualquier campo que la app no conozca se pierde en ese momento.
   - El jugador: `pending` al enviar su subida y `buy` al pedir o cancelar una compra.
 - **Lee**: el jugador de ese personaje (escucha su documento) y el DM (escucha toda la colección, en Mesa y en `dm.html`). La app guarda una copia en el teléfono (`mc:prog`) y valida cada campo al leer (tipos, rangos, ids que existan en `HAKI`, `FEATS`, `SPELLS`).
@@ -259,6 +266,7 @@ Lo que **todos los jugadores con cuenta** ven del combate. Lo publica `dm.html` 
 | Campo | Tipo | Significado |
 |---|---|---|
 | `active` | boolean | Hay combate en curso. `false` = la barra de combate desaparece en todos los teléfonos. |
+| `cid` | string | Id del combate (nace con el primer turno). Los teléfonos marcan con él su crónica (`state.clog`). `""` sin combate. |
 | `round` | número ≥ 1 | Ronda. |
 | `turnId` | número | **Sube en 1 en cada cambio de turno**. Cada teléfono avisa una sola vez por valor (ver 4.2). |
 | `cur` | `{kind, char, name}` o `null` | De quién es el turno. |
@@ -328,6 +336,15 @@ Criatura de `list`:
 | `fx` | objeto[] | Efectos del DM sobre esa criatura (ver 4.4). |
 
 - **Escribe** y **lee**: solo el DM. **Nunca** debe llegar a los jugadores (tiene PV, CA y nombres de enemigos).
+- Campos nuevos de `S`: `cid` (id del combate), `clog` (crónica del panel, máx. 600 eventos `{t, r, tid, a, k, …}`; ver 4.11) y `lastUse` (última carta usada, para llenar "Enviar golpe"). Criaturas del bestiario: `bid` (id de su hoja), `u` (usos que quedan por carta), `rch` (recarga lista por carta), `lr` y `la` (resistencias y acciones legendarias que quedan) y `cs` (CD de concentración pendiente).
+
+### 3.7 `combat/bestiary`
+
+Hojas de criaturas del DM: `{B: {list: hoja[], at, pre}, at}`. Solo el DM (lo cubre la regla de `combat`). `dm.html` guarda una copia en `dm:best` y gana la más nueva (`at`). Hoja: `{id, name, type, ac, hp, init, speed, ab, sv, res, imm, flavor, morale, moraleHp, lr, la, cards}`; carta: `{id, k (atk | save | feat | react | leg), n, hit, dmg, ty, xd, xty, ab, dc, half, area, uses, per, rech, cost, sea, note}`. Los textos pueden ser texto o `{es, en}`.
+
+### 3.8 `combat/chronicle`
+
+Crónica del último combate que el DM comparte: `{cid, title, text, at}` (texto plano, hasta 30.000 caracteres). La escribe solo el DM; la leen los jugadores con cuenta (misma condición que `combat/live`). Los teléfonos muestran la tarjeta "Crónica del último combate" y avisan cuando llega una nueva (`mc:cronseen`).
 
 ---
 
@@ -337,9 +354,9 @@ Todas las apps usan escuchas en vivo (`onSnapshot`). Resumen de quién escucha q
 
 | App | Escucha |
 |---|---|
-| Jugador (`index.html`) | `players/{su uid}`, `state/{su personaje}`, `progress/{su personaje}`, `combat/live` |
+| Jugador (`index.html`) | `players/{su uid}`, `state/{su personaje}`, `progress/{su personaje}`, `combat/live`, `combat/chronicle` |
 | DM en Mesa (`index.html`) | `players` (colección), `state` (colección), `progress` (colección), `combat/live` |
-| `dm.html` con sesión de DM | `combat/dm`, `state` (colección), `progress` (colección) |
+| `dm.html` con sesión de DM | `combat/dm`, `combat/bestiary`, `state` (colección), `progress` (colección) |
 
 ### 4.1 Asignar un personaje
 
@@ -366,7 +383,7 @@ El DM controla el orden; los teléfonos reaccionan a `combat/live`.
 - **Los PV de cada jugador los maneja su teléfono**: el jugador toca Daño, Curar o Temp., y la app aplica resistencias, inmunidades, reducciones, PV temporales, formas, frenesí y concentración, y escribe `state.hp` y `state.temp`.
 - `dm.html` **no cambia** los PV de un jugador con datos en vivo: muestra `state.hp`, `state.temp`, `state.conds` y `state.maxHp`, y oculta sus controles. Los PV de Fluffy salen de `state/sungsopp.comp`.
 - Enemigos, aliados sin dueño y jugadores sin datos en vivo: los maneja el DM en `combat/dm`. El daño va primero a los PV temporales; los temporales no se acumulan (queda el mayor); la curación no pasa del máximo.
-- **Si una app nueva necesita cambiar los PV de un jugador**: escribir solo los campos que cambian (`updateDoc(state/x, {hp, temp})` o `setDoc` con `merge`) y con el **tipo correcto** (números enteros). Tener en cuenta que el teléfono del jugador sobrescribe el documento completo en su siguiente guardado: si guarda dentro del mismo segundo, el cambio del DM se pierde (gana el último en guardar). No hay resistencias calculadas del lado del DM.
+- **Si una app nueva necesita cambiar los PV de un jugador**: escribir solo los campos que cambian (`updateDoc(state/x, {hp, temp})` o `setDoc` con `merge`) y con el **tipo correcto** (números enteros). Tener en cuenta que el teléfono del jugador sobrescribe el documento completo en su siguiente guardado: si guarda dentro del mismo segundo, el cambio del DM se pierde (gana el último en guardar). Del lado del DM solo hay resistencias para las criaturas del bestiario (ver 4.10).
 - **PV máximos**: tomar `state.maxHp` (lo calcula la app en cada guardado) o `progress.maxHp` (al aprobar una subida). `dm.html` actualiza su `max` con esos valores.
 
 ### 4.4 Estados y efectos con duración
@@ -383,6 +400,19 @@ El DM controla el orden; los teléfonos reaccionan a `combat/live`.
   - Los maneja **solo** el teléfono del jugador. El DM los ve en vivo.
 - **Efectos del DM** (`combat/dm`, `list[i].fx`), cada uno `{id, n, t, left?, ends?, own, cond?}`: `t` puede ser `"r"`, `"start"`, `"end"` o `"txt"` (sin límite); `own` = id de la criatura en cuyo turno cuenta; `cond` = estado que se quita al terminar.
 - **Avanzar tiempo**: el DM publica `combat/live.adv = {id: Date.now(), min}` (1, 10 o 60). Cada teléfono lo aplica **una vez** (`mc:advseen`) y solo si tiene menos de 1 hora: descuenta sus efectos y avisa qué se terminó. Funciona también sin combate activo.
+
+### 4.10 Golpes y kairoseki desde el panel del DM
+
+- **Daño en área** y **Enviar golpe** (`dm.html`): a enemigos y aliados sin dueño los aplica el panel (con las resistencias e inmunidades de su hoja; con salvación, primero la mitad y después la resistencia, hacia abajo). A los jugadores y a Fluffy no les cambia los PV: escribe `progress/{p}.hit = {id, n, type, save, dc, half, src, sea, pet, crit, at}` con `merge`.
+- La aprobación de una subida reescribe `progress` completo y borra `hit` y `sea`; no importa, porque cada `id` ya se aplicó.
+- El teléfono del jugador aplica cada `id` **una vez** (`mc:hitseen`) y solo si tiene menos de 10 minutos: vibra, muestra el aviso y abre el panel de Daño con la cantidad, el tipo y la fuente. Con `save`: botones Superé / Fallé (y Tirar en dados digitales); Evasión (DES, `half`): 0 si supera y la mitad si falla. `pet: true` va a la mascota. `sea: true` y falla: kairoseki hasta el final de su próximo turno.
+- **Kairoseki**: `progress/{p}.sea = {on, id, temp, at}` (mismas reglas de `id` y antigüedad, `mc:seaseen`). El teléfono usa la misma función que el interruptor de la ficha; `temp: true` lo quita solo al final de su próximo turno (`state.seaT`).
+
+### 4.11 Crónica del combate
+
+- `dm.html` guarda en `combat/dm.S.clog` los eventos del combate activo (turnos, cartas usadas, daño, curación, estados, efectos, legendarias, recargas, golpes enviados, caídas, huidas y rendiciones) con su `cid`, ronda, `turnId` y actor (de quién es el turno).
+- Cada teléfono guarda en `state.clog` (con `ccid` = `combat/live.cid`) lo que usa y lo que le pasa: `use` (nombre de la carta, total, daño, crítico, `ph` dados físicos), `dmg`, `heal`, `down`, `up`, `ds`, `dream`, `dp` y `sea`. Un `cid` nuevo lo vacía.
+- Al terminar el combate, `dm.html` mezcla los dos por `turnId` y fecha y arma el texto con plantillas (sin servicios externos). El daño que el DM aplica en el turno de alguien es de ese alguien, con el nombre de su última jugada de ese turno. "Compartir con los jugadores" escribe `combat/chronicle`.
 
 ### 4.5 Subida de nivel (`event` → `pending` → aprobar o rechazar)
 
@@ -539,7 +569,7 @@ service cloud.firestore {
 
     match /combat/{docId} {
       allow read: if isDM()
-        || (docId == "live" && signedIn() && exists(/databases/$(database)/documents/players/$(request.auth.uid)));
+        || ((docId == "live" || docId == "chronicle") && signedIn() && exists(/databases/$(database)/documents/players/$(request.auth.uid)));
       allow write: if isDM();
     }
 
@@ -572,7 +602,7 @@ service cloud.firestore {
   - Crear: el DM; o el jugador, solo si el documento lleva únicamente `buy` en estado `"pend"` (primera solicitud de compra cuando todavía no hay progreso).
   - Actualizar: el DM cualquier campo; o el jugador, **solo `pending`** cuando hay un `event` y el `eventId` coincide con su id; o **solo `buy`**, para pedir (`"pend"`) o cancelar (`null`). El jugador no puede tocar `prestige`, `plog`, `level`, `haki`, `grants`, etc.
 - **`combat/{docId}`**:
-  - Leer `combat/live`: cualquier usuario con sesión que tenga documento en `players`. Leer cualquier otro documento de `combat` (incluido `combat/dm`): solo el DM.
+  - Leer `combat/live` y `combat/chronicle`: cualquier usuario con sesión que tenga documento en `players`. Leer cualquier otro documento de `combat` (incluidos `combat/dm` y `combat/bestiary`): solo el DM.
   - Escribir: solo el DM.
 - **`state/{charId}`**:
   - Leer y borrar: el DM o el jugador de ese personaje. Un jugador **no puede leer el estado de otro**.
@@ -597,7 +627,7 @@ service cloud.firestore {
 
 ### Nombres y formatos que no deben cambiar
 
-- Colecciones y documentos: `admins`, `players`, `state`, `progress`, `combat/live`, `combat/dm`.
+- Colecciones y documentos: `admins`, `players`, `state`, `progress`, `combat/live`, `combat/dm`, `combat/bestiary`, `combat/chronicle`.
 - Ids de personaje: `udon`, `codel`, `kalgo`, `sungsopp`, `ryuga` (en minúsculas).
 - Estados en español (`Agarrado`, `Derribado`…), no en inglés.
 - Fechas en milisegundos (`Date.now()`), salvo `state.at` (`serverTimestamp`).
@@ -624,6 +654,9 @@ service cloud.firestore {
 | `mc:alertseen` | `index.html` | `id` del último aviso de caídos visto. |
 | `mc:advseen` | `index.html` | `id` del último Avanzar tiempo aplicado. |
 | `mc:buyseen` | `index.html` | Última respuesta de compra avisada. |
+| `mc:hitseen`, `mc:seaseen` | `index.html` | Ids de golpes y kairoseki del DM ya aplicados (los últimos 20). |
+| `mc:cronseen` | `index.html` | Fecha de la última crónica avisada. |
+| `dm:best` | `dm.html` | Bestiario (igual que `combat/bestiary.B`). |
 
 Además, IndexedDB guarda la caché de Firestore (la crea el SDK).
 
