@@ -224,6 +224,7 @@ code{font-size:12px;word-break:break-all;user-select:all}
 .cbar b{color:var(--ink)} .cbar span:not(.nx){color:var(--ink);font-weight:700} .cbar .nx{margin-left:auto}
 .cbar .ordr{display:flex;gap:4px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px} .cbar .ordr span{flex:none;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface);color:var(--muted)!important}
 .cbar .ordr span.now{background:var(--ink);color:var(--bg)!important} .cbar .ordr span.mine{box-shadow:inset 0 0 0 2px var(--accent)} .cbar .ordr span.ko{text-decoration:line-through;opacity:.6} .cbar .ordme{font-size:12px}
+.cbar .pclk{font-weight:700;padding:0 8px;border-radius:8px;background:var(--surface);color:var(--ink)!important}.cbar .pclk.over{background:var(--bad);color:var(--bg)!important}
 .cbar.me{background:var(--accent);color:var(--accent-ink)} .cbar.me b,.cbar.me span{color:var(--accent-ink)!important}
 .yt{position:fixed;left:0;right:0;top:0;z-index:58;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;
   padding:calc(22px + env(safe-area-inset-top,0px)) 20px 20px;background:var(--accent);color:var(--accent-ink);box-shadow:0 10px 30px var(--shadow);animation:ytin .35s ease-out}
@@ -343,7 +344,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:29";
+const APP_VERSION="2026-11-22 21:31";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -2806,7 +2807,7 @@ function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.t
 let CB=null;
 const CB_KINDS=["pc","pet","ally","foe"],CB_CHARS=["udon","codel","kalgo","sungsopp","ryuga"];
 const cbWho=x=>x&&typeof x==="object"&&CB_KINDS.includes(x.kind)?{kind:x.kind,char:CB_CHARS.includes(x.char)?x.char:null,name:x.kind==="foe"?"":String(x.name||"").slice(0,40)}:null;
-const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next),cid:typeof v.cid==="string"?v.cid.replace(/[^\w-]/g,"").slice(0,24):"",order:ordClean(v.order)}:null;
+const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next),cid:typeof v.cid==="string"?v.cid.replace(/[^\w-]/g,"").slice(0,24):"",order:ordClean(v.order),turnAt:isInt(v.turnAt,0,1e14)?v.turnAt:0,clock:isInt(v.clock,0,600)?v.clock:0}:null;
 /* Orden de iniciativa (combat/live.order): enemigos sin nombre salvo que el DM lo muestre (n = número de enemigo), sin PV ni CA */
 function ordClean(v){return Array.isArray(v)?v.slice(0,40).filter(o=>o&&typeof o==="object"&&["pc","pet","ally","foe"].includes(o.kind)).map(o=>({kind:o.kind,char:CB_CHARS.includes(o.char)?o.char:null,name:String(o.name||"").replace(/[<>&"]/g,"").slice(0,40),n:isInt(o.n,1,99)?o.n:0,
   band:["ok","hurt","bad","near","ko"].includes(o.band)?o.band:"",conds:Array.isArray(o.conds)?o.conds.filter(x=>CONDS.includes(x)).slice(0,8):[],cur:o.cur===true,...(isInt(o.hp,0,9999)&&isInt(o.max,1,9999)?{hp:o.hp,max:o.max}:{})})):[]}
@@ -2865,7 +2866,12 @@ function cbToast(text){let d=$("yn");if(!d){d=document.createElement("div");d.id
 function cbBar(){const fb=FALL.map(f=>`<i class="fb ${f.st}">${esc(f.name)} · ${{down:tx("a 0 PV","at 0 HP"),stable:tx("estable","stable"),dead:tx("sin vida","dead")}[f.st]}</i>`).join("");
   if(!CB)return fb?`<div class="cbar" role="status">${fb}</div>`:"";const t=CB.cur,n=CB.next;
   const tt=t.kind==="foe"?tx("Turno de los enemigos","Enemies' turn"):cbMine(t)&&t.kind==="pc"?tx("Tu turno","Your turn"):tx(`Turno de ${esc(t.name)}`,`${esc(t.name)}'s turn`);
-  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}${fb}${ordStrip()}</div>`}
+  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}${fb}${CB.turnAt?`<span class="pclk" id="pclk" aria-label="${tx("Tiempo del turno","Turn time")}">${clkT(CB.turnAt)}</span>`:""}${ordStrip()}</div>`}
+/* Reloj de turno del DM (combat/live.turnAt y clock): en rojo al pasar el límite y, si es tu turno, vibra una vez. Nunca pasa el turno solo */
+const clkT=at=>{const s=Math.max(0,Math.floor((Date.now()-at)/1000));return`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`};
+let CLKBZ=null;
+setInterval(()=>{const k=$("pclk");if(!k||!CB||!CB.turnAt)return;k.textContent=clkT(CB.turnAt);const over=!!CB.clock&&Date.now()-CB.turnAt>=CB.clock*1000;k.classList.toggle("over",over);
+  if(over&&CLKBZ!==CB.turnId&&cbMine(CB.cur)){CLKBZ=CB.turnId;buzz(300)}},1000);
 const cbBadge=()=>CB&&cbMine(CB.cur)?`<span class="econ yt-b"><i></i>${CB.cur.kind==="pet"?tx(`Turno de ${esc(CB.cur.name)}`,`${esc(CB.cur.name)}'s turn`):tx("Tu turno","Your turn")}</span>`:"";
 
 /* ===================== EVENTOS ===================== */

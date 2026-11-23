@@ -170,6 +170,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 .undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:15;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;background:var(--ink);color:var(--bg);box-shadow:0 4px 16px var(--shadow);padding:12px 18px;font-size:15px}
 body{padding-bottom:90px}
 .cron-t{white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere;font-size:14px}
+.dclk{font-size:14px;font-weight:700;padding:1px 8px;border-radius:8px;background:var(--chip);color:var(--ink)}.dclk.over{background:var(--bad);color:var(--bg)}
 .encb{position:relative;height:14px;border-radius:7px;background:var(--chip);overflow:hidden;margin:6px 0}.encb i{position:absolute;inset:0 auto 0 0;border-radius:7px}.encb s{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.5}
 .scene{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--gold);border-radius:12px;background:var(--surface)}.scene p{margin:4px 0 0}
 .cnt b{flex:1;min-width:0}
@@ -193,7 +194,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:29";
+const APP_VERSION="2026-11-22 21:31";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -372,7 +373,15 @@ function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx
     if(kind==="foe"){fi++;if(!c.show){o.name="";o.n=fi}if(S.showBand!==false)o.band=bandOf(c)}
     else if(kind==="ally")o.band=bandOf(c);
     else{const lv=liveView(c),v=lv||c;if(lv)o.conds=lv.conds.filter(x=>CONDS.includes(x));if(Number.isFinite(v.hp)&&v.max>0){o.hp=Math.max(0,v.hp);o.max=v.max}o.band=bandOf(v)}return o});
-  return{active:!!S.active&&!!cu,cid:S.active&&S.cid||"",round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,order,ticker:S.active&&cu?tickerOf():[],at:Date.now()}}
+  return{active:!!S.active&&!!cu,cid:S.active&&S.cid||"",round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,order,ticker:S.active&&cu?tickerOf():[],turnAt:S.active&&S.clockOn&&S.turnAt||0,clock:S.clockOn?S.clockLim||0:0,at:Date.now()}}
+/* ===== Reloj de turno (opcional): S.clockOn, S.clockLim (0, 60, 90 o 120 s), S.turnAt (inicio del turno). Nunca pasa el turno solo: al llegar al límite se pone rojo.
+   La duración de cada turno queda en la crónica (tdur, en segundos) y el epílogo dice el turno más rápido y el promedio ===== */
+const clkT=at=>{const s=Math.max(0,Math.floor((Date.now()-at)/1000));return`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`};
+const durT=s=>s>=60?tx(`${Math.floor(s/60)} min ${s%60} s`,`${Math.floor(s/60)} min ${s%60} s`):`${s} s`;
+function tdurLog(){if(S.active&&S.turnAt){const n=Math.round((Date.now()-S.turnAt)/1000);if(n>0)clog({k:"tdur",n})}}
+function tdStats(E){const T=E.filter(e=>e.k==="tdur"&&e.o==="dm"&&e.n>0&&e.n<1800&&e.a);if(T.length<2)return null;const fast=T.reduce((a,b)=>b.n<a.n?b:a);return{fast,avg:Math.round(T.reduce((a,b)=>a+b.n,0)/T.length)}}
+console.assert((()=>{const r=tdStats([{k:"tdur",o:"dm",n:40,a:"Udon"},{k:"tdur",o:"dm",n:18,a:"Codel"},{k:"tdur",o:"dm",n:5000,a:"X"},{k:"tdur",o:"udon",n:1,a:"Y"}]);return r.fast.a==="Codel"&&r.avg===29&&tdStats([{k:"tdur",o:"dm",n:3,a:"A"}])===null&&durT(75)==="1 min 15 s"})(),"reloj de turno");
+setInterval(()=>{const k=$("dclk");if(!k||!S.turnAt)return;k.textContent=clkT(S.turnAt);k.classList.toggle("over",!!S.clockLim&&Date.now()-S.turnAt>=S.clockLim*1000)},1000);
 /* Franja de estado: >75 % Ileso, >50 % Herido, >25 % Malherido, >0 A punto de caer, 0 Derrotado */
 const bandOf=c=>!(c.max>0)||!Number.isFinite(c.hp)?"":c.hp<=0?"ko":c.hp/c.max>.75?"ok":c.hp/c.max>.5?"hurt":c.hp/c.max>.25?"bad":"near";
 /* Últimas 5 frases de la crónica del combate en curso; los nombres y apodos de los enemigos ocultos se cambian por "Enemigo N" */
@@ -440,7 +449,7 @@ function render(){navLater();
   watchFall();
   const L=sorted(),cur=L.find(c=>c.id===S.cur);document.title=tx("Panel del DM","DM Panel");
   $("top").innerHTML=`<div class="toprow"><h1>${tx("Panel del DM","DM Panel")}</h1><span style="display:flex;align-items:center;gap:10px"><span class="round">${tx(`Ronda ${S.round} · ${L.filter(c=>c.hp>0).length} en pie`,`Round ${S.round} · ${L.filter(c=>c.hp>0).length} standing`)}</span><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button></span></div>
-    <div class="turnbar"><div class="now"><small>${tx("Turno de","Turn of")}</small><b>${cur?esc(cur.name):"—"}</b></div>
+    <div class="turnbar"><div class="now"><small>${tx("Turno de","Turn of")}</small><b>${cur?esc(cur.name):"—"}</b>${S.clockOn&&S.active&&S.turnAt?` <span class="dclk" id="dclk" aria-label="${tx("Tiempo del turno","Turn time")}">${clkT(S.turnAt)}</span>`:""}</div>
     <button class="btn" data-do="prev" aria-label="${tx("Turno anterior","Previous turn")}">◀</button>
     <button class="btn primary big" data-do="next">${tx("Siguiente","Next")}</button></div>
     <div class="sync">${S.active?`<b>${tx("Combate en curso","Combat in progress")}</b>`:tx("Sin combate: «Siguiente» lo empieza","No combat: “Next” starts it")} · ${!fb?tx("solo en este teléfono","this phone only")
@@ -451,6 +460,7 @@ function render(){navLater();
  $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["crew",tx("Agregar tripulación","Add crew")],["reset",tx("Vaciar combate (también jugadores)","Clear combat (players too)")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("")
    +`<button class="btn" data-do="bandtog" aria-pressed="${S.showBand!==false}">${tx("Mostrar estado de los enemigos","Show enemy status")}: ${S.showBand!==false?tx("sí","yes"):tx("no","no")}</button><a class="btn" href="mesa.html" target="_blank" rel="noopener">${tx("Pantalla de mesa","Table screen")}</a>`
    +`<button class="btn primary" data-do="aoe">${tx("Daño en área","Area damage")}</button>`+(!S.active&&(S.clog||[]).length?`<button class="btn" data-do="cronshow">${tx("Crónica del último combate","Chronicle of the last combat")}</button>`:"")
+   +`<div class="advt"><b>${tx("Reloj de turno","Turn clock")}</b><button class="btn" data-do="clock" aria-pressed="${!!S.clockOn}">${S.clockOn?tx("Activado","On"):tx("Desactivado","Off")}</button>${S.clockOn?[0,60,90,120].map(s=>`<button class="btn" data-do="clocklim" data-s="${s}" aria-pressed="${(S.clockLim||0)===s}">${s?s+" s":tx("Sin límite","No limit")}</button>`).join(""):""}</div>`
    +`<div class="advt"><b>${tx("Avanzar tiempo","Advance time")}</b>${[1,10,60].map(m=>`<button class="btn" data-do="adv" data-m="${m}">+${m===60?"1 h":m+" min"}</button>`).join("")}</div>`;
 }
 /* ===== Caídos: aviso a todo el grupo =====
@@ -1082,6 +1092,7 @@ function buildCron(cid){const E=cronEvents(cid),P=NARR[look.lang]||NARR.es,F=FLV
   if(td)ep.push(fill(pk("most"),{a:td[0],n:td[1]}));if(te)ep.push(fill(pk("endu"),{a:te[0],n:te[1]}));
   const hx=comeback?tx(`cuando ${comeback} se levantó desde los 0 PV`,`when ${comeback} rose back from 0 HP`):best?tx(`el golpe de ${best.a}${best.m?" con "+best.m:""} contra ${best.t}: ${best.n} de daño`,`${best.a}'s strike${best.m?" with "+best.m:""} against ${best.t}: ${best.n} damage`):"";
   if(hx)ep.push(fill(pk("hero"),{x:hx}));
+  const ts=tdStats(E);if(ts)ep.push(tx(`Turno más rápido: ${ts.fast.a} (${durT(ts.fast.n)}). Tiempo medio por turno: ${durT(ts.avg)}.`,`Fastest turn: ${ts.fast.a} (${durT(ts.fast.n)}). Average turn time: ${durT(ts.avg)}.`));
   out.push("",tx("Epílogo","Epilogue"),ep.join(" "));return{title,text:out.join("\n")}}
 function cronOpen(){const cid=S.cid||"",r=buildCron(cid);panOpen({k:"cron",title:tx("Crónica del combate","Combat chronicle"),cid,...r,rw:{eq:true,tot:"",per:{},items:[],pr:{}}})}
 function cronHtml(){const P=PANEL;return panTop(tx("Crónica del combate","Combat chronicle"))+`<p class="note">${tx("Puedes editar el texto antes de compartirlo.","You can edit the text before sharing it.")}</p>
@@ -1095,7 +1106,7 @@ function cronClaude(cid){const E=cronEvents(cid).map(({t,o,...e})=>e);
   return tx("Narra de forma épica, estilo One Piece, este combate de D&D, turno por turno, sin inventar resultados:","Narrate this D&D combat epically, One Piece style, turn by turn, without inventing results:")+"\n"+JSON.stringify(E)}
 /* ===================== Turnos, toques y casillas de lo nuevo ===================== */
 /* Cambio de turno (Siguiente, ◀ o Darle el turno). El primero empieza el combate: nace su cid y la crónica */
-function turnTo(id,fwd){const was=S.active;if(fwd)fxTurn(S.cur,id);S.cur=id;S.turnId=(S.turnId||0)+1;S.active=true;
+function turnTo(id,fwd){const was=S.active;tdurLog();S.turnAt=Date.now();if(fwd)fxTurn(S.cur,id);S.cur=id;S.turnId=(S.turnId||0)+1;S.active=true;
   if(!was){S.cid=nid();S.clog=[];clog({k:"start",who:sorted().map(c=>({n:c.name,ty:c.type,bid:c.bid||""}))})}
   SENT={};clog({k:"turn"});if(fwd)bTurnStart(S.list.find(c=>c.id===id))}
 function delC(id){const L=sorted(),i=L.findIndex(c=>c.id===id);if(S.cur===id&&L.length>1)S.cur=L[(i+1)%L.length].id;
@@ -1207,6 +1218,8 @@ document.addEventListener("click",e=>{
   if(act==="aoe"){aoeOpen();return}
   if(act==="cronshow"){cronOpen();return}
   if(act==="scenex"){S.scene=null;save();render();return}
+  if(act==="clock"){S.clockOn=!S.clockOn;if(S.clockOn&&!S.turnAt&&S.active)S.turnAt=Date.now();save();render();return}
+  if(act==="clocklim"){S.clockLim=+d.s||0;save();render();return}
   if(act==="bandtog"){S.showBand=S.showBand===false;save();render();return}
   if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>alert(tx("No se pudo entrar: ","Couldn't sign in: ")+(e.code||e)));return}
   if(act==="logout"){fb.U.signOut(fb.auth);return}
@@ -1226,7 +1239,7 @@ document.addEventListener("click",e=>{
     if(armed!==act){armed=act;render();return}armed=null;
     if(act==="heal")S.list.forEach(c=>{c.hp=c.max;c.temp=0;c.conds=[]});
     if(act==="foes"){S.list=S.list.filter(c=>c.type!=="foe");S.round=1;S.cur=sorted()[0]?.id||null}
-    if(act==="end"){clog({k:"end"});S.active=false;S.round=1;
+    if(act==="end"){tdurLog();clog({k:"end"});S.active=false;S.round=1;S.turnAt=0;
       if(S.list.some(c=>(c.fx||[]).length)&&confirm(tx("¿Borrar también los efectos de enemigos y aliados? (Cancelar: se conservan)","Also clear the effects on enemies and allies? (Cancel: keep them)")))S.list.forEach(c=>{for(const x of c.fx||[])if(x.cond)c.conds=c.conds.filter(y=>y!==x.cond);c.fx=[]})}
     if(act==="reset"){S={round:1,cur:null,list:[],v:S.v,active:false,turnId:S.turnId}} // v: que no vuelvan a correr las migraciones
     save();render();if(act==="end"&&(S.clog||[]).length)cronOpen();return}
