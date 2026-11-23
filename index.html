@@ -344,7 +344,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:32";
+const APP_VERSION="2026-11-22 22:24";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -2338,15 +2338,27 @@ function dreamsRoll(r){
 const hpBtns=(who,n)=>`<div class="hpctl">${[["dmg","dmg",tx("Daño","Damage"),tx(`Daño a ${n}`,`Damage to ${n}`)],["heal","heal",tx("Curar","Heal"),tx(`Curar a ${n}`,`Heal ${n}`)],["tmp","temp","Temp.",tx(`PV temporales de ${n}`,`${n}'s temporary hit points`)]]
   .map(([cl,k,l,al])=>`<button class="hpbtn ${cl}" data-do="hpopen" data-k="${k}" data-who="${who}" aria-label="${esc(al)}">${l}</button>`).join("")}</div>`;
 /* Daño paso a paso con las defensas de def (en CHARS): inmunidad, o resistencia y vulnerabilidad (una de cada, no se acumulan), y después las reducciones activas */
-function dmgSteps(c,who,n,ty,mag){
-  const defs=(who==="comp"?c.companion.def:c.def)||[],has=(l,t)=>(l||"").split(" ").includes(t);
-  const ok=x=>(!x.on||has(x.on,ty))&&!has(x.not,ty)&&!(x.nm&&mag)&&!(x.fruit&&S.sea)&&(!x.only||S[x.only])&&(!x.muscle||S.muscle===x.muscle);
+/* noRed: sin las reducciones (multiSteps las aplica una sola vez por golpe) */
+const defOk=(x,ty,mag)=>{const has=(l,t)=>(l||"").split(" ").includes(t);return(!x.on||has(x.on,ty))&&!has(x.not,ty)&&!(x.nm&&mag)&&!(x.fruit&&S.sea)&&(!x.only||S[x.only])&&(!x.muscle||S.muscle===x.muscle)};
+function dmgSteps(c,who,n,ty,mag,noRed){
+  const defs=(who==="comp"?c.companion.def:c.def)||[];
+  const ok=x=>defOk(x,ty,mag);
   const find=k=>ty&&defs.find(x=>x.k===k&&ok(x)),st=[];let v=n,x;
   if((x=find("imm"))){v=0;st.push([tx(`inmunidad por ${x.src}`,`immunity from ${x.src}`),v])}
   else{if((x=find("res"))){v=Math.floor(v/2);st.push([tx(`resistencia por ${x.src}`,`resistance from ${x.src}`),v])}
     if((x=find("vul"))){v*=2;st.push([tx(`vulnerabilidad por ${x.src}`,`vulnerability from ${x.src}`),v])}}
-  for(const r of defs)if(r.k==="red"&&v>0&&ok(r)){v=Math.max(0,v-r.n);st.push([`${r.src} −${r.n}`,v])}
+  if(!noRed)for(const r of defs)if(r.k==="red"&&v>0&&ok(r)){v=Math.max(0,v-r.n);st.push([`${r.src} −${r.n}`,v])}
   return{v,st,txt:[`${n}${ty?" "+dmgT(ty):""}`,...st.flat()].join(" → ")}}
+/* Un golpe con varias partes de distinto tipo (ataque del DM con daño extra): inmunidad, resistencia y vulnerabilidad por tipo en cada parte;
+   las reducciones fijas (Músculos de Haki en defensa) una sola vez por golpe, sobre las partes a las que se aplican, en orden */
+function multiSteps(c,who,parts,mag){const R=parts.map(p=>({...dmgSteps(c,who,p.n,p.ty,mag,true),ty:p.ty})),defs=(who==="comp"?c.companion.def:c.def)||[],red=[];
+  for(const r of defs){if(r.k!=="red")continue;let left=r.n;for(const x of R)if(left>0&&x.v>0&&defOk(r,x.ty,mag)){const d=Math.min(left,x.v);x.v-=d;left-=d}if(left<r.n)red.push(`${r.src} −${r.n-left}`)}
+  const v=R.reduce((a,x)=>a+x.v,0),many=R.length>1;
+  return{v,vs:R.map(x=>x.v),txt:R.map(x=>many&&x.txt.includes("→")?`(${x.txt})`:x.txt).join(" + ")+(red.length?` → ${red.join(" → ")}`:"")+(many||red.length?` → ${v}`:"")}}
+const halveParts=P=>P.map(p=>({...p,n:Math.floor(p.n/2)})),zeroParts=P=>P.map(p=>({...p,n:0}));
+console.assert((()=>{const k=S;S={sea:false,muscle:"",frenzy:false};try{const G=[{n:9,ty:"cortante"},{n:7,ty:"veneno"}],d=multiSteps({def:[]},"me",halveParts(G),false),cod=multiSteps(CHARS.codel,"me",G,false);
+    S.muscle="def";const kal=multiSteps({def:[{k:"red",n:4,not:"fuerza psíquico",muscle:"def",src:"m"}]},"me",G,false);
+    return d.vs.join()==="4,3"&&d.v===7&&multiSteps({def:[]},"me",zeroParts(G),false).v===0&&cod.vs.join()==="0,3"&&kal.v===12&&kal.vs.join()==="5,7"}finally{S=k}})(),"golpe con varias partes");
 console.assert(dmgSteps({def:[{k:"res",on:"cortante",src:"a"},{k:"red",n:4,not:"fuerza",src:"b"}]},"me",15,"cortante",false).txt===tx("15 cortante → resistencia por a → 7 → b −4 → 3","15 slashing → resistance from a → 7 → b −4 → 3")
   &&dmgSteps({def:[{k:"imm",on:"cortante",nm:1,src:"a"}]},"me",9,"cortante",true).v===9&&dmgSteps({def:[{k:"red",n:4,not:"fuerza",src:"b"}]},"me",9,"fuerza",false).v===9,"daño");
 /* Panel de Daño, Curar o Temp.: cantidad (y tipo de daño y "Mágico / con Haki", o la fuente de la curación) y el cálculo antes de aplicarlo */
@@ -2390,8 +2402,11 @@ function resCard(cls,who,title,subs,hpL){const c=C(),cp=who==="comp"&&c.companio
 let lastHit=null,quiet=false;
 const HPF=["hp","temp","form","formOpts","humanHp","conc","frenzy","muscle","dead","ds"];
 const hitOk=()=>!!lastHit&&lastHit.cur===cur&&S.hp===lastHit.hp&&S.temp===lastHit.temp;
-function takeDamage(c,raw,ty="",mag=false,why=""){
-  const snap=JSON.parse(JSON.stringify(Object.fromEntries(HPF.map(k=>[k,S[k]])))),th=S.turn.hurt,{v:n,txt}=dmgSteps(c,"me",raw,ty,mag),calc=txt.includes("→")?txt:"";
+/* parts: golpe con varias partes [{n, ty}] (ataque del DM con daño extra): las defensas se aplican por tipo y las reducciones una vez (multiSteps); raw y ty quedan como la parte principal */
+function takeDamage(c,raw,ty="",mag=false,why="",parts=null){
+  if(parts&&parts.length<2){raw=parts.length?parts[0].n:0;ty=parts.length?parts[0].ty:ty;parts=null}
+  const snap=JSON.parse(JSON.stringify(Object.fromEntries(HPF.map(k=>[k,S[k]])))),th=S.turn.hurt,{v:n,txt}=parts?multiSteps(c,"me",parts,mag):dmgSteps(c,"me",raw,ty,mag),calc=txt.includes("→")||parts?txt:"";
+  if(parts)ty=parts.filter(p=>p.n>0).length===1?parts.find(p=>p.n>0).ty:"";
   const before=S.hp;dropPrev={frenzy:S.frenzy,muscle:S.muscle,conc:{...S.conc}};const ab=Math.min(S.temp,n);S.temp-=ab;let rest=n-ab;
   const f=formOf(c);
   if(f&&f.hp&&rest>=S.hp){const ex=rest-S.hp;S.hp=S.humanHp;S.form="";S.formOpts=[];rest=ex;log(tx(`Vuelves a forma humana${ex?`: ${ex} de daño sobrante`:""}`,`Back to human form${ex?`: ${ex} leftover damage`:""}`))}
@@ -2414,7 +2429,7 @@ function takeDamage(c,raw,ty="",mag=false,why=""){
   const opts=[...offA.map(([,i])=>"a"+i),...(n>0?[...c.actions.map((a,i)=>a.onHit&&!a.trigger&&econOk(a.cost)&&!(a.res&&S.res[a.res]<=0)&&!(a.only&&!S[a.only])&&known(a)&&!(a.kind==="muscle"&&S.muscle==="def")?"a"+i:""),
     ...SPECIALS.map(s=>s.onHit&&S.turn.sr>0&&S.sr[s.id]>0?"s"+s.id:"")].filter(Boolean):[])];
   if(opts.length)tips.push(tx("Elige cómo respondes para ver el efecto; puedes cambiarla o tocarla otra vez para quitarla. No se gasta nada hasta Confirmar.","Pick how you respond to see the effect; you can change it or tap it again to clear it. Nothing is spent until you Confirm."));
-  lastHit={cur,raw,ty,mag,snap,th,line,hp:S.hp,temp:S.temp,n,pre:preU}; // pre: estado de antes del daño, para que Deshacer tras Confirmar lo revierta todo
+  lastHit={cur,raw:parts?parts.reduce((a,p)=>a+p.n,0):raw,ty,mag,snap,th,line,hp:S.hp,temp:S.temp,n,pre:preU,parts,src:why}; // pre: estado de antes del daño, para que Deshacer tras Confirmar lo revierta todo
   if(quiet)return;
   if(acts||opts.length)show({title:tx("Después del daño","After the damage"),boxes,html:acts?`<div class="trayact">${acts}</div>`:"",resp:opts.length?{o:opts,sel:"",rv:{}}:null,tip:tips.join(" ")});
   const zero=S.hp<=0&&before>0,names=offA.map(([x])=>x.name).join(tx(" o "," or ")),took=n?tx(`Recibiste ${n} de ${dmgName(ty)}`,`You took ${n} ${dmgName(ty)}`):tx("No recibiste daño","You took no damage");
@@ -2422,7 +2437,13 @@ function takeDamage(c,raw,ty="",mag=false,why=""){
     zero&&(names?tx(`Antes de caer, puedes usar ${names}.`,`Before you fall, you can use ${names}.`):tx("Empiezas a tirar salvaciones de muerte. Con tres fallos, No abandonaré mis sueños: d20, con 12 o más te levantas con 1 PV.","You start making death saving throws. At three failures, I Won't Abandon My Dreams: d20, on 12 or higher you get back up with 1 HP."))],
     tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):""))}
 /* Una reacción cambia el último golpe (Esquiva asombrosa, Bloquear golpe, Desviar proyectil, Desvío, Paso relámpago): vuelve a los PV de antes y aplica el daño nuevo */
-function rehit(n,why){const h=lastHit;if(!hitOk())return false;Object.assign(S,h.snap);if(Array.isArray(S.clog)){const i=S.clog.map(e=>e.k==="dmg"&&!e.pet).lastIndexOf(true);if(i>=0)S.clog.splice(i)}if(!quiet)HPW={cur,h:[h.snap.hp,S.comp&&S.comp.hp]};S.turn.hurt=h.th;S.log=S.log.filter(l=>l!==h.line);takeDamage(C(),Math.max(0,n),h.ty,h.mag,why);lastHit.pre=h.pre;return true}
+function rehit(n,why){const h=lastHit;if(!hitOk())return false;Object.assign(S,h.snap);if(Array.isArray(S.clog)){const i=S.clog.map(e=>e.k==="dmg"&&!e.pet).lastIndexOf(true);if(i>=0)S.clog.splice(i)}if(!quiet)HPW={cur,h:[h.snap.hp,S.comp&&S.comp.hp]};S.turn.hurt=h.th;S.log=S.log.filter(l=>l!==h.line);
+  /* n: número (golpe de una parte; con partes, 0 = todo evitado) o las partes nuevas */
+  const P=Array.isArray(n)?n.map(p=>({...p,n:Math.max(0,p.n)})):h.parts?(n===0?zeroParts(h.parts):n===h.raw?h.parts:null):null;
+  /* la línea nueva conserva de dónde vino el golpe (por ejemplo "Enemigo 2 · Garras envenenadas") */
+  takeDamage(C(),P?0:Math.max(0,n),h.ty,h.mag,h.src&&why?`${h.src} · ${why}`:why||h.src,P);lastHit.pre=h.pre;lastHit.src=h.src;return true}
+/* Bloquear golpe y Desviar proyectil con varias partes: restan del total, parte por parte en orden */
+const subParts=(P,k)=>P.map(p=>{const d=Math.min(k,p.n);k-=d;return{...p,n:p.n-d}});
 /* Respuesta al golpe: k = "a"+índice de la acción o "s"+id de la reacción especial. respRun la aplica; respSim la corre sobre una copia
    (quiet: sin bandeja ni tarjeta) para la vista previa, así lo que se ve es exactamente lo que hará Confirmar */
 const respOf=(c,k)=>k[0]==="a"?{a:c.actions[+k.slice(1)],i:+k.slice(1)}:{a:SPECIALS.find(s=>s.id===k.slice(1)),sr:k.slice(1)};
@@ -2435,8 +2456,9 @@ function respRun(c,k,v){const{a,sr}=respOf(c,k),h=lastHit;let warn="";
   if(sr){if(S.turn.sr>0)S.turn.sr--;else warn=tx("Ya usaste tus 2 reacciones especiales esta ronda.","You already used your 2 special reactions this round.");S.sr[sr]--}
   else{if(a.kind!=="stay1")warn=spend(a.cost);if(a.res)S.res[a.res]--;if(a.once)S.used[a.once]=true;if(a.perTurn)S.turn[a.perTurn]=true}
   const roll_=v.d!=null?`: ${v.d}`:"";
-  if(a.kind==="halve")rehit(Math.floor(h.raw/2),`${a.name}: ${h.raw} → ${Math.floor(h.raw/2)}`);
-  else if(a.kind==="reduce")rehit(h.raw-v.n,`${a.name}: −${v.n}`);
+  /* Con varias partes (daño extra de otro tipo): la mitad de cada parte, hacia abajo, antes de las resistencias */
+  if(a.kind==="halve"){const P=h.parts&&halveParts(h.parts),to=P?P.reduce((s,p)=>s+p.n,0):Math.floor(h.raw/2);rehit(P||to,`${a.name}: ${h.raw} → ${to}`)}
+  else if(a.kind==="reduce")rehit(h.parts?subParts(h.parts,v.n):h.raw-v.n,`${a.name}: −${v.n}`);
   else if(RVS.includes(a.kind)&&v.ok)rehit(0,a.name+roll_);
   else if(a.kind==="muscle"){lastHit={...h,snap:{...h.snap,muscle:"def"}};rehit(h.raw,a.name)}
   else if(a.kind==="temproll"){const rr=a.refill&&c.resources.find(x=>x.id===a.refill),old=S.temp;if(rr)S.res[rr.id]=rr.max;S.temp=Math.max(old,v.n);
@@ -2541,14 +2563,17 @@ console.assert(atkRes(5,20,30)==="hit"&&atkRes(40,1,10)==="miss"&&atkRes(18,null
 function ackClean(v){return v&&typeof v==="object"&&typeof v.id==="string"&&["hit","miss","deflected","halved","void"].includes(v.res)?{id:v.id.slice(0,24),res:v.res,dmg:isInt(v.dmg,0,9999)?v.dmg:0,ac:isInt(v.ac,0,60)?v.ac:0,pet:v.pet===true,at:isInt(v.at,0,1e14)?v.at:0}:null} // función: merge() la usa antes de llegar aquí
 const atkClean=h=>{const nat=isInt(h.nat,1,20)?h.nat:null,cl=s=>String(s||"").replace(/[<>&"]/g,"").slice(0,40);
   return{id:h.id.slice(0,24),total:isInt(h.total,-10,60)?h.total:0,nat,crit:h.crit===true||nat===20,n:isInt(h.n,0,9999)?h.n:0,ty:DMG.includes(h.type)?h.type:"",
-    extra:(Array.isArray(h.extra)?h.extra:[]).slice(0,3).map(x=>({n:isInt(x&&x.n,0,9999)?x.n:0,ty:DMG.includes(x&&x.type)?x.type:""})).filter(x=>x.n>0),src:cl(h.src),by:cl(h.by),magic:h.magic===true,pet:h.pet===true,bon:0}};
+    extra:(Array.isArray(h.extra)?h.extra:[]).slice(0,3).map(x=>({n:isInt(x&&x.n,0,9999)?x.n:0,ty:DMG.includes(x&&x.type)?x.type:""})).filter(x=>x.n>0),src:cl(h.src),by:cl(h.by),byN:isInt(h.byN,1,99)?h.byN:0,magic:h.magic===true,pet:h.pet===true,bon:0}};
 let ATKQ=[],ATKP=null,ATKW=null;
+/* Atacante: su nombre, o "Enemigo N" (el mismo número que la pantalla de mesa) si el DM lo tiene oculto */
+const atkWho=x=>x.by||(x.byN?tx(`Enemigo ${x.byN}`,`Enemy ${x.byN}`):"");
+const atkWhy=x=>[atkWho(x),x.src].filter(Boolean).join(" · ");
 function dmAtk(h){if(!fresh10(h))return;const c=C(),L=[h,...(Array.isArray(h.more)?h.more.slice(0,7):[])].filter(x=>x&&typeof x==="object"&&typeof x.id==="string"&&seenAdd("mc:hitseen",x.id)).map(atkClean);
   if(!L.length)return;L.forEach(x=>{if(x.pet&&!c.companion)x.pet=false});ATKQ.push(...L);if(!(T&&T.atk&&trayOn()))atkNext(false);else if(!ATKW)atkNext(true)}
 /* El siguiente de la cola se abre cuando se cierra la bandeja (así no tapa las reacciones del golpe anterior) */
 function atkNext(wait){clearInterval(ATKW);ATKW=null;if(!ATKQ.length)return;
   if(wait&&trayOn()){ATKW=setInterval(()=>{if(!trayOn())atkNext(false)},600);return}
-  const x=ATKQ.shift(),c=C(),who=x.by||x.src||tx("Un enemigo","An enemy");buzz([200,80,200]);NAVSRC=false;
+  const x=ATKQ.shift(),c=C(),who=atkWho(x)||x.src||tx("Un enemigo","An enemy");buzz([200,80,200]);NAVSRC=false;
   cbBanner(x.pet?tx(`${esc(who)} ataca a ${esc(c.companion.name)}`,`${esc(who)} attacks ${esc(c.companion.name)}`):tx(`${esc(who)} te ataca`,`${esc(who)} attacks you`),
     tx(`${x.total} para golpear`,`${x.total} to hit`)+(x.nat===20?tx(" · ¡20 natural!"," · natural 20!"):x.nat===1?tx(" · 1 natural"," · natural 1"):""));
   atkShow(c,x)}
@@ -2569,15 +2594,14 @@ function atkShow(c,x){const pet=x.pet&&c.companion,ac0=pet?c.companion.ac:acOf(c
     tip:r==="hit"?tx("Al recibir el daño se aplican tus resistencias y luego eliges tus reacciones (Esquiva asombrosa, Bloquear golpe, Paso relámpago…) antes de confirmar.","Taking the damage applies your resistances; then you pick your reactions (Uncanny Dodge, Parry Blow, Flash Step…) before confirming."):""};
   if(T&&T.atk&&T.atk.id===x.id&&trayOn()){T=t;drawTray()}else show(t)}
 const ackSet=(x,res,dmg,ac)=>{S.hitAck={id:x.id,res,dmg,ac,pet:!!x.pet,at:Date.now()}};
-/* Recibir el daño: los extras primero sin bandeja (quiet), el principal al final para que las reacciones lo rehagan.
-   shortcut: las reacciones (Esquiva asombrosa, Bloquear golpe) solo cambian el daño principal, no los extras de otro tipo; si molesta, juntar el golpe en un solo lastHit */
-function atkTake(c,x){const ac=atkAc(c,x),D=[...x.extra,{n:x.n,ty:x.ty}].filter((d,i,a)=>d.n>0||i===a.length-1);let xs=0;
+/* Recibir el daño: todas las partes en un solo golpe (takeDamage con parts), así las reacciones lo rehacen completo */
+function atkTake(c,x){const ac=atkAc(c,x),D=[{n:x.n,ty:x.ty},...x.extra].filter((d,i)=>d.n>0||i===0);let xs=0;
   clogAdd({k:"atk",res:"hit",tot:x.total,ac,...(x.src?{src:x.src}:{}),...(x.pet?{pet:true}:{}),...(x.crit?{crit:true}:{})});
   if(x.pet){for(const d of D){xs+=dmgSteps(c,"comp",d.n,d.ty,x.magic).v;compDamage(c,d.n,d.ty,x.magic)}ackSet(x,"hit",xs,ac);ATKP=null;return}
-  D.forEach((d,i)=>{const last=i===D.length-1;if(!last)quiet=true;try{takeDamage(c,d.n,d.ty,x.magic,x.src)}finally{quiet=false}if(!last)xs+=lastHit.n});
-  ackSet(x,"hit",xs+lastHit.n,ac);ATKP={id:x.id,xs}}
+  /* Un solo golpe con todas sus partes: las reacciones (Esquiva asombrosa, Desvío, Bloquear golpe) cambian todo el daño, también el extra */
+  takeDamage(c,x.n,x.ty,x.magic,atkWhy(x),D);ackSet(x,"hit",lastHit.n,ac);ATKP={id:x.id}}
 /* Después de una reacción al golpe: Esquiva asombrosa = halved, Paso relámpago o Desvío evitados = deflected; Bloquear golpe solo baja el daño */
-function atkAfter(kind,ok){if(!ATKP||!S.hitAck||S.hitAck.id!==ATKP.id||!lastHit)return;S.hitAck.dmg=ATKP.xs+lastHit.n;
+function atkAfter(kind,ok){if(!ATKP||!S.hitAck||S.hitAck.id!==ATKP.id||!lastHit)return;S.hitAck.dmg=lastHit.n;
   if(kind==="halve")S.hitAck.res="halved";else if(ok){S.hitAck.res="deflected";clogAdd({k:"atk",res:"deflected",ac:S.hitAck.ac})}}
 (()=>{const k=S;S={sea:false,muscle:""};try{console.assert(dmgSteps(CHARS.codel,"me",12,"cortante",false).v===0&&dmgSteps(CHARS.codel,"me",12,"cortante",true).v===12,"mochi contra cortante no mágico")}finally{S=k}})();
 /* ===== Crónica del último combate (combat/chronicle, la escribe dm.html con "Compartir con los jugadores") ===== */
@@ -3083,7 +3107,7 @@ document.addEventListener("click",e=>{
   /* Ataque del DM contra tu CA */
   if(act==="atkbon"&&T&&T.atk){T.atk.bon=Math.max(-5,Math.min(10,T.atk.bon+ +ds.v));atkShow(c,T.atk);return}
   if(act==="atkgo"&&T&&T.atk){const x=T.atk;if(atkRes(x.total,x.nat,atkAc(c,x))!=="hit")return;trayDone();atkTake(c,x);save();render();atkNext(true);return}
-  if((act==="atkok"||act==="atkctr")&&T&&T.atk){const x=T.atk,ac=atkAc(c,x);clogAdd({k:"atk",res:"miss",tot:x.total,ac,...(x.src?{src:x.src}:{}),...(x.pet?{pet:true}:{})});ackSet(x,"miss",0,ac);log(tx(`${esc(x.src||"Un ataque")} falla contra tu CA ${ac}`,`${esc(x.src||"An attack")} misses against your AC ${ac}`),false);
+  if((act==="atkok"||act==="atkctr")&&T&&T.atk){const x=T.atk,ac=atkAc(c,x);clogAdd({k:"atk",res:"miss",tot:x.total,ac,...(x.src?{src:x.src}:{}),...(x.pet?{pet:true}:{})});ackSet(x,"miss",0,ac);log(tx(`${esc(atkWhy(x)||"Un ataque")} falla contra tu CA ${ac}`,`${esc(atkWhy(x)||"An attack")} misses against your AC ${ac}`),false);
     if(act==="atkctr"){doSpecial("contra");save();render();atkNext(true);return}trayDone();save();render();atkNext(true);return}
   if(act==="atkvoid"&&T&&T.atk){ackSet(T.atk,"void",0,atkAc(c,T.atk));trayDone();save();render();atkNext(true);return}
   if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0||h.hit&&h.sv&&n===0)||h.hit&&h.hit.ab&&!h.sv)return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"",pet=h.who==="comp",hp=()=>pet?S.comp.hp:S.hp,h0=hp();

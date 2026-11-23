@@ -194,7 +194,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:32";
+const APP_VERSION="2026-11-22 22:24";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -370,7 +370,7 @@ function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx
   const fallen=Object.entries(S.fall||{}).map(([k,st])=>{const c=S.list.find(x=>{const l=linkOf(x);return l&&fallKey(l)===k});return c&&{...linkOf(c),name:c.name,st}}).filter(Boolean);
   /* Orden de iniciativa para la pantalla de mesa y los teléfonos: enemigos sin PV ni CA (franja de estado si S.showBand) y sin nombre salvo que el DM lo muestre (c.show; si no, n = número de enemigo) */
   let fi=0;const order=L.map(c=>{const l=linkOf(c),kind=c.type==="foe"?"foe":l?l.kind:"ally",o={id:String(c.id).slice(0,24),kind,char:l?l.char:null,name:c.name,band:"",conds:(c.conds||[]).filter(x=>CONDS.includes(x)),cur:c.id===S.cur};
-    if(kind==="foe"){fi++;if(!c.show){o.name="";o.n=fi}if(S.showBand!==false)o.band=bandOf(c)}
+    if(kind==="foe"){fi++;if(!c.show){o.name="";o.n=foeNums()[c.id].n}if(S.showBand!==false)o.band=bandOf(c)}
     else if(kind==="ally")o.band=bandOf(c);
     else{const lv=liveView(c),v=lv||c;if(lv)o.conds=lv.conds.filter(x=>CONDS.includes(x));if(Number.isFinite(v.hp)&&v.max>0){o.hp=Math.max(0,v.hp);o.max=v.max}o.band=bandOf(v)}return o});
   return{active:!!S.active&&!!cu,cid:S.active&&S.cid||"",round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,order,ticker:S.active&&cu?tickerOf():[],turnAt:S.active&&S.clockOn&&S.turnAt||0,clock:S.clockOn?S.clockLim||0:0,at:Date.now()}}
@@ -388,10 +388,21 @@ const bandOf=c=>!(c.max>0)||!Number.isFinite(c.hp)?"":c.hp<=0?"ko":c.hp/c.max>.7
 function tickerOf(){if(!S.cid)return[];let L;try{L=buildCron(S.cid).text.split("\n")}catch(e){return[]}
   const ep=L.lastIndexOf(tx("Epílogo","Epilogue")),body=(ep>0?L.slice(0,ep):L).filter(x=>x&&x!==tx("Prólogo","Prologue")&&!/^(Ronda|Round) \d+ · /.test(x));
   const pro=body.length?body.slice(1):[];let s=pro.slice(-3).join(" ").split(/(?<=[.!?…])\s+/).filter(Boolean).slice(-5);
-  const rep=[];let fi=0;for(const c of sorted())if(c.type==="foe"){fi++;if(c.show)continue;const al=tx(`Enemigo ${fi}`,`Enemy ${fi}`),b=sheetOf(c),nm=b&&b.name;
-    const names=[c.name,c.name.replace(/\s\d+$/,""),...(nm?[nm.es,nm.en,typeof nm==="string"?nm:""]:[]).filter(Boolean).flatMap(x=>String(x).split(",").map(y=>y.trim()))];
-    for(const n of names)if(n&&n.length>2)rep.push([n,al])}
-  rep.sort((a,b)=>b[0].length-a[0].length);return s.map(x=>{for(const [n,al] of rep)x=x.split(n).join(al);return x.replace(/((?:Enemigo|Enemy) \d+), \1,?/g,"$1").slice(0,240)})}
+  return s.map(x=>hideTxt(x,false).slice(0,240))}
+/* ===== Enemigos ocultos en la mesa: cada enemigo tiene un número fijo en el combate (S.fnm = {id: {n, name, bid, rev}}; rev: el DM mostró su nombre alguna vez).
+   La mesa, el ticker y todo lo que se envía a los teléfonos (ataques, golpes, daño en área) usan "Enemigo N" mientras su nombre esté oculto.
+   La crónica del panel lleva los nombres reales; al compartirla, los que nunca se mostraron pasan a "Enemigo N" salvo "Revelar todos los nombres en la crónica" ===== */
+function foeNums(){S.fnm=S.fnm||{};let m=Math.max(0,...Object.values(S.fnm).map(e=>e.n||0));
+  for(const c of sorted())if(c.type==="foe"){const e=S.fnm[c.id]||(S.fnm[c.id]={n:++m});e.name=c.name;e.bid=c.bid||"";if(c.show)e.rev=1}return S.fnm}
+const foeLbl=n=>tx(`Enemigo ${n}`,`Enemy ${n}`);
+const hiddenFoe=c=>c&&c.type==="foe"&&!c.show;
+/* never: solo los que nunca se mostraron (crónica compartida); si no, los que están ocultos ahora (y los que ya salieron sin mostrarse) */
+function hideTxt(t,never){const F=foeNums(),rep=[];t=String(t||"");
+  for(const [id,e] of Object.entries(F)){const c=S.list.find(x=>x.id===id);if(never?e.rev:(c?c.show:e.rev))continue;const b=e.bid&&BEST.list.find(x=>x.id===e.bid),nm=b&&b.name;
+    const L=[e.name,String(e.name||"").replace(/\s\d+$/,""),...(nm?[nm.es,nm.en,typeof nm==="string"?nm:""]:[]).filter(Boolean).flatMap(x=>String(x).split(",").map(y=>y.trim()))];
+    for(const n of[...L,...L.map(x=>x.split(" ")).filter(w=>w.length>1&&!/^(el|la|los|las|the)$/i.test(w[0])).map(w=>w[0])])if(n&&n.length>2)rep.push([n,foeLbl(e.n)])} // también el primer nombre ("Zahir")
+  rep.sort((a,b)=>b[0].length-a[0].length);for(const [n,al] of rep)t=t.replace(new RegExp("(?<![\\p{L}\\d])"+reEsc(n)+"(?![\\p{L}\\d])","gu"),al);return t.replace(/((?:Enemigo|Enemy) \d+), \1,?/g,"$1")}
+const reEsc=x=>x.replace(/[.*+?^$(){}|[\]\\]/g,"\\$&"); // hideTxt cambia palabras completas
 function syncOut(){if(typeof sorted!=="function")return;
   if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
     F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
@@ -758,7 +769,9 @@ function aoeGo(){const P=PANEL,n=parseInt(P.n,10),dc=parseInt(P.dc,10)||0,out=[]
 /* ----- Golpes y kairoseki para los jugadores: progress/{personaje}.hit y .sea (merge: no toca nivel, prestigio, propuestas…) ----- */
 let SENT={};
 function progMerge(ch,data){if(!fb||!isDM)return false;USENT.push(ch);fb.F.setDoc(fb.F.doc(fb.db,"progress",ch),data,{merge:true}).catch(e=>{console.warn("No se pudo enviar",e);dmToast("d",tx("No se pudo enviar al jugador","Couldn't send to the player"))});return true}
-function sendHit(c,l,h){const lv=liveView(c),id=nid(),ok=progMerge(l.char,{hit:{id,n:h.n,type:h.type||"",save:h.save||"",dc:h.dc||0,half:!!h.half,src:String(h.src||"").slice(0,40),sea:!!h.sea,pet:l.kind==="pet",crit:!!h.crit,at:Date.now()}});
+/* Lo que llega al teléfono: la fuente sin nombres de enemigos ocultos */
+const hitOf=(l,h)=>({id:nid(),n:h.n,type:h.type||"",save:h.save||"",dc:h.dc||0,half:!!h.half,src:hideTxt(h.src,false).slice(0,40),sea:!!h.sea,pet:l.kind==="pet",crit:!!h.crit,at:Date.now()});
+function sendHit(c,l,h){const lv=liveView(c),ok=progMerge(l.char,{hit:hitOf(l,h)});
   if(ok){SENT[c.id]={hp:lv?lv.hp:null};clog({k:"hit",target:c.name,n:h.n,ty:h.type||"",src:h.src||"",...(h.save?{save:h.save,dc:h.dc}:{}),...(h.crit?{crit:true}:{}),...(h.save?{aoe:true}:{})})}return ok}
 const seaName=n=>n==="Codel"?tx("Kairoseki","Seastone"):tx("Agua o kairoseki","Water or seastone");
 /* Lo que se ve en vivo del jugador: reacción, reacciones especiales y concentración (state/{personaje}) */
@@ -807,6 +820,9 @@ function akHtml(){const P=PANEL,c=S.list.find(y=>y.id===P.by);if(!c)return panTo
         :tx(`Falla contra CA ${v.ac}`,`Misses AC ${v.ac}`)+(it.nat===1?tx(" (1 natural)"," (natural 1)"):"")}</span></div>`}).join("")
   +`<div class="row"><button class="btn" data-pan="akadd">${tx("Agregar otro ataque","Add another attack")}</button></div>
     <button class="btn primary big" data-pan="akgo" ${ok?"":"disabled"}>${P.q.length>1?tx(`Enviar los ${P.q.length} en orden`,`Send all ${P.q.length} in order`):tx("Enviar","Send")}</button>`}
+/* El ataque que llega al teléfono: atacante oculto = by vacío y byN (el número de la mesa; el teléfono escribe "Enemigo N" en su idioma) */
+function atkOf(c,v,it,nm){const hid=hiddenFoe(c);return{id:nid(),kind:"attack",total:v.tot,nat:it.nat||null,crit:!!it.crit,n:v.n,type:v.x.ty||"",extra:v.xn>0?[{n:v.xn,type:v.x.xty||""}]:[],
+  src:hideTxt(nm,false).slice(0,40),by:hid?"":c.name,byN:hid?foeNums()[c.id].n:0,magic:!!it.mag,pet:v.l.kind==="pet",at:Date.now()}}
 /* Gasta usos, recarga o acciones legendarias de una carta (lo mismo que Usar) */
 function bSpend(c,x,nm){c.u=c.u||{};c.rch=c.rch||{};
   if(x.k==="leg"){const k=x.cost||1;if((c.la??0)<k){dmToast("d",tx(`A ${esc(c.name)} no le quedan acciones legendarias para ${esc(nm)}`,`${esc(c.name)} doesn't have legendary actions left for ${esc(nm)}`));return false}c.la-=k}
@@ -815,7 +831,7 @@ function bSpend(c,x,nm){c.u=c.u||{};c.rch=c.rch||{};
 function akGo(){const P=PANEL,c=S.list.find(y=>y.id===P.by);if(!c)return;const out=[],send={};let need=false;
   for(const it of P.q){const v=akView(it,c);if(!v.x||!v.t)continue;const nm=tl2(v.x.n);if(!bSpend(c,v.x,nm))continue;
     clog({k:v.x.k==="leg"?"leg":"use",m:nm,cx:v.x.id,tot:v.tot,...(it.nat?{nat:it.nat}:{}),...(it.crit?{crit:true}:{})});S.lastUse={m:nm,tid:S.turnId||0,ty:v.x.ty||""};
-    if(v.l){const h={id:nid(),kind:"attack",total:v.tot,nat:it.nat||null,crit:!!it.crit,n:v.n,type:v.x.ty||"",extra:v.xn>0?[{n:v.xn,type:v.x.xty||""}]:[],src:nm,by:c.name,magic:!!it.mag,pet:v.l.kind==="pet",at:Date.now()};
+    if(v.l){const h=atkOf(c,v,it,nm);
       (send[v.l.char]=send[v.l.char]||{l:v.l,L:[]}).L.push({h,t:v.t});continue}
     if(it.par){const p=parOf(v.t).find(p=>p.n===it.par);if(p)clog({k:"react",m:tl2(p.x.n),a:v.t.name})}
     if(v.res==="hit"){const b=sheetOf(v.t),d=aoeDmg(v.n,{r:resOf(b,v.x.ty)})+aoeDmg(v.xn,{r:resOf(b,v.x.xty)}),ex=hurt(v.t,d,v.x.ty||"",{src:nm,cx:v.x.id,...(it.crit?{crit:true}:{})});
@@ -1098,7 +1114,9 @@ function cronOpen(){const cid=S.cid||"",r=buildCron(cid);panOpen({k:"cron",title
 function cronHtml(){const P=PANEL;return panTop(tx("Crónica del combate","Combat chronicle"))+`<p class="note">${tx("Puedes editar el texto antes de compartirlo.","You can edit the text before sharing it.")}</p>
   <label class="f">${tx("Título","Title")}<input id="cr-title" maxlength="120" value="${esc(P.title)}"></label>
   <textarea id="cr-txt" aria-label="${tx("Texto de la crónica","Chronicle text")}">${esc(P.text)}</textarea>
-  <div class="row"><button class="btn" data-pan="crcopy">${tx("Copiar texto","Copy text")}</button><button class="btn primary" data-pan="crshare">${tx("Compartir con los jugadores","Share with the players")}</button><button class="btn" data-pan="crclaude">${tx("Copiar para Claude","Copy for Claude")}</button></div>${P.rw?rwHtml(P):""}`}
+  <div class="row"><button class="btn" data-pan="crcopy">${tx("Copiar texto","Copy text")}</button><button class="btn primary" data-pan="crshare">${tx("Compartir con los jugadores","Share with the players")}</button><button class="btn" data-pan="crclaude">${tx("Copiar para Claude","Copy for Claude")}</button></div>
+  <label class="ck"><input type="checkbox" id="cr-rev" ${P.reveal!==false?"checked":""}>${tx("Revelar todos los nombres en la crónica","Reveal all names in the chronicle")}</label>
+  <p class="note">${tx("Si lo desmarcas, al compartir, los enemigos cuyo nombre nunca mostraste en la mesa aparecen como «Enemigo N».","If you untick it, when sharing, enemies whose name you never showed on the table appear as “Enemy N”.")}</p>${P.rw?rwHtml(P):""}`}
 function copyTxt(t){const ok=()=>dmToast("h",tx("Copiado","Copied"));
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,()=>copyOld(t,ok));else copyOld(t,ok)}
 function copyOld(t,ok){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";($("pan")||document.body).append(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()}
@@ -1107,7 +1125,7 @@ function cronClaude(cid){const E=cronEvents(cid).map(({t,o,...e})=>e);
 /* ===================== Turnos, toques y casillas de lo nuevo ===================== */
 /* Cambio de turno (Siguiente, ◀ o Darle el turno). El primero empieza el combate: nace su cid y la crónica */
 function turnTo(id,fwd){const was=S.active;tdurLog();S.turnAt=Date.now();if(fwd)fxTurn(S.cur,id);S.cur=id;S.turnId=(S.turnId||0)+1;S.active=true;
-  if(!was){S.cid=nid();S.clog=[];clog({k:"start",who:sorted().map(c=>({n:c.name,ty:c.type,bid:c.bid||""}))})}
+  if(!was){S.cid=nid();S.clog=[];S.fnm={};foeNums();clog({k:"start",who:sorted().map(c=>({n:c.name,ty:c.type,bid:c.bid||""}))})}
   SENT={};clog({k:"turn"});if(fwd)bTurnStart(S.list.find(c=>c.id===id))}
 function delC(id){const L=sorted(),i=L.findIndex(c=>c.id===id);if(S.cur===id&&L.length>1)S.cur=L[(i+1)%L.length].id;
   S.list=S.list.filter(c=>c.id!==id);open=null;if(!S.list.length)S.cur=null}
@@ -1128,7 +1146,8 @@ function bestClick(d,find){
     if(a==="crcopy"){copyTxt($("cr-title").value+"\n\n"+$("cr-txt").value);return true}
     if(a==="crclaude"){copyTxt(cronClaude(PANEL.cid));return true}
     if(a==="crshare"){if(!fb||!isDM){noDm();return true}
-      const ent={cid:PANEL.cid||"",title:$("cr-title").value.slice(0,120),text:$("cr-txt").value.slice(0,30000),at:Date.now()};
+      const rv=!$("cr-rev")||$("cr-rev").checked,hd=t=>rv?t:hideTxt(t,true); // sin "Revelar todos los nombres": los que nunca se mostraron en la mesa van como "Enemigo N"
+      const ent={cid:PANEL.cid||"",title:hd($("cr-title").value).slice(0,120),text:hd($("cr-txt").value).slice(0,30000),at:Date.now()};
       fb.F.setDoc(fb.F.doc(fb.db,"combat","chronicle"),{...ent,list:logAdd(ent)})
         .then(()=>dmToast("h",tx("Crónica compartida con los jugadores","Chronicle shared with the players")),e=>{console.warn(e);dmToast("d",tx("No se pudo compartir","Couldn't share"))});return true}
     return true}
@@ -1172,14 +1191,14 @@ function bestClick(d,find){
 /* Casillas del panel: el editor escribe en ED sin redibujar; el daño en área redibuja sus filas (put conserva el foco y lo escrito) */
 function panInput(e){const el=e.target;if(!PANEL||!el.closest||!el.closest("#pan"))return;
   if(PANEL.k==="edit"&&el.dataset.ef){edSet(el.dataset.ef,el);return}
-  if(PANEL.k==="cron"&&PANEL.rw){const R=PANEL.rw,ds=el.dataset,v=el.type==="checkbox"?el.checked:el.value;if(el.id==="cr-txt"){PANEL.text=el.value;return}if(el.id==="cr-title"){PANEL.title=el.value;return}
+  if(PANEL.k==="cron"&&PANEL.rw){const R=PANEL.rw,ds=el.dataset,v=el.type==="checkbox"?el.checked:el.value;if(el.id==="cr-txt"){PANEL.text=el.value;return}if(el.id==="cr-rev"){PANEL.reveal=el.checked;return}if(el.id==="cr-title"){PANEL.title=el.value;return}
     if(ds.rw){R[ds.rw]=v;if(ds.rw==="eq")drawPan();return}if(ds.rwm){R.per[ds.rwm]=v;return}if(ds.rwi){const it=R.items[+ds.rwi];if(it)it[ds.f]=v;return}
     if(ds.rwp){const p=R.pr[ds.rwp]=R.pr[ds.rwp]||{};p[ds.f]=v;if(ds.f==="on")drawPan();return}return}
   if(PANEL.k==="enc"&&el.dataset.ee){EE[el.dataset.ee]=setL(EE[el.dataset.ee],el.value.slice(0,400));return}
   if(PANEL.k==="atk"&&el.dataset.ak){const it=PANEL.q[+el.dataset.i],f=el.dataset.ak;if(!it)return;it[f]=el.type==="checkbox"?el.checked:el.value;if(f==="tot"){it.nat=null;it.roll=""}if(f==="cx"||f==="tid")it.par=0;drawPan();return}
   if(PANEL.k==="aoe"){const f=el.dataset.ao;if(f)PANEL[f]=el.type==="checkbox"?el.checked:el.value;else if(el.dataset.aosel)PANEL.sel[el.dataset.aosel]=el.checked;else return;drawPan()}}
 document.addEventListener("input",e=>{if(e.target.type!=="checkbox"&&e.target.tagName!=="SELECT")panInput(e)});
-document.addEventListener("change",e=>{const sh=e.target.dataset&&e.target.dataset.show;if(sh){const c=S.list.find(x=>x.id===sh);if(c){c.show=e.target.checked;save();render()}return}if(e.target.dataset&&e.target.dataset.encpet!=null){encPet=e.target.checked;render();return}if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
+document.addEventListener("change",e=>{const sh=e.target.dataset&&e.target.dataset.show;if(sh){const c=S.list.find(x=>x.id===sh);if(c){c.show=e.target.checked;foeNums();save();render()}return}if(e.target.dataset&&e.target.dataset.encpet!=null){encPet=e.target.checked;render();return}if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
 document.addEventListener("toggle",e=>{const o=e.target.dataset&&e.target.dataset.edo;if(o!=null){if(e.target.open)EDO.add(+o);else EDO.delete(+o)}},true);
 /* Partes de la tarjeta: "enviado" hasta que cambian los PV en vivo, aviso de moral y salvación de concentración pendiente */
 function sentTag(c,lv){const s=SENT[c.id];if(!s)return"";const l=linkOf(c),a=l&&(LIVE.state[l.char]||{}).hitAck;if(a&&s.at&&(+a.at||0)>s.at){delete SENT[c.id];return""}if(lv&&s.hp!=null&&lv.hp!==s.hp){delete SENT[c.id];return""}return`<div class="conds"><span class="tag live">${tx("Golpe enviado","Hit sent")}</span></div>`}
@@ -1353,7 +1372,13 @@ for(const ev of["click","submit","change"])document.addEventListener(ev,e=>{if(e
   S.list[0].show=true;const rv=liveOf();console.assert(rv.order.find(o=>o.kind==="foe").name==="Kaido"&&!/"ac"|500/.test(JSON.stringify(rv)),"dm-live: nombre revelado");delete S.list[0].show;
   /* Fluffy con iniciativa entra en orden y se publica como mascota de Sungsopp */
   S.list.push({id:"f",name:"Fluffy",type:"ally",owner:"Sungsopp",init:15,hp:68,max:68,temp:0,conds:[]});S.cur="f";const q=liveOf();
-  console.assert(sorted().map(c=>c.id).join()==="e,f,u"&&JSON.stringify(q.cur)==='{"kind":"pet","char":"sungsopp","name":"Fluffy"}',"dm-pet: "+JSON.stringify(q));S=t}
+  console.assert(sorted().map(c=>c.id).join()==="e,f,u"&&JSON.stringify(q.cur)==='{"kind":"pet","char":"sungsopp","name":"Fluffy"}',"dm-pet: "+JSON.stringify(q));
+  /* Un atacante oculto nunca llega con su nombre real a progress/{personaje}.hit; al mostrarlo, sí. La crónica compartida oculta solo a los que nunca se mostraron */
+  {S.fnm={};const kd=S.list.find(c=>c.id==="e"),lu=linkOf(S.list.find(c=>c.id==="u")),atk=()=>atkOf(kd,{tot:15,n:7,xn:4,x:{ty:"contundente",xty:"veneno"},l:lu},{nat:null},"Garrote de Kaido");
+    const a1=atk(),h1=hitOf(lu,{n:5,src:"Rugido de Kaido"}),nev=hideTxt("Kaido cae.",true);
+    console.assert(!/Kaido/.test(JSON.stringify(a1)+JSON.stringify(h1))&&a1.by===""&&a1.byN===1&&h1.src===tx("Rugido de Enemigo 1","Rugido de Enemy 1")&&nev===tx("Enemigo 1 cae.","Enemy 1 cae."),"dm: atacante oculto "+JSON.stringify(a1));
+    kd.show=true;foeNums();const a2=atk();delete kd.show;console.assert(a2.by==="Kaido"&&a2.byN===0&&hideTxt("Kaido cae.",true)==="Kaido cae."&&hideTxt("Kaido",false)===tx("Enemigo 1","Enemy 1"),"dm: atacante revelado")}
+  S=t}
 if(bestMig())store.set("dm:best",BEST); // VD y encuentro inicial, sin subir la fecha (si la nube ya los tiene, gana la nube)
 staticT();render();cloudInit();
 </script>

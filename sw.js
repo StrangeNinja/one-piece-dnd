@@ -3,7 +3,7 @@
    La caché lleva la versión: al activarse una versión nueva se borran las viejas. La página pide "skip" solo cuando el jugador toca Actualizar (nunca recarga sola).
    No toca Firestore ni el inicio de sesión (otras direcciones): esos los maneja la caché propia de Firestore. */
 /* Versión publicada: la escribe sola el hook pre-commit de git, como en las páginas */
-const APP_VERSION="2026-11-22 21:32";
+const APP_VERSION="2026-11-22 22:24";
 const CACHE="mesa-"+APP_VERSION;
 const CORE=["./","index.html","dm.html","mesa.html","conjuros.js","progresion.js","explicaciones.js","haki.js","entregas.js","manifest.json","imagenes/icono/icono-192.png","imagenes/icono/icono-180.png","imagenes/icono/icono-32.png"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).catch(()=>{})));
