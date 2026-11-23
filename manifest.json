@@ -1,6 +1,6 @@
 {
-  "name": "One Piece DnD",
-  "short_name": "OP DnD",
+  "name": "Mesa de Combate",
+  "short_name": "Mesa",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

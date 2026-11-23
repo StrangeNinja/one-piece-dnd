@@ -98,7 +98,7 @@ button{cursor:pointer;border:0;background:none}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:27";
+const APP_VERSION="2026-11-22 21:29";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -146,6 +146,21 @@ function navLater(){if(!HT)HT=setTimeout(navSync,0)}
 addEventListener("popstate",()=>{if(HSKIP){HSKIP=0;navLater();return}if(!HD)return;HD--;
   if(lkOpen())document.getElementById("lk").close();else if(typeof navPop==="function")navPop();navLater()});
 if(history.state&&history.state.mc){HSKIP=1;history.go(-history.state.mc)} // recarga con niveles abiertos: vuelve a la entrada base
+/* App en el teléfono: sw.js (solo con http o https) guarda las páginas para abrirlas sin conexión. Versión nueva: aviso "Hay una versión nueva · Actualizar";
+   solo recarga cuando se toca (nunca por sorpresa en medio de un turno). Sin conexión: ficha "Sin conexión: se guardará al volver" */
+let SWGO=false;
+function swBanner(w){let b=document.getElementById("swb");
+  if(!b){b=document.createElement("button");b.id="swb";b.type="button";b.style.cssText="position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:40;padding:10px 16px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-ink);font:700 14px var(--f-body,system-ui);box-shadow:0 4px 16px var(--shadow);max-width:calc(100vw - 32px)";document.body.append(b)}
+  b.textContent=tx("Hay una versión nueva · Actualizar","A new version is available · Update");b.onclick=()=>{SWGO=true;b.disabled=true;w.postMessage("skip")};b.hidden=false}
+function swInit(){if(!("serviceWorker" in navigator)||!/^https?:$/.test(location.protocol))return;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(SWGO){SWGO=false;location.reload()}});
+  navigator.serviceWorker.register("sw.js").then(r=>{const ask=w=>{if(w&&navigator.serviceWorker.controller)swBanner(w)};ask(r.waiting);
+    r.addEventListener("updatefound",()=>{const w=r.installing;if(w)w.addEventListener("statechange",()=>{if(w.state==="installed")ask(w)})});
+    setInterval(()=>r.update().catch(()=>{}),30*60000)}).catch(()=>{})}
+function netChip(){let c=document.getElementById("offc");if(navigator.onLine){if(c)c.hidden=true;return}
+  if(!c){c=document.createElement("div");c.id="offc";c.setAttribute("role","status");c.style.cssText="position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;padding:5px 12px;border-radius:999px;background:var(--warn);color:var(--bg);font:700 12px var(--f-body,system-ui);pointer-events:none";document.body.append(c)}
+  c.textContent=tx("Sin conexión: se guardará al volver","Offline: it will be saved when you're back");c.hidden=false}
+addEventListener("load",()=>{swInit();netChip()});addEventListener("online",netChip);addEventListener("offline",netChip);
 addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook();if(typeof onLook==="function")onLook()}}});
 </script>
 </head>
