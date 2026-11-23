@@ -168,6 +168,7 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 .cnt{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:15;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;background:var(--ink);color:var(--bg);box-shadow:0 4px 16px var(--shadow);padding:12px 18px;font-size:15px}
 body{padding-bottom:90px}
+.cron-t{white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere;font-size:14px}
 .encb{position:relative;height:14px;border-radius:7px;background:var(--chip);overflow:hidden;margin:6px 0}.encb i{position:absolute;inset:0 auto 0 0;border-radius:7px}.encb s{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.5}
 .scene{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--gold);border-radius:12px;background:var(--surface)}.scene p{margin:4px 0 0}
 .cnt b{flex:1;min-width:0}
@@ -191,7 +192,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:25";
+const APP_VERSION="2026-11-22 21:27";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -265,6 +266,8 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
   </section>
   <section><h2 data-en="Combat">Combate</h2>
     <div class="tools" id="tools"></div>
+  </section>
+  <section><h2 data-en="Logbook">Diario de a bordo</h2><div id="logb"></div>
   </section>
 </div>
 
@@ -387,6 +390,7 @@ async function cloudInit(){
       unsubs.push(F.onSnapshot(F.doc(db,"combat","dm"),d=>{const v=d.exists()&&d.data();
         if(v&&v.S&&Array.isArray(v.S.list)&&(v.at||0)>(S.at||0)&&!d.metadata.hasPendingWrites){S=v.S;store.set("dm:combat2",S);render()}
         if(firstDm){firstDm=false;syncOut()}}));
+      unsubs.push(F.onSnapshot(F.doc(db,"combat","chronicle"),d=>{const v=d.exists()&&d.data();CHRL=v&&Array.isArray(v.list)?v.list.filter(x=>x&&typeof x.text==="string"):[];render()},()=>{}));
       unsubs.push(F.onSnapshot(F.doc(db,"combat","bestiary"),d=>{const v=d.exists()&&d.data();
         if(v&&v.B&&Array.isArray(v.B.list)&&(v.at||0)>(BEST.at||0)&&!d.metadata.hasPendingWrites){BEST={...v.B,pre:1};if(bestMig())saveBest();else store.set("dm:best",BEST);render()}
         if(firstBest){firstBest=false;if(!v||(BEST.at||0)>(v.at||0))bestOut()}}));
@@ -426,7 +430,7 @@ function render(){navLater();
     <div class="sync">${S.active?`<b>${tx("Combate en curso","Combat in progress")}</b>`:tx("Sin combate: «Siguiente» lo empieza","No combat: “Next” starts it")} · ${!fb?tx("solo en este teléfono","this phone only")
       :!user?`<button class="btn" data-do="login">${tx("Entrar con Google para avisar los turnos","Sign in with Google to announce turns")}</button>`
       :isDM?tx("en la nube: los jugadores ven los turnos","in the cloud: players see the turns"):`${tx("esta cuenta no es del DM","this account isn't the DM's")} <button class="btn" data-do="logout">${tx("Cerrar sesión","Sign out")}</button>`}</div>`;
-  put($("best"),bestHtml());put($("enc"),encHtml());
+  put($("best"),bestHtml());put($("enc"),encHtml());put($("logb"),logHtml());
   put($("list"),sceneHtml()+(L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`));
  $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["crew",tx("Agregar tripulación","Add crew")],["reset",tx("Vaciar combate (también jugadores)","Clear combat (players too)")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("")
    +`<button class="btn" data-do="bandtog" aria-pressed="${S.showBand!==false}">${tx("Mostrar estado de los enemigos","Show enemy status")}: ${S.showBand!==false?tx("sí","yes"):tx("no","no")}</button><a class="btn" href="mesa.html" target="_blank" rel="noopener">${tx("Pantalla de mesa","Table screen")}</a>`
@@ -1082,7 +1086,7 @@ function delC(id){const L=sorted(),i=L.findIndex(c=>c.id===id);if(S.cur===id&&L.
   S.list=S.list.filter(c=>c.id!==id);open=null;if(!S.list.length)S.cur=null}
 const noDm=()=>dmToast("d",tx("Sin sesión de DM no se puede avisar a los jugadores","Without a DM session the players can't be notified"));
 function bestClick(d,find){
-  if(encClick(d))return true;
+  if(encClick(d)||logClick(d))return true;
   if(d.pan){const a=d.pan;
     if(a==="close"){panClose();return true}
     if(a==="edsave"){if(!tl2(ED.name).trim()||!(ED.hp>0)){dmToast("d",tx("La hoja necesita nombre y PV máx.","The sheet needs a name and max HP"));return true}
@@ -1097,7 +1101,8 @@ function bestClick(d,find){
     if(a==="crcopy"){copyTxt($("cr-title").value+"\n\n"+$("cr-txt").value);return true}
     if(a==="crclaude"){copyTxt(cronClaude(PANEL.cid));return true}
     if(a==="crshare"){if(!fb||!isDM){noDm();return true}
-      fb.F.setDoc(fb.F.doc(fb.db,"combat","chronicle"),{cid:PANEL.cid||"",title:$("cr-title").value.slice(0,120),text:$("cr-txt").value.slice(0,30000),at:Date.now()})
+      const ent={cid:PANEL.cid||"",title:$("cr-title").value.slice(0,120),text:$("cr-txt").value.slice(0,30000),at:Date.now()};
+      fb.F.setDoc(fb.F.doc(fb.db,"combat","chronicle"),{...ent,list:logAdd(ent)})
         .then(()=>dmToast("h",tx("Crónica compartida con los jugadores","Chronicle shared with the players")),e=>{console.warn(e);dmToast("d",tx("No se pudo compartir","Couldn't share"))});return true}
     return true}
   if(d.rwx!=null&&PANEL&&PANEL.rw){PANEL.rw.items.splice(+d.rwx,1);drawPan();return true}
@@ -1226,6 +1231,19 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
   ["f-name","f-init","f-mod","f-ac","f-max"].forEach(i=>$(i).value="");$("f-qty").value=1;
   save();render();
 });
+/* ===== Diario de a bordo: combat/chronicle.list (las 30 últimas crónicas compartidas, la más nueva primero; los campos de siempre siguen siendo la última).
+   Compartir otra vez el mismo combate (cid) reemplaza su entrada. shortcut: si el documento se acerca a 1 MB (límite de Firestore) se quitan las más viejas; si el diario crece mucho, pasarlo a una colección */
+let CHRL=[],logOpenDm=null;
+function logAdd(ent){const L=[ent,...CHRL.filter(x=>!ent.cid||x.cid!==ent.cid)].slice(0,30);while(L.length>1&&JSON.stringify(L).length>850000)L.pop();CHRL=L;return L}
+function logHtml(){if(!CHRL.length)return`<div class="empty">${!fb||!isDM?tx("Con sesión de DM se ven aquí las crónicas compartidas.","With a DM session, shared chronicles show up here."):tx("Todavía no compartes ninguna crónica.","You haven't shared any chronicle yet.")}</div>`;
+  return`<div class="list">${CHRL.map((x,i)=>{const o=logOpenDm===x.at;return`<div class="card"><div class="head"><button class="name" data-lg="open" data-i="${i}" aria-expanded="${o}"><b>${esc(x.title||tx("Sin título","Untitled"))}</b><span>${new Date(x.at).toLocaleDateString(look.lang==="en"?"en-US":"es",{day:"numeric",month:"short",year:"numeric"})}</span></button></div>
+    ${o?`<div class="more"><div class="cron-t">${esc(x.text)}</div><div class="row"><button class="btn" data-lg="copy" data-i="${i}">${tx("Copiar","Copy")}</button><button class="btn ${armed==="lg"+x.at?"arm":""}" data-lg="del" data-i="${i}">${armed==="lg"+x.at?tx("Toca para borrar","Tap to delete"):tx("Borrar","Delete")}</button></div></div>`:""}</div>`}).join("")}</div>`}
+function logClick(d){if(!d.lg)return false;const x=CHRL[+d.i];if(!x)return true;
+  if(d.lg==="open"){logOpenDm=logOpenDm===x.at?null:x.at;armed=null;render();return true}
+  if(d.lg==="copy"){copyTxt(x.title+"\n\n"+x.text);return true}
+  if(d.lg==="del"){if(armed!=="lg"+x.at){armed="lg"+x.at;render();return true}armed=null;if(!fb||!isDM){noDm();return true}const L=CHRL.filter(y=>y!==x);
+    fb.F.setDoc(fb.F.doc(fb.db,"combat","chronicle"),{list:L},{merge:true}).then(()=>dmToast("h",tx("Crónica borrada del diario","Chronicle deleted from the logbook")),e=>{console.warn(e);dmToast("d",tx("No se pudo borrar","Couldn't delete"))});CHRL=L;render();return true}
+  return true}
 /* ===== Recompensas (en la crónica): PX de los enemigos derrotados, huidos o rendidos (informativo, por su VD), berries, objetos y prestigio.
    Berries y objetos van como entregas (progress.grants: cada teléfono las aplica una vez) y el prestigio como en Mesa; las dos con entregas.js, sobre lo último leído de progress ===== */
 function rwFoes(cid){const E=cronEvents(cid),st=E.find(e=>e.k==="start"),who=(st&&Array.isArray(st.who)?st.who:[]),

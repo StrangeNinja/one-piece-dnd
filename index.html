@@ -187,6 +187,7 @@ section h2 small{font-family:var(--f-body);font-size:11.5px;color:var(--muted);l
 .tip{font-size:13px;color:var(--muted)}
 .trayact{display:flex;gap:8px;flex-wrap:wrap}
 .cron-t{white-space:pre-wrap;line-height:1.6;padding:4px 2px 8px;overflow-wrap:anywhere}
+.lbe{border-top:1px solid var(--line);padding:8px 0}.lbe summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:baseline}.lbe summary small{color:var(--muted);white-space:nowrap}
 .trayact .btn{flex:1;min-width:140px}
 .multi{display:flex;flex-direction:column;gap:4px;font-size:15px}
 .multi div{display:flex;justify-content:space-between;padding:6px 10px;border-radius:8px;background:var(--bg)}
@@ -342,7 +343,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:25";
+const APP_VERSION="2026-11-22 21:27";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -1223,7 +1224,7 @@ function render(){
   const out=c.actions.map((a,i)=>[a,i]).filter(([a])=>a.cost==="fuera"&&!a.role&&!hid("a:"+a.xid));
   if(out.length)h+=`<section><h2>${COST.fuera}</h2><div class="list">${out.map(([a,i])=>actBtn(a,i)).join("")}</div></section>`;
   h+=invSec(c);
-  h+=cronSec();
+  h+=cronSec()+logSec();
 
   h+=`<section><h2>${tx("Salvaciones","Saving Throws")}</h2><div class="saves">${Object.entries(c.saves).map(([k,[,p]])=>`<button class="${p?"pro":""}" data-save="${k}">${abT(k)}<span>${sgn(sv(c,k))}</span></button>`).join("")}</div>${c.passive?`<p class="note" style="margin-top:8px">${c.passive}</p>`:""}</section>`;
   if(c.abil)h+=`<section><details class="skills" ${skillsOpen?"open":""}><summary><h2><span>${tx("Habilidades","Skills")}</span><small>${tx("Percepción pasiva","Passive Perception")} ${10+skillBonus(c,"percepcion")+(c.ppB||0)} · ${tx("Perspicacia pasiva","Passive Insight")} ${10+skillBonus(c,"perspicacia")}</small></h2></summary>
@@ -2298,7 +2299,7 @@ document.addEventListener("input",e=>{const t=e.target;if(t.id==="in-d20")setD20
 let lastLang=look.lang;
 function onLook(){if(look.lang!==lastLang){lastLang=look.lang;localize();$("tray").classList.add("hide")}if(S)render()}
 addEventListener("resize",()=>{if(view==="char")document.documentElement.style.setProperty("--hdr",$("hero").offsetHeight+"px")});
-document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("cron"))cronOpen=e.target.open;else if(l.contains("hidsec"))hidOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
+document.addEventListener("toggle",e=>{const l=e.target.classList;if(!l)return;if(l.contains("inv"))invOpen=e.target.open;else if(l.contains("cron"))cronOpen=e.target.open;else if(l.contains("diario"))logOpen=e.target.open;else if(l.contains("lbe")){const x=LOGB[+e.target.dataset.i];if(x){if(e.target.open)LOGO.add(x.at);else LOGO.delete(x.at)}}else if(l.contains("hidsec"))hidOpen=e.target.open;else if(l.contains("skills"))skillsOpen=e.target.open;if(l.contains("invdm"))invDmOpen[e.target.dataset.k]=e.target.open},true);
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="lvtarget")lvTarget=t.value;if(t.dataset.rvdie)render();
   if(t.dataset.rvck){const e2=RV[t.dataset.rvck],f=t.dataset.f;if(e2){if(f==="ok")e2.ok=t.checked?[...e2.ok,t.dataset.id]:e2.ok.filter(x=>x!==t.dataset.id);else e2[f]=t.checked}render()}});
 document.addEventListener("change",e=>{const id=e.target.dataset.assign;
@@ -2564,8 +2565,15 @@ function atkAfter(kind,ok){if(!ATKP||!S.hitAck||S.hitAck.id!==ATKP.id||!lastHit)
   if(kind==="halve")S.hitAck.res="halved";else if(ok){S.hitAck.res="deflected";clogAdd({k:"atk",res:"deflected",ac:S.hitAck.ac})}}
 (()=>{const k=S;S={sea:false,muscle:""};try{console.assert(dmgSteps(CHARS.codel,"me",12,"cortante",false).v===0&&dmgSteps(CHARS.codel,"me",12,"cortante",true).v===12,"mochi contra cortante no mágico")}finally{S=k}})();
 /* ===== Crónica del último combate (combat/chronicle, la escribe dm.html con "Compartir con los jugadores") ===== */
-let CRON=null,cronOpen=false;
-function onCron(v){const ok=v&&typeof v==="object"&&typeof v.text==="string"&&isInt(v.at,0,1e14);CRON=ok?{title:String(v.title||"").slice(0,120),text:v.text.slice(0,30000),at:v.at}:null;
+let CRON=null,cronOpen=false,LOGB=[],logOpen=false,LOGO=new Set();
+/* Diario de a bordo: combat/chronicle.list (las 30 últimas crónicas compartidas, la más nueva primero) */
+const logClean=v=>Array.isArray(v)?v.slice(0,30).filter(x=>x&&typeof x==="object"&&typeof x.text==="string"&&isInt(x.at,0,1e14)).map(x=>({title:String(x.title||"").slice(0,120),text:x.text.slice(0,30000),at:x.at})):[];
+const dateT=at=>new Date(at).toLocaleDateString(look.lang==="en"?"en-US":"es",{day:"numeric",month:"short",year:"numeric"});
+function copyT(t){const ok=()=>cbToast(tx("Copiado","Copied")),old=()=>{const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";document.body.append(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()};
+  try{navigator.clipboard.writeText(t).then(ok,old)}catch(e){old()}}
+const logSec=()=>LOGB.length?`<section id="sec-diario"><details class="skills diario" ${logOpen?"open":""}><summary><h2><span>${tx("Diario de a bordo","Logbook")}</span><small>${LOGB.length} ${LOGB.length>1?tx("crónicas","chronicles"):tx("crónica","chronicle")}</small></h2></summary>
+  ${LOGB.map((x,i)=>`<details class="lbe" data-i="${i}" ${LOGO.has(x.at)?"open":""}><summary><b>${esc(x.title||tx("Sin título","Untitled"))}</b> <small>${dateT(x.at)}</small></summary><div class="cron-t">${esc(x.text)}</div><div class="trayact"><button class="btn" data-do="logcopy" data-i="${i}">${tx("Copiar","Copy")}</button></div></details>`).join("")}</details></section>`:"";
+function onCron(v){LOGB=logClean(v&&v.list);const ok=v&&typeof v==="object"&&typeof v.text==="string"&&isInt(v.at,0,1e14);CRON=ok?{title:String(v.title||"").slice(0,120),text:v.text.slice(0,30000),at:v.at}:null;
   if(CRON&&CRON.at!==store.get("mc:cronseen")){const was=store.get("mc:cronseen");store.set("mc:cronseen",CRON.at);if(was!=null&&Date.now()-CRON.at<36e5)cbToast(tx(`Nueva crónica: <b>${esc(CRON.title)}</b>`,`New chronicle: <b>${esc(CRON.title)}</b>`))}
   if(view==="char")render()}
 const cronSec=()=>CRON?`<section id="sec-cron"><details class="skills cron" ${cronOpen?"open":""}><summary><h2><span>${tx("Crónica del último combate","Chronicle of the last combat")}</span><small>${esc(CRON.title)}</small></h2></summary><div class="cron-t">${esc(CRON.text)}</div></details></section>`:"";
@@ -2936,6 +2944,7 @@ document.addEventListener("click",e=>{
   const act=ds.do;if(!act)return;
   if(act!=="short"&&act!=="long")armed=null;
   if(act==="close"){$("tray").classList.add("hide");return}
+  if(act==="logcopy"){const x=LOGB[+ds.i];if(x)copyT(x.title+"\n\n"+x.text);return}
   if(act==="navback"){navBack();return}
   if(act==="look"){openLook();return}
   if(act==="poster"){openPoster(cur);return}
