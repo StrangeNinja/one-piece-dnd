@@ -191,7 +191,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:22";
+const APP_VERSION="2026-11-22 21:25";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -268,6 +268,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
   </section>
 </div>
 
+<script src="entregas.js"></script>
 <script>
 /* Estados: el id (en español) es lo que se guarda; CONDS_EN da el nombre en inglés (mismos nombres que index.html) */
 const CONDS=["Agarrado","Apresado","Asustado","Aturdido","Cegado","Derribado","Ensordecido","Envenenado","Hechizado","Incapacitado","Invisible","Paralizado","Concentrado"];
@@ -1062,11 +1063,11 @@ function buildCron(cid){const E=cronEvents(cid),P=NARR[look.lang]||NARR.es,F=FLV
   const hx=comeback?tx(`cuando ${comeback} se levantó desde los 0 PV`,`when ${comeback} rose back from 0 HP`):best?tx(`el golpe de ${best.a}${best.m?" con "+best.m:""} contra ${best.t}: ${best.n} de daño`,`${best.a}'s strike${best.m?" with "+best.m:""} against ${best.t}: ${best.n} damage`):"";
   if(hx)ep.push(fill(pk("hero"),{x:hx}));
   out.push("",tx("Epílogo","Epilogue"),ep.join(" "));return{title,text:out.join("\n")}}
-function cronOpen(){const cid=S.cid||"",r=buildCron(cid);panOpen({k:"cron",title:tx("Crónica del combate","Combat chronicle"),cid,...r})}
+function cronOpen(){const cid=S.cid||"",r=buildCron(cid);panOpen({k:"cron",title:tx("Crónica del combate","Combat chronicle"),cid,...r,rw:{eq:true,tot:"",per:{},items:[],pr:{}}})}
 function cronHtml(){const P=PANEL;return panTop(tx("Crónica del combate","Combat chronicle"))+`<p class="note">${tx("Puedes editar el texto antes de compartirlo.","You can edit the text before sharing it.")}</p>
   <label class="f">${tx("Título","Title")}<input id="cr-title" maxlength="120" value="${esc(P.title)}"></label>
   <textarea id="cr-txt" aria-label="${tx("Texto de la crónica","Chronicle text")}">${esc(P.text)}</textarea>
-  <div class="row"><button class="btn" data-pan="crcopy">${tx("Copiar texto","Copy text")}</button><button class="btn primary" data-pan="crshare">${tx("Compartir con los jugadores","Share with the players")}</button><button class="btn" data-pan="crclaude">${tx("Copiar para Claude","Copy for Claude")}</button></div>`}
+  <div class="row"><button class="btn" data-pan="crcopy">${tx("Copiar texto","Copy text")}</button><button class="btn primary" data-pan="crshare">${tx("Compartir con los jugadores","Share with the players")}</button><button class="btn" data-pan="crclaude">${tx("Copiar para Claude","Copy for Claude")}</button></div>${P.rw?rwHtml(P):""}`}
 function copyTxt(t){const ok=()=>dmToast("h",tx("Copiado","Copied"));
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,()=>copyOld(t,ok));else copyOld(t,ok)}
 function copyOld(t,ok){const a=document.createElement("textarea");a.value=t;a.style.cssText="position:fixed;opacity:0";($("pan")||document.body).append(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()}
@@ -1091,12 +1092,15 @@ function bestClick(d,find){
     if(a==="aoego"){aoeGo();return true}
     if(a==="akgo"){akGo();return true}
     if(a==="akadd"){const q=PANEL.q,l=q[q.length-1];q.push(akItem(l.cx,l.tid));drawPan();return true}
+    if(a==="rwgo"){rwGo();return true}
+    if(a==="rwitem"){PANEL.rw.items.push({ch:rwCrew(PANEL.cid)[0],n:"",q:"1"});drawPan();return true}
     if(a==="crcopy"){copyTxt($("cr-title").value+"\n\n"+$("cr-txt").value);return true}
     if(a==="crclaude"){copyTxt(cronClaude(PANEL.cid));return true}
     if(a==="crshare"){if(!fb||!isDM){noDm();return true}
       fb.F.setDoc(fb.F.doc(fb.db,"combat","chronicle"),{cid:PANEL.cid||"",title:$("cr-title").value.slice(0,120),text:$("cr-txt").value.slice(0,30000),at:Date.now()})
         .then(()=>dmToast("h",tx("Crónica compartida con los jugadores","Chronicle shared with the players")),e=>{console.warn(e);dmToast("d",tx("No se pudo compartir","Couldn't share"))});return true}
     return true}
+  if(d.rwx!=null&&PANEL&&PANEL.rw){PANEL.rw.items.splice(+d.rwx,1);drawPan();return true}
   if(d.edadd){ED.cards.push({id:nid(),k:d.edadd,n:"",uses:0,per:"dia",...(d.edadd==="leg"?{cost:1}:{})});EDO.add(ED.cards.length-1);drawPan();return true}
   if(d.edx!=null){ED.cards.splice(+d.edx,1);EDO=new Set();drawPan();return true}
   if(d.edt){const L=ED[d.edt]=ED[d.edt]||[],i=L.indexOf(d.t);if(i>=0)L.splice(i,1);else L.push(d.t);drawPan();return true}
@@ -1136,6 +1140,9 @@ function bestClick(d,find){
 /* Casillas del panel: el editor escribe en ED sin redibujar; el daño en área redibuja sus filas (put conserva el foco y lo escrito) */
 function panInput(e){const el=e.target;if(!PANEL||!el.closest||!el.closest("#pan"))return;
   if(PANEL.k==="edit"&&el.dataset.ef){edSet(el.dataset.ef,el);return}
+  if(PANEL.k==="cron"&&PANEL.rw){const R=PANEL.rw,ds=el.dataset,v=el.type==="checkbox"?el.checked:el.value;if(el.id==="cr-txt"){PANEL.text=el.value;return}if(el.id==="cr-title"){PANEL.title=el.value;return}
+    if(ds.rw){R[ds.rw]=v;if(ds.rw==="eq")drawPan();return}if(ds.rwm){R.per[ds.rwm]=v;return}if(ds.rwi){const it=R.items[+ds.rwi];if(it)it[ds.f]=v;return}
+    if(ds.rwp){const p=R.pr[ds.rwp]=R.pr[ds.rwp]||{};p[ds.f]=v;if(ds.f==="on")drawPan();return}return}
   if(PANEL.k==="enc"&&el.dataset.ee){EE[el.dataset.ee]=setL(EE[el.dataset.ee],el.value.slice(0,400));return}
   if(PANEL.k==="atk"&&el.dataset.ak){const it=PANEL.q[+el.dataset.i],f=el.dataset.ak;if(!it)return;it[f]=el.type==="checkbox"?el.checked:el.value;if(f==="tot"){it.nat=null;it.roll=""}if(f==="cx"||f==="tid")it.par=0;drawPan();return}
   if(PANEL.k==="aoe"){const f=el.dataset.ao;if(f)PANEL[f]=el.type==="checkbox"?el.checked:el.value;else if(el.dataset.aosel)PANEL.sel[el.dataset.aosel]=el.checked;else return;drawPan()}}
@@ -1219,6 +1226,52 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
   ["f-name","f-init","f-mod","f-ac","f-max"].forEach(i=>$(i).value="");$("f-qty").value=1;
   save();render();
 });
+/* ===== Recompensas (en la crónica): PX de los enemigos derrotados, huidos o rendidos (informativo, por su VD), berries, objetos y prestigio.
+   Berries y objetos van como entregas (progress.grants: cada teléfono las aplica una vez) y el prestigio como en Mesa; las dos con entregas.js, sobre lo último leído de progress ===== */
+function rwFoes(cid){const E=cronEvents(cid),st=E.find(e=>e.k==="start"),who=(st&&Array.isArray(st.who)?st.who:[]),
+    gone=[...new Set([...E.filter(e=>e.k==="down"&&e.o==="dm").map(e=>e.target),...E.filter(e=>e.k==="flee").map(e=>e.target)])];
+  const info=n=>{const w=who.find(x=>x.n===n),c=S.list.find(x=>x.name===n);return{foe:(w&&w.ty==="foe")||(c&&c.type==="foe"),bid:(w&&w.bid)||(c&&c.bid)||""}};
+  return gone.map(n=>({n,...info(n)})).filter(x=>x.foe).map(x=>({n:x.n,b:BEST.list.find(b=>b.id===x.bid)})).map(x=>({n:x.n,cr:x.b&&crOk(x.b.cr)?x.b.cr:"",xp:xpOf(x.b)}))}
+function rwCrew(cid){const st=cronEvents(cid).find(e=>e.k==="start"),L=(st&&Array.isArray(st.who)?st.who:[]).filter(w=>w.ty==="pc").map(w=>w.n.toLowerCase()).filter(ch=>CHAR_KEYS.includes(ch));
+  return[...new Set(L.length?L:party(false).map(p=>p.ch))]}
+const chN=ch=>ch[0].toUpperCase()+ch.slice(1);
+function rwHtml(P){const R=P.rw,crew=rwCrew(P.cid),F=rwFoes(P.cid),xp=F.reduce((a,x)=>a+x.xp,0),tot=parseInt(R.tot,10)||0;
+  return`<h3>${tx("Recompensas","Rewards")}</h3>
+  <p class="note">${F.length?F.map(x=>`${esc(x.n)}${x.cr?` (${tx("VD","CR")} ${esc(x.cr)}): ${nfmt(x.xp)}`:tx(" (sin VD)"," (no CR)")}`).join(" · ")+` · <b>${nfmt(xp)} ${tx("PX","XP")}</b> · ${nfmt(Math.floor(xp/Math.max(1,crew.length)))} ${tx("por personaje","per character")}`:tx("Ningún enemigo derrotado, huido o rendido.","No enemies defeated, fled or surrendered.")}</p>
+  <div class="fgrid"><label>${tx("Berries en total","Total berries")}<input id="rw-tot" data-rw="tot" type="number" inputmode="numeric" min="0" value="${esc(R.tot)}"></label>
+    <label class="ck"><input type="checkbox" data-rw="eq" ${R.eq?"checked":""}>${tx("Repartir en partes iguales","Split equally")}</label></div>
+  ${R.eq?(tot>0?`<p class="note">${tx(`฿${nfmt(Math.floor(tot/crew.length))} para cada uno`,`฿${nfmt(Math.floor(tot/crew.length))} each`)}</p>`:"")
+    :`<div class="fgrid g3">${crew.map(ch=>`<label>${chN(ch)}<input id="rw-m-${ch}" data-rwm="${ch}" type="number" inputmode="numeric" min="0" value="${esc(R.per[ch]||"")}"></label>`).join("")}</div>`}
+  ${R.items.map((it,i)=>`<div class="fgrid"><label>${tx("Para","For")}<select data-rwi="${i}" data-f="ch">${crew.map(ch=>`<option value="${ch}" ${it.ch===ch?"selected":""}>${chN(ch)}</option>`).join("")}</select></label>
+    <label>${tx("Cantidad","Quantity")}<input id="rw-q-${i}" data-rwi="${i}" data-f="q" type="number" inputmode="numeric" min="1" max="999" value="${esc(it.q)}"></label>
+    <label class="w2">${tx("Objeto","Item")}<input id="rw-n-${i}" data-rwi="${i}" data-f="n" maxlength="60" value="${esc(it.n)}"></label><button class="btn" data-rwx="${i}">${tx("Quitar objeto","Remove item")}</button></div>`).join("")}
+  <div class="row"><button class="btn" data-pan="rwitem">${tx("Agregar objeto","Add item")}</button></div>
+  ${crew.map(ch=>{const p=R.pr[ch]||{};return`<div class="aor"><label class="ck"><input type="checkbox" data-rwp="${ch}" data-f="on" ${p.on?"checked":""}>${tx(`Prestigio para ${chN(ch)}`,`Prestige for ${chN(ch)}`)}</label>
+    ${p.on?`<div class="fgrid"><label>${tx("Puntos","Points")}<input id="rw-pn-${ch}" data-rwp="${ch}" data-f="n" type="number" inputmode="numeric" min="1" max="5" value="${esc(p.n??1)}"></label><label class="w2">${tx("Por qué","Why")}<input id="rw-pr-${ch}" data-rwp="${ch}" data-f="note" maxlength="80" value="${esc(p.note||"")}"></label></div>`:""}</div>`}).join("")}
+  <button class="btn primary big" data-pan="rwgo">${tx("Enviar recompensas","Send rewards")}</button>`}
+/* Lo que se va a entregar a cada uno (también arma el párrafo final de la crónica) */
+function rwPlan(P){const R=P.rw,crew=rwCrew(P.cid),tot=parseInt(R.tot,10)||0,o={};
+  for(const ch of crew){const m=R.eq?Math.floor(tot/crew.length):Math.max(0,parseInt(R.per[ch],10)||0),pr=R.pr[ch]||{},pn=pr.on?Math.max(1,Math.min(5,parseInt(pr.n,10)||1)):0;
+    o[ch]={m,items:R.items.filter(it=>it.ch===ch&&String(it.n).trim()).map(it=>({n:String(it.n).trim().slice(0,60),q:Math.max(1,Math.min(999,parseInt(it.q,10)||1))})),pn,pnote:String(pr.note||"").trim().slice(0,80)}}
+  return{o,crew,tot:R.eq?Math.floor(tot/crew.length)*crew.length:crew.reduce((a,ch)=>a+o[ch].m,0)}}
+function rwPara(pl,xp){const L=[],each=pl.crew.map(ch=>pl.o[ch].m),same=each.every(v=>v===each[0]);
+  if(pl.tot>0)L.push(same?tx(`La tripulación se repartió ฿${nfmt(pl.tot)} (฿${nfmt(each[0])} cada uno).`,`The crew split ฿${nfmt(pl.tot)} (฿${nfmt(each[0])} each).`)
+    :tx(`La tripulación se repartió ฿${nfmt(pl.tot)}: `,`The crew split ฿${nfmt(pl.tot)}: `)+pl.crew.filter(ch=>pl.o[ch].m>0).map(ch=>`${chN(ch)} ฿${nfmt(pl.o[ch].m)}`).join(", ")+".");
+  for(const ch of pl.crew){const x=pl.o[ch];if(x.items.length)L.push(tx(`${chN(ch)} recibió ${listJ(x.items.map(i=>`${i.n} ×${i.q}`))}.`,`${chN(ch)} received ${listJ(x.items.map(i=>`${i.n} ×${i.q}`))}.`));
+    if(x.pn)L.push(tx(`${chN(ch)} ganó ${x.pn} ${x.pn>1?"puntos":"punto"} de prestigio${x.pnote?" por "+x.pnote:""}.`,`${chN(ch)} earned ${x.pn} Prestige ${x.pn>1?"Points":"Point"}${x.pnote?" for "+x.pnote:""}.`))}
+  if(xp)L.push(tx(`Experiencia del combate: ${nfmt(xp)} PX (${nfmt(Math.floor(xp/Math.max(1,pl.crew.length)))} por personaje).`,`Combat experience: ${nfmt(xp)} XP (${nfmt(Math.floor(xp/Math.max(1,pl.crew.length)))} per character).`));
+  return L.length?tx("Recompensas. ","Rewards. ")+L.join(" "):""}
+function rwGo(){const P=PANEL;if(!fb||!isDM){noDm();return}const pl=rwPlan(P),xp=rwFoes(P.cid).reduce((a,x)=>a+x.xp,0),note=tx("Botín: ","Loot: ")+($("cr-title")?$("cr-title").value:P.title);let any=false,bad=[];
+  for(const ch of pl.crew){const x=pl.o[ch];let Q={...(LIVE.prog[ch]||{})},w={};
+    const gs=[];if(x.m>0||x.items.length)gs.push([x.m,x.items[0]]);for(const it of x.items.slice(1))gs.push([0,it]);
+    for(const [m,it] of gs){const {patch}=grantPatch(Q,m,it?it.n:"",it?it.q:0,note);Q={...Q,...patch};w={...w,...patch}}
+    if(x.pn){const p=prestPatch(Q,x.pn,0,x.pnote||note);if(p){Q={...Q,...p};w={...w,...p}}}
+    if(Object.keys(w).length){if(progMerge(ch,w)){LIVE.prog[ch]=Q;any=true}else bad.push(chN(ch))}}
+  if(!any){dmToast("d",tx("No hay recompensas para enviar","There are no rewards to send"));return}
+  const par=rwPara(pl,xp),t=$("cr-txt");if(par&&t){t.value=t.value.replace(/\s+$/,"")+"\n\n"+par;P.text=t.value}
+  P.rw={eq:true,tot:"",per:{},items:[],pr:{}};drawPan();dmToast("h",tx("Recompensas enviadas: ","Rewards sent: ")+esc(par.replace(/^(Recompensas|Rewards)\. /,"")))}
+console.assert((()=>{const p={rw:{eq:true,tot:"1000",per:{},items:[{ch:"udon",n:"Kit",q:"2"}],pr:{udon:{on:true,n:"1",note:"salvar a Codel"}}},cid:"x"},o=rwPlan(p);
+  return o.tot===1000&&o.o[o.crew[0]].m===Math.floor(1000/o.crew.length)&&(!o.o.udon||o.o.udon.items[0].q===2&&o.o.udon.pn===1)})(),"recompensas");
 /* ===== Deshacer del DM: copia de S antes de cada toque o envío de formulario que la cambia (las últimas 30).
    El nombre de lo que se deshace sale de los eventos nuevos de la crónica (o de cuántas criaturas cambiaron).
    Lo que ya se envió a un teléfono (golpes, ataques, kairoseki: progMerge) no se puede deshacer: se avisa ===== */

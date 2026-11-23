@@ -342,7 +342,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:22";
+const APP_VERSION="2026-11-22 21:25";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -406,6 +406,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
 <script src="progresion.js"></script>
 <script src="explicaciones.js"></script>
 <script src="haki.js"></script>
+<script src="entregas.js"></script>
 <script>
 /* ===================== PERSONAJES ===================== */
 /* Armas: hit y mod SIN Haki; el Endurecimiento suma su bono cuando está activo.
@@ -1373,9 +1374,9 @@ function invDm(k,s){const P=PROG[k]||{},pend=(P.grants||[]).filter(g=>!s.gotG.in
    ${s.ilog.length?`<p class="note"><b>${tx("Historial","History")}</b></p>${s.ilog.slice(0,8).map(ilogRow).join("")}`:""}</details>`}
 function invGive(k,s){const v=id=>(($(id+"-"+k)||{}).value||"").trim(),m=parseInt(v("gm"),10)||0,n=v("gi").slice(0,60),q=Math.min(999,parseInt(v("gq"),10)||1),note=v("gn").slice(0,80);
   if(m<0||m>1e12||q<1||!m&&!n)return show({title:tx("Nada que entregar","Nothing to send"),tip:tx("Escribe una cantidad de berries, un objeto o las dos cosas.","Enter an amount of berries, an item or both.")});
-  const P=PROG[k]||{},g={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),at:Date.now(),m:s*m,n,q:n?s*q:0,note};
+  const {g,patch}=grantPatch(PROG[k],s*m,n,s*q,note); // entregas.js (lo mismo que las Recompensas de dm.html)
   for(const id of ["gm","gi","gn"])$(id+"-"+k).value="";$("gq-"+k).value="1";
-  progWrite(k,{grants:[g,...(P.grants||[])].slice(0,30)});cbToast(tx(`Enviado a ${CHARS[k].name}: ${grantTxt(g)}`,`Sent to ${CHARS[k].name}: ${grantTxt(g)}`))}
+  progWrite(k,patch);cbToast(tx(`Enviado a ${CHARS[k].name}: ${grantTxt(g)}`,`Sent to ${CHARS[k].name}: ${grantTxt(g)}`))}
 function compSec(c){
   const cp=c.companion,k=S.comp,pct=Math.max(0,k.hp/cp.hp*100),down=k.hp<=0;
   return`<section id="sec-mascota"><h2><span class="h2t">${sico("companion")}${tx("Mascota","Companion")}</span> <small>${cp.name} · ${cp.kind} · ${tx("CA","AC")} ${cp.ac}</small></h2><div class="box2">
@@ -2739,8 +2740,7 @@ function plogT(o){const s=o.n>0?"+"+o.n:"−"+(-o.n);
   return(o.at?new Date(o.at).toLocaleDateString(tx("es","en"))+" · ":"")+(o.r?tx(`Avance ${rarN(o.r).toLowerCase()}`,`${rarN(o.r)} advancement`)+" "+s:s)+(o.note?" · "+esc(o.note):"")}
 const plogHtml=(k,n)=>{const L=(PROG[k]||{}).plog||[];return L.length?`<div class="log">${L.slice(0,n).map(o=>`<div>${plogT(o)}</div>`).join("")}</div>`:""};
 /* n: +1, −1 o −coste del avance (r = rareza 1–4); se anota con la fecha */
-function prestGive(k,n,r=0,note=""){const p=prestOf(k);if(p+n<0)return;
-  progWrite(k,{prestige:p+n,plog:[{at:Date.now(),n,r,note:note.slice(0,80)},...((PROG[k]||{}).plog||[])].slice(0,30)})}
+function prestGive(k,n,r=0,note=""){const p=prestPatch(PROG[k],n,r,note);if(p)progWrite(k,p)} // entregas.js
 function prestDm(k){const p=prestOf(k);
   return`<div class="prest"><span class="num">${p}</span><span class="lbl">${tx("Puntos de prestigio","Prestige Points")}</span>
     <button class="btn gold" data-pr="${k}" data-n="1">+1</button><button class="btn" data-pr="${k}" data-n="-1" ${p?"":"disabled"}>−1</button><button class="btn" data-prbuy="${k}" aria-expanded="${prOpen===k}">${tx("Comprar avance","Buy advancement")}</button></div>
