@@ -26,7 +26,10 @@ No hay servidor propio, build ni dependencias: son páginas estáticas en GitHub
 | `haki.js` | Objeto global `HAKI`: 74 avances de Haki (color, rareza, nivel, requisitos, uso, resumen). Lo usa la tienda de prestigio. | Sí |
 | `progresion.js` | `PCLASS`, `PSUB`, `FEATS`, `PROG_NOTES`: progresión de clases y subclases hasta nivel 20, dotes y lo que no se pudo determinar. Lo usa la subida de nivel. | Sí |
 | `explicaciones.js` | Objeto global `EXPL`: explicaciones largas de estadísticas, estados y rasgos, en los dos idiomas. | Sí |
-| `manifest.json`, `imagenes/icono/` | Ícono e información de la app instalable. | Sí |
+| `mesa.html` | Pantalla de mesa (solo lectura, para una tele o tableta en horizontal): orden de iniciativa, PV de los jugadores, franjas de estado de los enemigos, lo último del combate, reloj de turno y la crónica al terminar. Lee `combat/live` y `combat/chronicle`. | Sí |
+| `entregas.js` | `grantPatch` y `prestPatch`: arman el cambio de `progress` para una entrega o un cambio de prestigio. Los usan `index.html` (Mesa) y `dm.html` (Recompensas). | Sí |
+| `sw.js` | Service worker: guarda las páginas para abrirlas sin conexión (ver 7, Despliegue). | Sí |
+| `manifest.json`, `imagenes/icono/` | Ícono e información de la app instalable ("Mesa de Combate", nombre corto "Mesa"). | Sí |
 | `imagenes/` | Por personaje: `<id>-retrato.jpg` (384 px), `<id>-mini.jpg` (96 px) y `<id>-cartel.jpg` (756×1008). `<id>` es la clave del personaje (`udon`, `codel`, `kalgo`, `sungsopp`, `ryuga`). | Sí |
 | `personajes/*.md` | Una ficha por personaje (`<nombre>.md`, `<nombre>-fruta.md`, `<nombre>-rol.md`) con los datos y las decisiones del DM. Es la fuente de verdad desde la que se arma `CHARS`. | **No** (solo en la PC del DM) |
 | `firestore.rules` | Copia de las reglas publicadas en la consola de Firebase (ver sección 6). | **No** (copiadas abajo) |
@@ -168,6 +171,7 @@ Campos principales (la app ignora o corrige cualquier campo desconocido o de tip
 | `clog` | objeto[] | Crónica del combate de este personaje (máx. 200; ver 4.11). |
 | `ccid` | string | `cid` del combate al que pertenece `clog`. |
 | `concN` | string | Nombre de lo que concentra (solo para mostrarlo en `dm.html`; la app no lo lee). |
+| `hitAck` | objeto o `null` | Respuesta al último ataque del DM (ver 4.12): `{id, res, dmg, ac, pet, at}`. `res`: `"hit"`, `"miss"`, `"deflected"`, `"halved"` o `"void"` (el jugador tocó "El DM se equivocó"). |
 | `frenzy`, `trans`, `muscle`, `form`, `formOpts`, `humanHp`, `float`, `stageAC`, `advNext`, `hard`, `mw`, `swapHands` | varios | Estados propios de rasgos: frenesí, Sulong, Músculos de Haki (`"def"`/`"atk"`/`""`), forma Zoan, Paso de nube, Endurecimiento, arma de mochi, armas cambiadas de mano (`swapHands`), etc. |
 | `fury` | string[] | Técnicas de furia conocidas (Bruiser). `furyDone`: último desbloqueo del DM ya usado. |
 | `comp` | `{hp, temp, heads, tf, turnDmg}` | Mascota (Fluffy, en `state/sungsopp`). Vacío `{}` si no hay mascota. |
@@ -234,7 +238,7 @@ Nivel, prestigio, Haki comprado, entregas del DM y el flujo de subida de nivel. 
 | `buy` | `{id, st, at, note?}` o `null` | **Jugador** (crea y cancela) y DM (responde) | Solicitud de compra en la tienda. `st`: `"pend"`, `"ok"` o `"no"`. |
 | `grants` | objeto[] | DM | Entregas de dinero u objetos, la más nueva primero, hasta 30: `{id, at, m, n, q, note}` (ver 4.8). |
 | `furyOpen` | número (fecha) | DM | El DM permitió cambiar las técnicas de furia. |
-| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. |
+| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. Con `kind: "attack"`, un ataque contra su CA (ver 4.12): `{id, kind, total, nat, crit, n, type, extra, src, by, magic, pet, at, more}`. |
 | `sea` | objeto | DM (`dm.html`) | Kairoseki desde el panel (ver 4.10): `{on, id, temp, at}`. |
 
 Ejemplo:
@@ -274,9 +278,15 @@ Lo que **todos los jugadores con cuenta** ven del combate. Lo publica `dm.html` 
 | `fallen` | `{char, kind, name, st}[]` | Jugadores y mascotas caídos ahora. `st`: `"down"`, `"stable"` o `"dead"`. |
 | `alerts` | `{id, char, kind, name, ev, at}[]` | Últimos 5 avisos de caídos. `ev`: `"down"`, `"stable"`, `"up"`, `"dead"`. `id` y `at` = fecha. |
 | `adv` | `{id, min}` o `null` | Último "Avanzar tiempo" del DM: `id` = fecha, `min` = minutos (1, 10 o 60). |
+| `order` | objeto[] | Orden de iniciativa (pantalla de mesa y barra de los jugadores): `{id, kind, char, name, band, conds, cur}`. Enemigos: `name` = `""` y `n` = número de enemigo ("Enemigo 2") salvo que el DM toque "Mostrar nombre en la mesa"; `band` sin números (`""` si el DM apagó "Mostrar estado de los enemigos"); **nunca** `hp`, `max` ni CA. Jugadores y mascotas: además `hp` y `max`. |
+| `ticker` | string[] | Las 5 últimas frases de la crónica del combate en curso (en el idioma del DM), con los enemigos ocultos como "Enemigo N". |
+| `turnAt` | número | Inicio del turno actual (fecha) si el DM activó el reloj de turno; `0` si no. |
+| `clock` | número | Límite del reloj en segundos (`0`, `60`, `90` o `120`); `0` = sin límite. |
 | `at` | número | Fecha de la publicación. |
 
 `kind`: `"pc"` (jugador), `"pet"` (mascota de un jugador; `char` = el dueño), `"ally"` (aliado sin dueño; `char` = `null`) o `"foe"` (enemigo; `char` = `null` y `name` = `""`).
+
+`band` (franja de estado): `"ok"` Ileso (más del 75 %), `"hurt"` Herido (más del 50 %), `"bad"` Malherido (más del 25 %), `"near"` A punto de caer (más de 0) y `"ko"` Derrotado (0).
 
 Ejemplo:
 
@@ -336,15 +346,16 @@ Criatura de `list`:
 | `fx` | objeto[] | Efectos del DM sobre esa criatura (ver 4.4). |
 
 - **Escribe** y **lee**: solo el DM. **Nunca** debe llegar a los jugadores (tiene PV, CA y nombres de enemigos).
+- Campos nuevos de `S` (2.0): `show` en cada enemigo (mostrar su nombre en la mesa), `showBand` (franjas de estado de los enemigos; predeterminado `true`), `scene` (`{name, note, loot, eid}` del encuentro lanzado), `clockOn`, `clockLim` y `turnAt` (reloj de turno). Eventos nuevos de `clog`: `atk` (ataque que falla contra una CA: `res`, `tot`, `ac`), `atks` (ataque enviado a un teléfono) y `tdur` (duración en segundos del turno que termina).
 - Campos nuevos de `S`: `cid` (id del combate), `clog` (crónica del panel, máx. 600 eventos `{t, r, tid, a, k, …}`; ver 4.11) y `lastUse` (última carta usada, para llenar "Enviar golpe"). Criaturas del bestiario: `bid` (id de su hoja), `u` (usos que quedan por carta), `rch` (recarga lista por carta), `lr` y `la` (resistencias y acciones legendarias que quedan) y `cs` (CD de concentración pendiente).
 
 ### 3.7 `combat/bestiary`
 
-Hojas de criaturas del DM: `{B: {list: hoja[], at, pre}, at}`. Solo el DM (lo cubre la regla de `combat`). `dm.html` guarda una copia en `dm:best` y gana la más nueva (`at`). Hoja: `{id, name, type, ac, hp, init, speed, ab, sv, res, imm, flavor, morale, moraleHp, lr, la, cards}`; carta: `{id, k (atk | save | feat | react | leg), n, hit, dmg, ty, xd, xty, ab, dc, half, area, uses, per, rech, cost, sea, note}`. Los textos pueden ser texto o `{es, en}`.
+Hojas de criaturas del DM: `{B: {list: hoja[], enc: encuentro[], at, pre, crv, encPre}, at}`. Hoja: también `cr` (VD: `"0"`, `"1/8"`, `"1/4"`, `"1/2"` o `"1"`…`"30"`). Encuentro: `{id, name, items: [{bid, q}], note, loot}` (textos como texto o `{es, en}`). Solo el DM (lo cubre la regla de `combat`). `dm.html` guarda una copia en `dm:best` y gana la más nueva (`at`). Hoja: `{id, name, type, ac, hp, init, speed, ab, sv, res, imm, flavor, morale, moraleHp, lr, la, cards}`; carta: `{id, k (atk | save | feat | react | leg), n, hit, dmg, ty, xd, xty, ab, dc, half, area, uses, per, rech, cost, sea, note}`. Los textos pueden ser texto o `{es, en}`.
 
 ### 3.8 `combat/chronicle`
 
-Crónica del último combate que el DM comparte: `{cid, title, text, at}` (texto plano, hasta 30.000 caracteres). La escribe solo el DM; la leen los jugadores con cuenta (misma condición que `combat/live`). Los teléfonos muestran la tarjeta "Crónica del último combate" y avisan cuando llega una nueva (`mc:cronseen`).
+Crónica del último combate que el DM comparte: `{cid, title, text, at, list}`; `list` es el Diario de a bordo, las 30 últimas crónicas compartidas `{cid, title, text, at}` (la más nueva primero; compartir otra vez el mismo `cid` reemplaza su entrada; si el documento se acerca a 1 MB se quitan las más viejas) (texto plano, hasta 30.000 caracteres). La escribe solo el DM; la leen los jugadores con cuenta (misma condición que `combat/live`). Los teléfonos muestran la tarjeta "Crónica del último combate" y avisan cuando llega una nueva (`mc:cronseen`).
 
 ---
 
@@ -355,6 +366,7 @@ Todas las apps usan escuchas en vivo (`onSnapshot`). Resumen de quién escucha q
 | App | Escucha |
 |---|---|
 | Jugador (`index.html`) | `players/{su uid}`, `state/{su personaje}`, `progress/{su personaje}`, `combat/live`, `combat/chronicle` |
+| Pantalla de mesa (`mesa.html`) | `combat/live`, `combat/chronicle` (cualquier cuenta con documento en `players`, o el DM) |
 | DM en Mesa (`index.html`) | `players` (colección), `state` (colección), `progress` (colección), `combat/live` |
 | `dm.html` con sesión de DM | `combat/dm`, `combat/bestiary`, `state` (colección), `progress` (colección) |
 
@@ -413,6 +425,19 @@ El DM controla el orden; los teléfonos reaccionan a `combat/live`.
 - `dm.html` guarda en `combat/dm.S.clog` los eventos del combate activo (turnos, cartas usadas, daño, curación, estados, efectos, legendarias, recargas, golpes enviados, caídas, huidas y rendiciones) con su `cid`, ronda, `turnId` y actor (de quién es el turno).
 - Cada teléfono guarda en `state.clog` (con `ccid` = `combat/live.cid`) lo que usa y lo que le pasa: `use` (nombre de la carta, total, daño, crítico, `ph` dados físicos), `dmg`, `heal`, `down`, `up`, `ds`, `dream`, `dp` y `sea`. Un `cid` nuevo lo vacía.
 - Al terminar el combate, `dm.html` mezcla los dos por `turnId` y fecha y arma el texto con plantillas (sin servicios externos). El daño que el DM aplica en el turno de alguien es de ese alguien, con el nombre de su última jugada de ese turno. "Compartir con los jugadores" escribe `combat/chronicle`.
+
+### 4.12 Ataques contra la CA (en el teléfono del jugador)
+
+- **Atacar a…** en una carta con bono de ataque (`dm.html`): el DM elige el objetivo, escribe o tira el total (20 natural = crítico, 1 natural = falla) y el daño (crítico: dados dobles), y puede encolar varios ataques (multiataque). Sin enlace: el panel compara con la CA (más una reacción de su hoja con "+N CA" en la nota), aplica el daño con sus resistencias y lo anota.
+- Jugadores y Fluffy: `progress/{p}.hit = {id, kind: "attack", total, nat, crit, n, type, extra: [{n, type}], src, by, magic, pet, at, more: [ataques siguientes]}` con `merge`, un solo envío por teléfono (`more` lleva los demás en orden, también los de la mascota).
+- El teléfono (cada `id` una vez, `mc:hitseen`, menos de 10 minutos) compara `total` con su CA de ahora (forma, kairoseki, Escenario de batalla, escudo) más un bono temporal que anota el jugador. Falla: "¡Falla! Tu CA 18 lo detiene" y Contraataque si le quedan usos y reacciones especiales. Acierta: "Recibir el daño" pasa por las defensas de siempre (`magic: false` importa para el mochi de Codel y Fluffy) y después ofrece las reacciones al golpe. "El DM se equivocó" lo descarta.
+- El resultado vuelve en `state.hitAck` y en `state.clog` (`atk`); `dm.html` lo muestra en la tarjeta ("Falló contra CA 18", "Acertó · 9 de daño", "Desvió").
+
+### 4.13 Encuentros, recompensas y reloj de turno
+
+- **Encuentros** (`dm.html`): PX por VD y dificultad 2024 (suma del presupuesto Baja / Moderada / Alta de cada personaje; el nivel sale de `progress/{p}.level`, 7 si no hay). Se guardan en `combat/bestiary.B.enc`. **Lanzar** agrega las copias (numeradas, con iniciativa tirada) y muestra el escenario arriba del combate (`S.scene`).
+- **Recompensas** (crónica, al terminar): PX informativo de los enemigos derrotados, huidos o rendidos; berries (en partes iguales o por jugador), objetos y prestigio. Berries y objetos son entregas (`progress.grants`) y el prestigio va a `prestige` y `plog`, armados con `entregas.js` igual que en Mesa y escritos con `merge`. El resumen queda como último párrafo de la crónica.
+- **Reloj de turno** (opcional): con el reloj activo, `combat/live.turnAt` y `clock`. La barra del jugador y `mesa.html` muestran el tiempo; al pasar el límite se pone en rojo y el teléfono de quien tiene el turno vibra una vez. Nunca pasa el turno solo. La duración de cada turno queda en `clog` (`tdur`) y el epílogo dice el turno más rápido y el promedio.
 
 ### 4.5 Subida de nivel (`event` → `pending` → aprobar o rechazar)
 
@@ -627,7 +652,8 @@ service cloud.firestore {
 
 ### Nombres y formatos que no deben cambiar
 
-- Colecciones y documentos: `admins`, `players`, `state`, `progress`, `combat/live`, `combat/dm`, `combat/bestiary`, `combat/chronicle`.
+- Colecciones y documentos: `admins`, `players`, `state`, `progress`, `combat/live`, `combat/dm`, `combat/bestiary`, `combat/chronicle` (ninguno nuevo en 2.0: las reglas no cambian).
+- `progress.hit.kind`: sin campo = golpe con o sin salvación; `"attack"` = ataque contra la CA. `hitAck.res`: `hit`, `miss`, `deflected`, `halved`, `void`. `order.band`: `ok`, `hurt`, `bad`, `near`, `ko`.
 - Ids de personaje: `udon`, `codel`, `kalgo`, `sungsopp`, `ryuga` (en minúsculas).
 - Estados en español (`Agarrado`, `Derribado`…), no en inglés.
 - Fechas en milisegundos (`Date.now()`), salvo `state.at` (`serverTimestamp`).
@@ -642,7 +668,7 @@ service cloud.firestore {
 
 | Clave | Página | Contenido |
 |---|---|---|
-| `mc:look` | `index.html` y `dm.html` (compartida) | Apariencia `{pal, mode, dice, lang, quick}`. |
+| `mc:look` | `index.html`, `dm.html` y `mesa.html` (compartida) | Apariencia `{pal, mode, dice, lang, quick}`. |
 | `dm:combat2` | `dm.html` | Combate completo (igual que `combat/dm.S`). |
 | `mc2:<personaje>` | `index.html` | Estado del personaje en este teléfono (igual que `state/<personaje>`). |
 | `mc:cur` | `index.html` | Último personaje abierto. |
@@ -658,13 +684,14 @@ service cloud.firestore {
 | `mc:cronseen` | `index.html` | Fecha de la última crónica avisada. |
 | `dm:best` | `dm.html` | Bestiario (igual que `combat/bestiary.B`). |
 
-Además, IndexedDB guarda la caché de Firestore (la crea el SDK).
+Además, IndexedDB guarda la caché de Firestore (la crea el SDK, `persistentLocalCache` con varias pestañas) y Cache Storage guarda las páginas (`mesa-<versión>`, la crea `sw.js`).
 
 ### Despliegue
 
 - GitHub Pages publica la rama `main`, carpeta raíz, en https://strangeninja.github.io/one-piece-dnd/. Se actualiza sola uno o dos minutos después de cada `git push`.
 - Para publicar: `git add -A`, `git commit` y `git push`. Solo se suben los archivos permitidos en `.gitignore`.
-- Versión visible: al final de Ajustes aparece "Versión AAAA-MM-DD HH:MM" (`APP_VERSION` en las dos páginas). La escribe el hook local `.git/hooks/pre-commit` con la fecha y hora del commit. El hook no viaja con el repositorio: si se publica desde otra PC sin copiarlo, la versión no cambia.
+- Versión visible: al final de Ajustes aparece "Versión AAAA-MM-DD HH:MM" (`APP_VERSION` en las tres páginas y en `sw.js`). La escribe el hook local `.git/hooks/pre-commit` con la fecha y hora del commit. El hook no viaja con el repositorio: si se publica desde otra PC sin copiarlo, la versión no cambia.
+- **Sin conexión** (`sw.js`, registrado por las tres páginas solo con http o https): HTML y JS primero de la red y, sin conexión, de la caché; imágenes, íconos y la librería de Firebase (versión en la URL) primero de la caché. La caché se llama `mesa-<APP_VERSION>` (el hook también sella `sw.js`) y al activarse una versión nueva se borran las viejas. Con una versión nueva, las páginas muestran "Hay una versión nueva · Actualizar" y solo recargan al tocarlo. No intercepta Firestore ni el inicio de sesión.
 - Los commits usan el correo `StrangeNinja@users.noreply.github.com` para no mostrar el correo personal.
 - Las reglas de Firestore **no se despliegan con git**: se pegan a mano en la consola de Firebase. Mantener `firestore.rules` (en la PC del DM) igual a lo publicado.
 - Si la app nueva vive en otro repositorio o dominio: agregar el dominio a los autorizados de Authentication, usar la misma `firebaseConfig` y, si hace falta, las mismas versiones del SDK (10.12.2) para no mezclar formatos de caché en el mismo origen.
