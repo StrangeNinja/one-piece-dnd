@@ -238,7 +238,7 @@ Nivel, prestigio, Haki comprado, entregas del DM y el flujo de subida de nivel. 
 | `buy` | `{id, st, at, note?}` o `null` | **Jugador** (crea y cancela) y DM (responde) | Solicitud de compra en la tienda. `st`: `"pend"`, `"ok"` o `"no"`. |
 | `grants` | objeto[] | DM | Entregas de dinero u objetos, la más nueva primero, hasta 30: `{id, at, m, n, q, note}` (ver 4.8). |
 | `furyOpen` | número (fecha) | DM | El DM permitió cambiar las técnicas de furia. |
-| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. Con `kind: "attack"`, un ataque contra su CA (ver 4.12): `{id, kind, total, nat, crit, n, type, extra, src, by, magic, pet, at, more}`. |
+| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. Con `kind: "attack"`, un ataque contra su CA (ver 4.12): `{id, kind, total, nat, crit, n, type, extra, src, by, byN, magic, pet, at, more}`. |
 | `sea` | objeto | DM (`dm.html`) | Kairoseki desde el panel (ver 4.10): `{on, id, temp, at}`. |
 
 Ejemplo:
@@ -355,7 +355,7 @@ Hojas de criaturas del DM: `{B: {list: hoja[], enc: encuentro[], at, pre, crv, e
 
 ### 3.8 `combat/chronicle`
 
-Crónica del último combate que el DM comparte: `{cid, title, text, at, list}`; `list` es el Diario de a bordo, las 30 últimas crónicas compartidas `{cid, title, text, at}` (la más nueva primero; compartir otra vez el mismo `cid` reemplaza su entrada; si el documento se acerca a 1 MB se quitan las más viejas) (texto plano, hasta 30.000 caracteres). La escribe solo el DM; la leen los jugadores con cuenta (misma condición que `combat/live`). Los teléfonos muestran la tarjeta "Crónica del último combate" y avisan cuando llega una nueva (`mc:cronseen`).
+Crónica del último combate que el DM comparte: `{cid, title, text, at, list}`; `list` es el Diario de a bordo, las 30 últimas crónicas compartidas `{cid, title, text, at}` (la más nueva primero; compartir otra vez el mismo `cid` reemplaza su entrada; si el documento se acerca a 1 MB se quitan las más viejas). Si el DM desmarca "Revelar todos los nombres en la crónica" (marcada por defecto), los enemigos cuyo nombre nunca mostró en la mesa van como "Enemigo N" (texto plano, hasta 30.000 caracteres). La escribe solo el DM; la leen los jugadores con cuenta (misma condición que `combat/live`). Los teléfonos muestran la tarjeta "Crónica del último combate" y avisan cuando llega una nueva (`mc:cronseen`).
 
 ---
 
@@ -429,7 +429,9 @@ El DM controla el orden; los teléfonos reaccionan a `combat/live`.
 ### 4.12 Ataques contra la CA (en el teléfono del jugador)
 
 - **Atacar a…** en una carta con bono de ataque (`dm.html`): el DM elige el objetivo, escribe o tira el total (20 natural = crítico, 1 natural = falla) y el daño (crítico: dados dobles), y puede encolar varios ataques (multiataque). Sin enlace: el panel compara con la CA (más una reacción de su hoja con "+N CA" en la nota), aplica el daño con sus resistencias y lo anota.
-- Jugadores y Fluffy: `progress/{p}.hit = {id, kind: "attack", total, nat, crit, n, type, extra: [{n, type}], src, by, magic, pet, at, more: [ataques siguientes]}` con `merge`, un solo envío por teléfono (`more` lleva los demás en orden, también los de la mascota).
+- Jugadores y Fluffy: `progress/{p}.hit = {id, kind: "attack", total, nat, crit, n, type, extra: [{n, type}], src, by, byN, magic, pet, at, more: [ataques siguientes]}` con `merge`, un solo envío por teléfono (`more` lleva los demás en orden, también los de la mascota).
+- **Enemigos ocultos**: si el DM no tocó "Mostrar nombre en la mesa", `by` va vacío y `byN` lleva su número de la mesa (el teléfono escribe "Enemigo N" en su idioma); `src` (también en los golpes y el daño en área) nunca lleva su nombre ni su apodo. Cada enemigo tiene un número fijo en el combate (`combat/dm.S.fnm`).
+- **Todo el golpe es uno**: el daño principal y los extras de otro tipo se reciben juntos. Resistencias e inmunidades por tipo; las reducciones fijas (Músculos de Haki en defensa) una vez por golpe. Esquiva asombrosa: la mitad de cada parte, hacia abajo, antes de las resistencias; Desvío o Paso relámpago que salen bien: 0 en todas las partes; Bloquear golpe resta del total.
 - El teléfono (cada `id` una vez, `mc:hitseen`, menos de 10 minutos) compara `total` con su CA de ahora (forma, kairoseki, Escenario de batalla, escudo) más un bono temporal que anota el jugador. Falla: "¡Falla! Tu CA 18 lo detiene" y Contraataque si le quedan usos y reacciones especiales. Acierta: "Recibir el daño" pasa por las defensas de siempre (`magic: false` importa para el mochi de Codel y Fluffy) y después ofrece las reacciones al golpe. "El DM se equivocó" lo descarta.
 - El resultado vuelve en `state.hitAck` y en `state.clog` (`atk`); `dm.html` lo muestra en la tarjeta ("Falló contra CA 18", "Acertó · 9 de daño", "Desvió").
 
