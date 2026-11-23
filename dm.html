@@ -166,6 +166,8 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 .bcd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .bcd b{font-size:15px}
 .cnt{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.encb{position:relative;height:14px;border-radius:7px;background:var(--chip);overflow:hidden;margin:6px 0}.encb i{position:absolute;inset:0 auto 0 0;border-radius:7px}.encb s{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.5}
+.scene{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--gold);border-radius:12px;background:var(--surface)}.scene p{margin:4px 0 0}
 .cnt b{flex:1;min-width:0}
 .cnt .btn{min-width:48px}
 .btn:disabled{opacity:.45;cursor:default}
@@ -187,7 +189,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:13";
+const APP_VERSION="2026-11-22 21:16";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -245,6 +247,7 @@ addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){loo
   <div class="list" id="list"></div>
   <!-- Textos fijos: data-en (texto), data-enph (placeholder) y data-entitle (title) en inglés; staticT() los cambia según el idioma -->
   <section><h2 data-en="Bestiary">Bestiario</h2><div id="best"></div></section>
+  <section><h2 data-en="Encounters">Encuentros</h2><div id="enc"></div></section>
   <section><h2 data-en="Add Creature">Agregar criatura</h2>
     <form class="add" id="addf">
       <label class="w3"><span data-en="Name">Nombre</span><input id="f-name" required placeholder="Marine raso" data-enph="Marine grunt"></label>
@@ -367,7 +370,7 @@ async function cloudInit(){
         if(v&&v.S&&Array.isArray(v.S.list)&&(v.at||0)>(S.at||0)&&!d.metadata.hasPendingWrites){S=v.S;store.set("dm:combat2",S);render()}
         if(firstDm){firstDm=false;syncOut()}}));
       unsubs.push(F.onSnapshot(F.doc(db,"combat","bestiary"),d=>{const v=d.exists()&&d.data();
-        if(v&&v.B&&Array.isArray(v.B.list)&&(v.at||0)>(BEST.at||0)&&!d.metadata.hasPendingWrites){BEST={...v.B,pre:1};store.set("dm:best",BEST);render()}
+        if(v&&v.B&&Array.isArray(v.B.list)&&(v.at||0)>(BEST.at||0)&&!d.metadata.hasPendingWrites){BEST={...v.B,pre:1};if(bestMig())saveBest();else store.set("dm:best",BEST);render()}
         if(firstBest){firstBest=false;if(!v||(BEST.at||0)>(v.at||0))bestOut()}}));
       unsubs.push(F.onSnapshot(F.collection(db,"state"),q=>{q.forEach(d=>LIVE.state[d.id]=d.data());liveMax();render()}));
       unsubs.push(F.onSnapshot(F.collection(db,"progress"),q=>{q.forEach(d=>LIVE.prog[d.id]=d.data());liveMax();render()}))}
@@ -405,8 +408,8 @@ function render(){navLater();
     <div class="sync">${S.active?`<b>${tx("Combate en curso","Combat in progress")}</b>`:tx("Sin combate: «Siguiente» lo empieza","No combat: “Next” starts it")} · ${!fb?tx("solo en este teléfono","this phone only")
       :!user?`<button class="btn" data-do="login">${tx("Entrar con Google para avisar los turnos","Sign in with Google to announce turns")}</button>`
       :isDM?tx("en la nube: los jugadores ven los turnos","in the cloud: players see the turns"):`${tx("esta cuenta no es del DM","this account isn't the DM's")} <button class="btn" data-do="logout">${tx("Cerrar sesión","Sign out")}</button>`}</div>`;
-  put($("best"),bestHtml());
-  put($("list"),L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`);
+  put($("best"),bestHtml());put($("enc"),encHtml());
+  put($("list"),sceneHtml()+(L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`));
  $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["crew",tx("Agregar tripulación","Add crew")],["reset",tx("Vaciar combate (también jugadores)","Clear combat (players too)")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("")
    +`<button class="btn primary" data-do="aoe">${tx("Daño en área","Area damage")}</button>`+(!S.active&&(S.clog||[]).length?`<button class="btn" data-do="cronshow">${tx("Crónica del último combate","Chronicle of the last combat")}</button>`:"")
    +`<div class="advt"><b>${tx("Avanzar tiempo","Advance time")}</b>${[1,10,60].map(m=>`<button class="btn" data-do="adv" data-m="${m}">+${m===60?"1 h":m+" min"}</button>`).join("")}</div>`;
@@ -508,7 +511,7 @@ function rollDice(ex,crit){let tot=0;const parts=[];for(const m of String(ex||""
   return{tot:Math.max(0,tot),txt:parts.join(" ")}}
 {const r=rollDice("1d8+6",false),k=rollDice("2d6",true);console.assert(r.tot>=7&&r.tot<=14&&k.tot>=4&&k.tot<=24&&rollDice("5").tot===5,"dados")}
 const L2=(es,en)=>({es,en});
-const blank=()=>({id:"",name:"",type:"foe",ac:12,hp:20,init:0,speed:"30 pies",ab:{FUE:10,DES:10,CON:10,INT:10,SAB:10,CAR:10},sv:{},res:[],imm:[],flavor:"",morale:"",moraleHp:null,lr:0,la:0,cards:[]});
+const blank=()=>({id:"",name:"",type:"foe",cr:"",ac:12,hp:20,init:0,speed:"30 pies",ab:{FUE:10,DES:10,CON:10,INT:10,SAB:10,CAR:10},sv:{},res:[],imm:[],flavor:"",morale:"",moraleHp:null,lr:0,la:0,cards:[]});
 /* Hojas que trae el panel (una sola vez: BEST.pre). Ids fijos para no duplicarlas entre dispositivos */
 function preSheets(){const C=(k,n,o={})=>({k,n,uses:0,per:"dia",...o});
   const zahir={...blank(),id:"b-zahir",name:L2("Zahir Manchasol, el Leopardo Verde","Zahir Sunspot, the Green Leopard"),ac:17,hp:225,init:9,speed:L2("40 pies, trepar 30 pies","40 ft., climb 30 ft."),
@@ -631,7 +634,7 @@ function panOpen(p){PANEL=p;let d=$("pan");
   if(!d){d=document.createElement("dialog");d.id="pan";d.className="lk pan";document.body.append(d);d.addEventListener("close",()=>{PANEL=null;navLater()})}
   drawPan();if(!d.open)d.showModal();navLater()}
 function panClose(){const d=$("pan");PANEL=null;if(d&&d.open)d.close()}
-function drawPan(){const d=$("pan");if(!d||!PANEL)return;d.setAttribute("aria-label",PANEL.title||"");put(d,`<div class="lk-in">${{edit:edHtml,aoe:aoeHtml,cron:cronHtml,atk:akHtml}[PANEL.k]()}</div>`)}
+function drawPan(){const d=$("pan");if(!d||!PANEL)return;d.setAttribute("aria-label",PANEL.title||"");put(d,`<div class="lk-in">${{edit:edHtml,aoe:aoeHtml,cron:cronHtml,atk:akHtml,enc:encEdHtml}[PANEL.k]()}</div>`)}
 const panTop=t=>`<div class="lk-top"><b>${t}</b><button class="btn" data-pan="close">${tx("Cerrar","Close")}</button></div>`;
 const tySel=(attr,v,none)=>`<select ${attr}><option value="">${none}</option>${DMG.map(t=>`<option value="${t}" ${t===v?"selected":""}>${tyT(t)[0].toUpperCase()+tyT(t).slice(1)}</option>`).join("")}</select>`;
 const abSel=(attr,v,none)=>`<select ${attr}><option value="">${none}</option>${ABS.map(a=>`<option value="${a}" ${a===v?"selected":""}>${abT(a)}</option>`).join("")}</select>`;
@@ -654,7 +657,7 @@ function edHtml(){const b=ED,chips=k=>`<div class="chips">${DMG.map(t=>`<button 
   const inp=(f,lb,num,w)=>`<label class="${w||""}">${lb}<input data-ef="${f}" ${num?`type="number" inputmode="numeric"`:""} value="${esc(num?b[f]??"":tl2(b[f]))}"></label>`;
   return panTop(b.id?tx("Editar hoja","Edit sheet"):tx("Nueva hoja","New sheet"))+`
   <div class="fgrid">${inp("name",tx("Nombre","Name"),0,"w2")}<label>${tx("Tipo","Type")}<select data-ef="type"><option value="foe" ${b.type!=="ally"?"selected":""}>${tl(TYPE.foe)}</option><option value="ally" ${b.type==="ally"?"selected":""}>${tl(TYPE.ally)}</option></select></label>
-    ${inp("ac",tx("CA","AC"),1)}${inp("hp",tx("PV máx.","Max HP"),1)}${inp("init",tx("Mod. de iniciativa","Initiative mod."),1)}${inp("speed",tx("Velocidad","Speed"),0,"w2")}</div>
+    ${inp("cr",tx("VD (0, 1/8, 1/4, 1/2, 1–30)","CR (0, 1/8, 1/4, 1/2, 1–30)"),0)}${inp("ac",tx("CA","AC"),1)}${inp("hp",tx("PV máx.","Max HP"),1)}${inp("init",tx("Mod. de iniciativa","Initiative mod."),1)}${inp("speed",tx("Velocidad","Speed"),0,"w2")}</div>
   <h3>${tx("Características y salvaciones","Ability scores and saves")}</h3>
   <div class="fgrid g3">${ABS.map(a=>`<label>${abT(a)}<input data-ef="ab.${a}" type="number" inputmode="numeric" value="${b.ab[a]??10}"></label>`).join("")}</div>
   <p class="note">${tx("Salvaciones competentes (vacío: el modificador)","Proficient saves (empty: the modifier)")}</p>
@@ -778,6 +781,79 @@ const ACK_T={hit:L2("Acertó","Hit"),miss:L2("Falló","Missed"),deflected:L2("De
 function ackBadge(c){const l=linkOf(c),s=l&&isDM&&LIVE.state[l.char],a=s&&s.hitAck;if(!a||typeof a!=="object"||!ACK_T[a.res]||(a.pet===true)!==(l.kind==="pet")||!(Date.now()-(+a.at||0)<5*60000))return"";
   const dm=Number.isInteger(a.dmg)?a.dmg:0,ac=Number.isInteger(a.ac)?a.ac:0;
   return`<div class="conds"><span class="tag ${a.res==="hit"?"foe":"ok"}">${a.res==="hit"?tx(`Acertó · ${dm} de daño`,`Hit · ${dm} damage`):a.res==="miss"?tx(`Falló contra CA ${ac}`,`Missed vs AC ${ac}`):a.res==="halved"?tx(`Esquivó a medias · ${dm} de daño`,`Halved · ${dm} damage`):tl(ACK_T[a.res])}</span></div>`}
+
+/* ===================== ENCUENTROS =====================
+   Guardados con el bestiario (combat/bestiary.B.enc y dm:best): {id, name, items:[{bid, q}], note, loot}. VD (cr) de cada hoja: "0", "1/8", "1/4", "1/2" o "1"…"30".
+   Dificultad 2024: suma del presupuesto de cada personaje (Baja / Moderada / Alta) contra el PX de las criaturas */
+const CR_XP={"0":10,"1/8":25,"1/4":50,"1/2":100,1:200,2:450,3:700,4:1100,5:1800,6:2300,7:2900,8:3900,9:5000,10:5900,11:7200,12:8400,13:10000,14:11500,15:13000,16:15000,17:18000,18:20000,19:22000,20:25000,
+  21:33000,22:41000,23:50000,24:62000,25:75000,26:90000,27:105000,28:120000,29:135000,30:155000};
+const BUDGET=[0,[50,75,100],[100,150,200],[150,225,400],[250,375,500],[500,750,1100],[600,1000,1400],[750,1300,1700],[1000,1700,2100],[1300,2000,2600],[1600,2300,3100],
+  [1900,2900,4100],[2200,3700,4700],[2600,4200,5400],[2900,4900,6200],[3300,5400,7800],[3800,6100,9800],[4500,7200,11700],[5000,8700,14200],[5500,10700,17200],[6400,13200,22000]];
+const nfmt=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,look.lang==="en"?",":".");
+const crOk=v=>Object.hasOwn(CR_XP,String(v).trim());
+const xpOf=b=>b&&crOk(b.cr)?CR_XP[String(b.cr).trim()]:0;
+const lvlOf=ch=>{const l=(LIVE.prog[ch]||{}).level;return Number.isInteger(l)&&l>=1&&l<=20?l:7};
+/* El grupo: los jugadores enlazados del combate o, si no hay, la tripulación. Fluffy cuenta con el nivel de su dueño (opcional) */
+function party(pet){const inL=S.list.map(linkOf).filter(l=>l&&l.kind==="pc").map(l=>l.char),P=[...new Set(inL.length?inL:CHAR_KEYS)].map(ch=>({ch,lvl:lvlOf(ch)}));
+  if(pet)P.push({ch:"fluffy",lvl:lvlOf("sungsopp")});return P}
+function diffOf(xp,P){const b=P.reduce((a,p)=>BUDGET[p.lvl].map((v,i)=>a[i]+v),[0,0,0]),k=xp<=b[0]?0:xp<=b[1]?1:xp<=b[2]?2:3;return{b,k}}
+const DIFF=[L2("Baja","Low"),L2("Moderada","Moderate"),L2("Alta","High"),L2("Por encima de Alta","Above High")],DIFFC=["var(--good)","var(--warn)","var(--bad)","var(--foe)"];
+console.assert(CR_XP["1/4"]===50&&CR_XP[11]===7200&&diffOf(7000,[1,2,3,4,5].map(()=>({lvl:7}))).k===2&&diffOf(13900,[1,2,3,4,5].map(()=>({lvl:7}))).k===3&&diffOf(100,[{lvl:1}]).k===2&&crOk("1/8")&&!crOk("1/3")&&!crOk("31"),"encuentros: PX y dificultad");
+const encXp=e=>e.items.reduce((a,it)=>a+xpOf(BEST.list.find(b=>b.id===it.bid))*(it.q||0),0);
+function encBar(xp,pet){const P=party(pet),{b,k}=diffOf(xp,P),w=Math.min(100,xp/Math.max(1,b[2]*1.3)*100);
+  return`<div class="encd"><div class="encb" role="img" aria-label="${tl(DIFF[k])}"><i style="width:${w}%;background:${DIFFC[k]}"></i>${b.map(v=>`<s style="left:${Math.min(100,v/(b[2]*1.3)*100)}%"></s>`).join("")}</div>
+    <p class="note"><b style="color:${DIFFC[k]}">${tl(DIFF[k])}</b> · ${nfmt(xp)} ${tx("PX","XP")} · ${tx("Baja","Low")} ${nfmt(b[0])} · ${tx("Moderada","Moderate")} ${nfmt(b[1])} · ${tx("Alta","High")} ${nfmt(b[2])}
+    · ${tx("Grupo","Party")}: ${P.map(p=>`${p.ch==="fluffy"?"Fluffy":p.ch[0].toUpperCase()+p.ch.slice(1)} ${p.lvl}`).join(", ")}</p>
+    <p class="note">${tx("La tripulación es más fuerte que un grupo normal: úsalo como guía, no como ley","Your crew is stronger than a standard party: use it as a guide, not a law")}</p></div>`}
+/* Migración: VD de las hojas iniciales (sin tocar lo demás) y el encuentro inicial, una sola vez cada uno */
+function bestMig(){let ch=false;const CR={"b-zahir":"11","b-lysander":"6","b-grisk":"5","b-grask":"5","b-capa":"1"};
+  if(!BEST.crv){for(const b of BEST.list)if(CR[b.id]&&!b.cr)b.cr=CR[b.id];BEST.crv=1;ch=true}
+  if(!BEST.encPre){BEST.enc=BEST.enc||[];if(!BEST.enc.some(e=>e.id==="e-manto"))BEST.enc.push({id:"e-manto",name:L2("La Banda del Manto Verde","The Green Mantle Gang"),
+    items:[{bid:"b-zahir",q:1},{bid:"b-lysander",q:1},{bid:"b-grisk",q:1},{bid:"b-grask",q:1},{bid:"b-capa",q:4}],
+    note:L2("Tejados y muelle del puerto: alturas de 10 a 20 pies, toldos, cajas para cobertura media, el agua a un lado (peligrosa para Codel, Kalgo y Sungsopp).","Harbor rooftops and dock: heights of 10 to 20 feet, awnings, crates for half cover, the water on one side (dangerous for Codel, Kalgo and Sungsopp)."),
+    loot:L2("Botín del PDF original convertido a berries","Loot from the original PDF converted to berries")});BEST.encPre=1;ch=true}
+  BEST.enc=BEST.enc||[];return ch}
+let eOpen=null,encPet=false;
+function encHtml(){const E=BEST.enc||[];return`<div class="list">${E.map(e=>{const o=eOpen===e.id,xp=encXp(e),{k}=diffOf(xp,party(encPet)),n=e.items.reduce((a,it)=>a+(it.q||0),0);
+    return`<div class="card"><div class="head"><button class="name" data-ex="open" data-e="${e.id}" aria-expanded="${o}"><b>${esc(tl2(e.name))}</b>
+      <span>${n} ${tx("criaturas","creatures")} · ${nfmt(xp)} ${tx("PX","XP")} · <b style="color:${DIFFC[k]}">${tl(DIFF[k])}</b></span></button></div>
+    ${o?`<div class="more"><p class="note">${e.items.map(it=>{const b=BEST.list.find(x=>x.id===it.bid);return`${it.q}× ${esc(b?short(b.name):"?")}`}).join(" · ")}</p>
+      ${e.note?`<p class="note"><b>${tx("Escenario","Scenario")}:</b> ${esc(tl2(e.note))}</p>`:""}${e.loot?`<p class="note"><b>${tx("Botín","Loot")}:</b> ${esc(tl2(e.loot))}</p>`:""}${encBar(xp,encPet)}
+      <button class="btn primary big" data-ex="go" data-e="${e.id}">${tx("Lanzar","Launch")}</button>
+      <div class="row"><button class="btn" data-ex="edit" data-e="${e.id}">${tx("Editar","Edit")}</button><button class="btn" data-ex="dup" data-e="${e.id}">${tx("Duplicar","Duplicate")}</button>
+      <button class="btn ${armed==="edel"+e.id?"arm":""}" data-ex="del" data-e="${e.id}">${armed==="edel"+e.id?tx("Toca para borrar","Tap to delete"):tx("Borrar","Delete")}</button></div></div>`:""}</div>`}).join("")}
+  ${E.length?"":`<div class="empty">${tx("No hay encuentros guardados.","No saved encounters.")}</div>`}</div>
+  <label class="ck"><input type="checkbox" data-encpet ${encPet?"checked":""}>${tx("Contar a Fluffy como personaje","Count Fluffy as a character")}</label>
+  <button class="btn" data-ex="new" style="margin-top:8px">${tx("Nuevo encuentro","New encounter")}</button>`}
+/* Editor (diálogo): nombre, cantidad por hoja, notas y la dificultad en vivo */
+let EE=null;
+function encEdOpen(e){EE=JSON.parse(JSON.stringify(e||{id:"",name:"",items:[],note:"",loot:""}));panOpen({k:"enc",title:tx("Encuentro","Encounter")})}
+function encEdHtml(){const e=EE,q=id=>(e.items.find(it=>it.bid===id)||{}).q||0;
+  return panTop(e.id?tx("Editar encuentro","Edit encounter"):tx("Nuevo encuentro","New encounter"))+`<div class="fgrid"><label class="w2">${tx("Nombre","Name")}<input data-ee="name" maxlength="60" value="${esc(tl2(e.name))}"></label>
+    <label class="w2">${tx("Escenario (nota)","Scenario (note)")}<textarea data-ee="note" maxlength="400" rows="3">${esc(tl2(e.note))}</textarea></label>
+    <label class="w2">${tx("Botín (nota)","Loot (note)")}<input data-ee="loot" maxlength="200" value="${esc(tl2(e.loot))}"></label></div>
+    <h3>${tx("Criaturas","Creatures")}</h3>${BEST.list.map(b=>`<div class="aor"><b>${esc(short(b.name))}</b> <span class="note">${crOk(b.cr)?`${tx("VD","CR")} ${esc(b.cr)} · ${nfmt(xpOf(b))} ${tx("PX","XP")}`:tx("Sin VD: pónselo en su hoja","No CR: set it on its sheet")}</span>
+      <div class="cnt"><b>× ${q(b.id)}</b><button class="btn" data-eq="${b.id}" data-v="-1" aria-label="${tx(`Una menos de ${esc(short(b.name))}`,`One fewer ${esc(short(b.name))}`)}">−</button><button class="btn" data-eq="${b.id}" data-v="1" aria-label="${tx(`Una más de ${esc(short(b.name))}`,`One more ${esc(short(b.name))}`)}">+</button></div></div>`).join("")}
+    ${encBar(encXp(e),encPet)}
+    <div class="row"><button class="btn primary big" data-pan="eesave">${tx("Guardar encuentro","Save encounter")}</button><button class="btn" data-pan="close">${tx("Cancelar","Cancel")}</button></div>`}
+/* Lanzar: pregunta si quita los enemigos actuales, agrega todas las copias (numeradas, iniciativa tirada) y muestra el escenario arriba del combate */
+function encGo(e){if(S.list.some(c=>c.type==="foe")&&confirm(tx("¿Quitar los enemigos actuales?","Remove the current enemies?"))){S.list=S.list.filter(c=>c.type!=="foe");if(!S.list.some(c=>c.id===S.cur))S.cur=null}
+  for(const it of e.items){const b=BEST.list.find(x=>x.id===it.bid);if(b&&it.q>0)addFromSheet(b,it.q,null)}
+  if(!S.cur&&S.list.length)S.cur=sorted()[0].id;S.scene={name:tl2(e.name),note:tl2(e.note||""),loot:tl2(e.loot||""),eid:e.id};eOpen=null;save();render();
+  dmToast("h",tx(`Encuentro listo: <b>${esc(tl2(e.name))}</b>`,`Encounter ready: <b>${esc(tl2(e.name))}</b>`))}
+const sceneHtml=()=>S.scene&&(S.scene.note||S.scene.loot)?`<div class="scene"><div><b>${esc(S.scene.name)}</b>${S.scene.note?`<p class="note">${esc(S.scene.note)}</p>`:""}${S.scene.loot?`<p class="note"><b>${tx("Botín","Loot")}:</b> ${esc(S.scene.loot)}</p>`:""}</div><button class="btn" data-do="scenex" aria-label="${tx("Ocultar el escenario","Hide the scenario")}">✕</button></div>`:"";
+function encClick(d){
+  if(d.ex){const a=d.ex,e=(BEST.enc||[]).find(x=>x.id===d.e);if(a==="new"){encEdOpen(null);return true}if(!e)return true;
+    if(a==="open"){eOpen=eOpen===e.id?null:e.id;armed=null;render();return true}
+    if(a==="go"){encGo(e);return true}
+    if(a==="edit"){encEdOpen(e);return true}
+    if(a==="dup"){const n=JSON.parse(JSON.stringify(e));n.id="e"+nid();n.name=setL(n.name,tl2(n.name)+tx(" (copia)"," (copy)"));BEST.enc.splice(BEST.enc.indexOf(e)+1,0,n);eOpen=n.id;saveBest();render();return true}
+    if(a==="del"){if(armed!=="edel"+e.id){armed="edel"+e.id;render();return true}armed=null;BEST.enc=BEST.enc.filter(x=>x!==e);eOpen=null;saveBest();render();return true}
+    return true}
+  if(d.eq&&EE){let it=EE.items.find(x=>x.bid===d.eq);if(!it)EE.items.push(it={bid:d.eq,q:0});it.q=Math.max(0,Math.min(20,it.q+ +d.v));EE.items=EE.items.filter(x=>x.q>0);drawPan();return true}
+  if(d.pan==="eesave"&&EE){if(!tl2(EE.name).trim()||!EE.items.length){dmToast("d",tx("El encuentro necesita nombre y al menos una criatura","The encounter needs a name and at least one creature"));return true}
+    if(!EE.id)EE.id="e"+nid();BEST.enc=BEST.enc||[];const i=BEST.enc.findIndex(x=>x.id===EE.id);if(i>=0)BEST.enc[i]=EE;else BEST.enc.push(EE);eOpen=EE.id;saveBest();panClose();render();return true}
+  return false}
 
 /* ===================== CRÓNICA DEL COMBATE =====================
    S.clog (máx. 600): eventos del panel mientras hay combate, con cid (S.cid, nace en el primer «Siguiente»), ronda, turnId y actor (de quién es el turno).
@@ -986,9 +1062,11 @@ function delC(id){const L=sorted(),i=L.findIndex(c=>c.id===id);if(S.cur===id&&L.
   S.list=S.list.filter(c=>c.id!==id);open=null;if(!S.list.length)S.cur=null}
 const noDm=()=>dmToast("d",tx("Sin sesión de DM no se puede avisar a los jugadores","Without a DM session the players can't be notified"));
 function bestClick(d,find){
+  if(encClick(d))return true;
   if(d.pan){const a=d.pan;
     if(a==="close"){panClose();return true}
     if(a==="edsave"){if(!tl2(ED.name).trim()||!(ED.hp>0)){dmToast("d",tx("La hoja necesita nombre y PV máx.","The sheet needs a name and max HP"));return true}
+      ED.cr=String(ED.cr??"").trim();if(ED.cr&&!crOk(ED.cr)){dmToast("d",tx("VD no válido: usa 0, 1/8, 1/4, 1/2 o de 1 a 30","Invalid CR: use 0, 1/8, 1/4, 1/2 or 1 to 30"));return true}
       if(!ED.id)ED.id="b"+nid();ED.cards.forEach(x=>{if(!x.id)x.id=nid()});const i=BEST.list.findIndex(b=>b.id===ED.id);if(i>=0)BEST.list[i]=ED;else BEST.list.push(ED);
       bOpen=ED.id;saveBest();panClose();render();return true}
     if(a==="aoego"){aoeGo();return true}
@@ -1039,10 +1117,11 @@ function bestClick(d,find){
 /* Casillas del panel: el editor escribe en ED sin redibujar; el daño en área redibuja sus filas (put conserva el foco y lo escrito) */
 function panInput(e){const el=e.target;if(!PANEL||!el.closest||!el.closest("#pan"))return;
   if(PANEL.k==="edit"&&el.dataset.ef){edSet(el.dataset.ef,el);return}
+  if(PANEL.k==="enc"&&el.dataset.ee){EE[el.dataset.ee]=setL(EE[el.dataset.ee],el.value.slice(0,400));return}
   if(PANEL.k==="atk"&&el.dataset.ak){const it=PANEL.q[+el.dataset.i],f=el.dataset.ak;if(!it)return;it[f]=el.type==="checkbox"?el.checked:el.value;if(f==="tot"){it.nat=null;it.roll=""}if(f==="cx"||f==="tid")it.par=0;drawPan();return}
   if(PANEL.k==="aoe"){const f=el.dataset.ao;if(f)PANEL[f]=el.type==="checkbox"?el.checked:el.value;else if(el.dataset.aosel)PANEL.sel[el.dataset.aosel]=el.checked;else return;drawPan()}}
 document.addEventListener("input",e=>{if(e.target.type!=="checkbox"&&e.target.tagName!=="SELECT")panInput(e)});
-document.addEventListener("change",e=>{if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.encpet!=null){encPet=e.target.checked;render();return}if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
 document.addEventListener("toggle",e=>{const o=e.target.dataset&&e.target.dataset.edo;if(o!=null){if(e.target.open)EDO.add(+o);else EDO.delete(+o)}},true);
 /* Partes de la tarjeta: "enviado" hasta que cambian los PV en vivo, aviso de moral y salvación de concentración pendiente */
 function sentTag(c,lv){const s=SENT[c.id];if(!s)return"";const l=linkOf(c),a=l&&(LIVE.state[l.char]||{}).hitAck;if(a&&s.at&&(+a.at||0)>s.at){delete SENT[c.id];return""}if(lv&&s.hp!=null&&lv.hp!==s.hp){delete SENT[c.id];return""}return`<div class="conds"><span class="tag live">${tx("Golpe enviado","Hit sent")}</span></div>`}
@@ -1080,6 +1159,7 @@ document.addEventListener("click",e=>{
   if(act==="look"){openLook();return}
   if(act==="aoe"){aoeOpen();return}
   if(act==="cronshow"){cronOpen();return}
+  if(act==="scenex"){S.scene=null;save();render();return}
   if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>alert(tx("No se pudo entrar: ","Couldn't sign in: ")+(e.code||e)));return}
   if(act==="logout"){fb.U.signOut(fb.auth);return}
   if(act==="next"||act==="prev"){const L=sorted();if(!L.length)return;let i=L.findIndex(c=>c.id===S.cur);
@@ -1126,6 +1206,7 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
   /* Fluffy con iniciativa entra en orden y se publica como mascota de Sungsopp */
   S.list.push({id:"f",name:"Fluffy",type:"ally",owner:"Sungsopp",init:15,hp:68,max:68,temp:0,conds:[]});S.cur="f";const q=liveOf();
   console.assert(sorted().map(c=>c.id).join()==="e,f,u"&&JSON.stringify(q.cur)==='{"kind":"pet","char":"sungsopp","name":"Fluffy"}',"dm-pet: "+JSON.stringify(q));S=t}
+if(bestMig())store.set("dm:best",BEST); // VD y encuentro inicial, sin subir la fecha (si la nube ya los tiene, gana la nube)
 staticT();render();cloudInit();
 </script>
 
