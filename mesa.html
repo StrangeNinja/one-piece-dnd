@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mesa</title>
+<link rel="icon" type="image/png" sizes="32x32" href="imagenes/icono/icono-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="imagenes/icono/icono-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-title" content="Mesa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#eef3f7">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral+SC:wght@600;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Pantalla de mesa: solo lectura, para una tele, tableta o portátil en horizontal. Letra grande; se lee de lejos */
+/* ===== Paletas (mismo bloque en index.html y dm.html) =====
+   data-pal en <html>: grand (predeterminada) · bandera · paja. data-theme: light (día) · dark (noche).
+   Colores de estado: iguales en todas, salvo el daño en las paletas de acento rojo y los PV temporales en Grand Line (acento azul). */
+:root,[data-pal]{--good:#1f7a45;--bad:#b3261e;--warn:#8f5b00;--haki:#3f3486;--temp:#2b5ea8;--foe:#6d2b80;--shadow:rgba(0,0,0,.14);color-scheme:light}
+[data-pal][data-theme="dark"]{--good:#5cc98c;--bad:#ff8a80;--warn:#eab14d;--haki:#b7a9f2;--temp:#86b2f0;--foe:#cf9be6;--shadow:rgba(0,0,0,.55);color-scheme:dark}
+:root,[data-pal="grand"]{--bg:#eef3f7;--surface:#ffffff;--ink:#10243a;--muted:#4f6378;--line:#cfdae4;--chip:#e1e9f0;--accent:#1d5c8f;--accent-ink:#ffffff;--gold:#8e6607;--temp:#00737a}
+[data-pal="bandera"]{--bg:#f2f0ee;--surface:#ffffff;--ink:#1a1a1a;--muted:#5e5a56;--line:#dcd7d2;--chip:#e7e3df;--accent:#b0202a;--accent-ink:#ffffff;--gold:#7d5f17;--bad:#9d1a5f}
+[data-pal="paja"]{--bg:#fbf5e6;--surface:#fffdf6;--ink:#2b2416;--muted:#6b5f47;--line:#ebdfc2;--chip:#f2e8cf;--accent:#b8342a;--accent-ink:#ffffff;--gold:#8c6807;--bad:#9d1a5f}
+[data-pal="grand"][data-theme="dark"]{--bg:#0b1622;--surface:#13233a;--ink:#e6eef6;--muted:#93a6ba;--line:#22364f;--chip:#1b2d47;--accent:#5fa8e6;--accent-ink:#0b1622;--gold:#e8c15a;--temp:#4fd3dc}
+[data-pal="bandera"][data-theme="dark"]{--bg:#0e0e10;--surface:#1a1a1d;--ink:#ededed;--muted:#a3a3a8;--line:#2c2c31;--chip:#242428;--accent:#ff5a5f;--accent-ink:#0e0e10;--gold:#d9b45a;--bad:#ff8fc4}
+[data-pal="paja"][data-theme="dark"]{--bg:#1b160c;--surface:#262012;--ink:#f3ead6;--muted:#b5a88a;--line:#3a3120;--chip:#322a19;--accent:#ee7466;--accent-ink:#1b160c;--gold:#f0c24b;--bad:#ff8fc4}
+.lk{border:1.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;width:min(420px,calc(100vw - 32px));box-shadow:0 12px 32px var(--shadow)}
+.lk::backdrop{background:var(--shadow)}
+.lk-in{padding:14px;display:flex;flex-direction:column}
+.lk-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lk-top b{font-family:var(--f-display);font-size:20px}
+.lk h3{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.lk-pal{display:flex;flex-direction:column;gap:6px}
+.lk-pal button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);font-weight:700;text-align:left}
+.lk-pal button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.sw{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--line);flex-shrink:0}
+.sw i{width:14px;height:22px}
+.sw i:nth-child(1){background:var(--bg)} .sw i:nth-child(2){background:var(--surface)} .sw i:nth-child(3){background:var(--accent)} .sw i:nth-child(4){background:var(--gold)}
+.lk-mode{display:grid;grid-template-columns:repeat(3,1fr);background:var(--chip);border-radius:10px;padding:3px}
+.lk-mode button{padding:8px 4px;border-radius:8px;font-size:14px;font-weight:700;color:var(--muted)}
+.lk-mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px var(--shadow)}
+.lk-mode.lk-two{grid-template-columns:1fr 1fr}
+.lk-ver{margin:12px 0 0;font-size:11px;color:var(--muted);text-align:center}
+.ico{width:20px;height:20px;display:block}
+/* ===== fin de paletas ===== */
+:root{--f-display:"Spectral SC", Georgia, "Times New Roman", serif;--f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:clamp(16px,1.6vw,26px);line-height:1.35;padding:max(12px,env(safe-area-inset-left,0px));min-height:100vh;font-variant-numeric:tabular-nums;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+.btn{padding:.45em .9em;border-radius:10px;background:var(--chip);font-weight:700;font-size:.8em;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.note{font-size:.75em;color:var(--muted);margin:0}
+.ico{width:1.1em;height:1.1em;vertical-align:-.2em}
+.top{display:flex;align-items:center;gap:.6em 1em;flex-wrap:wrap;margin-bottom:.6em}
+.top h1{font-family:var(--f-display);font-size:1.4em;margin:0;margin-right:auto}
+.rnd{font-family:var(--f-display);font-size:2.2em;line-height:1}
+.now{font-size:1.25em;font-weight:700}.now small,.nx{display:block;font-size:.65em;font-weight:400;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.clock{font-size:1.3em;font-weight:700;padding:.1em .5em;border-radius:10px;background:var(--chip)}.clock.over{background:var(--bad);color:var(--bg)}
+.grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:1em}
+@media (max-width:760px),(orientation:portrait){.grid{grid-template-columns:1fr}}
+.ord{display:flex;flex-direction:column;gap:.35em;list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;align-items:center;gap:.6em;padding:.4em .6em;border-radius:14px;background:var(--surface);border:2px solid var(--line)}
+.row.cur{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent);transform:scale(1.015)}
+.row.ko{opacity:.55}
+.row .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .side{display:flex;align-items:center;gap:.4em;justify-content:flex-end;flex-wrap:wrap}
+.av{position:relative;display:inline-flex;align-items:center;justify-content:center;width:2.2em;height:2.2em;border-radius:50%;overflow:hidden;background:var(--chip);color:var(--muted);font-weight:700}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.av.foe{background:var(--foe);color:var(--bg)}
+.hp{display:flex;flex-direction:column;gap:.15em;min-width:7em;text-align:right;font-weight:700}
+.bar{height:.45em;border-radius:99px;background:var(--chip);overflow:hidden}.bar i{display:block;height:100%;background:var(--good)}.bar i.mid{background:var(--warn)}.bar i.low{background:var(--bad)}
+.band{font-size:.7em;font-weight:700;padding:.2em .6em;border-radius:99px;background:var(--chip)}
+.band.ok{background:var(--good);color:var(--bg)}.band.hurt{background:var(--warn);color:var(--bg)}.band.bad,.band.near{background:var(--bad);color:var(--bg)}.band.ko{background:var(--muted);color:var(--bg)}
+.conds{display:flex;flex-wrap:wrap;gap:.25em;grid-column:2/4}.conds b{font-size:.6em;padding:.15em .5em;border-radius:6px;background:var(--chip);color:var(--muted)}
+.side-col{display:flex;flex-direction:column;gap:1em}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:.8em 1em}
+.card h2{font-family:var(--f-display);font-size:1em;margin:0 0 .4em;color:var(--muted)}
+.tick p{margin:0 0 .5em;font-size:.95em}.tick p:last-child{font-weight:700}
+.cron{white-space:pre-wrap;font-size:1.15em;line-height:1.5;max-width:60em;margin:0 auto}
+.cron h2{font-family:var(--f-display);font-size:1.6em;color:var(--ink)}
+.empty{color:var(--muted);text-align:center;padding:3em 1em;font-size:1.2em}
+.gate{max-width:420px;margin:12vh auto 0;display:flex;flex-direction:column;gap:.7em;font-size:18px}
+.gate input{padding:.6em .7em;border-radius:10px;border:1.5px solid var(--line);background:var(--surface)}
+.gate h1{font-family:var(--f-display);margin:0}
+.warn{color:var(--bad);font-weight:700}
+/* Aviso grande al cambiar de turno */
+.big{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:20}
+.big b{font-family:var(--f-display);font-size:clamp(40px,8vw,140px);color:var(--accent-ink);background:var(--accent);padding:.2em .6em;border-radius:24px;box-shadow:0 10px 40px var(--shadow);animation:pop 2.4s ease forwards}
+@keyframes pop{0%{transform:scale(.6);opacity:0}15%{transform:scale(1.05);opacity:1}25%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.big b{animation:fade 2.4s linear forwards}.row.cur{transform:none}@keyframes fade{0%,80%{opacity:1}100%{opacity:0}}}
+</style>
+<script>
+/* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
+/* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
+const APP_VERSION="2026-11-22 21:21";
+/* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
+const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
+  DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
+const ICON=`<svg class="ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2.2" fill="currentColor"/><circle cx="13" cy="10" r="2.2" fill="currentColor"/><circle cx="8" cy="15" r="2.2" fill="currentColor"/></svg>`;
+const darkQ=matchMedia("(prefers-color-scheme: dark)");
+/* dice: "fis" (cada jugador tira sus dados y la app da la receta, predeterminado) o "dig" (la app tira) */
+/* quick: uso rápido de ataques sin límite (sin ficha de detalle); el ajuste solo aparece en la app de los jugadores (body con data-quick) */
+const okLook=v=>v&&PALS[v.pal]&&MODES[v.mode]?{pal:v.pal,mode:v.mode,dice:DICE[v.dice]?v.dice:"fis",lang:v.lang==="en"?"en":"es",quick:v.quick===true||v.quick==="1"}:null;
+function readLook(){try{return okLook(JSON.parse(localStorage.getItem(LOOK_KEY)))}catch(e){return null}}
+let look=readLook()||{pal:"grand",mode:"auto",dice:"fis",lang:"es",quick:false};
+const tx=(es,en)=>look.lang==="en"?en:es;
+const isDark=()=>look.mode==="night"||(look.mode==="auto"&&darkQ.matches);
+function applyLook(){const r=document.documentElement;r.dataset.pal=look.pal;r.dataset.theme=isDark()?"dark":"light";r.lang=look.lang;
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(r).getPropertyValue("--bg").trim();
+  const d=document.getElementById("lk");if(d&&d.open)drawLook()}
+/* fromCloud: el valor viene de Firebase, no hay que volver a subirlo */
+function setLook(v,fromCloud){v=okLook(v);if(!v||JSON.stringify(v)===JSON.stringify(look))return;look=v;
+  try{localStorage.setItem(LOOK_KEY,JSON.stringify(look))}catch(e){}
+  applyLook();if(typeof onLook==="function")onLook();if(!fromCloud&&typeof lookToCloud==="function")lookToCloud(look)}
+function drawLook(){const t=isDark()?"dark":"light",d=document.getElementById("lk"),n=o=>o[look.lang];d.setAttribute("aria-label",tx("Ajustes","Settings"));
+  d.innerHTML=`<div class="lk-in"><div class="lk-top"><b>${tx("Ajustes","Settings")}</b><button class="btn" data-lk="close">${tx("Cerrar","Close")}</button></div>
+  <h3>${tx("Paleta","Palette")}</h3><div class="lk-pal">${Object.entries(PALS).map(([k,o])=>`<button data-lkpal="${k}" aria-pressed="${look.pal===k}"><span class="sw" data-pal="${k}" data-theme="${t}"><i></i><i></i><i></i><i></i></span>${n(o)}</button>`).join("")}</div>
+  <h3>${tx("Modo","Mode")}</h3><div class="lk-mode">${Object.entries(MODES).map(([k,o])=>`<button data-lkmode="${k}" aria-pressed="${look.mode===k}">${n(o)}</button>`).join("")}</div>
+  <h3>${tx("Dados","Dice")}</h3><div class="lk-mode lk-two">${Object.entries(DICE).map(([k,o])=>`<button data-lkdice="${k}" aria-pressed="${look.dice===k}">${n(o)}</button>`).join("")}</div>
+  <p class="note" style="margin-top:6px">${look.dice==="fis"?tx("Tiras tus dados y la app te dice qué tirar. Puedes anotar el resultado.","You roll your own dice and the app tells you what to roll. You can enter the result."):tx("La app tira los dados por ti.","The app rolls the dice for you.")}</p>
+  ${document.body.hasAttribute("data-quick")?`<h3>${tx("Uso rápido para ataques sin límite","Quick use for unlimited attacks")}</h3><div class="lk-mode lk-two">${[["1",tx("Activado","On")],["0",tx("Desactivado","Off")]].map(([k,n])=>`<button data-lkquick="${k}" aria-pressed="${look.quick===(k==="1")}">${n}</button>`).join("")}</div>
+  <p class="note" style="margin-top:6px">${tx("Activado: armas, golpes sin arma y trucos se usan con un toque. Lo que tiene usos limitados siempre muestra antes su ficha.","On: weapons, unarmed strikes and cantrips are used with one tap. Anything with limited uses always shows its sheet first.")}</p>`:""}
+  <h3>Idioma / Language</h3><div class="lk-mode lk-two">${Object.entries(LANGS).map(([k,o])=>`<button data-lklang="${k}" lang="${k}" aria-pressed="${look.lang===k}">${n(o)}</button>`).join("")}</div>
+  <p class="lk-ver">${tx("Versión","Version")} ${APP_VERSION}</p></div>`}
+function openLook(){let d=document.getElementById("lk");
+  if(!d){d=document.createElement("dialog");d.id="lk";d.className="lk";document.body.append(d);d.addEventListener("close",()=>navLater());
+    d.addEventListener("click",e=>{const b=e.target.closest("button");if(e.target===d||(b&&b.dataset.lk==="close"))return d.close();if(!b)return;
+      const k=b.dataset.lkpal?"pal":b.dataset.lkmode?"mode":b.dataset.lklang?"lang":b.dataset.lkquick?"quick":"dice",val=b.dataset["lk"+k];
+      setLook({...look,[k]:val});d.querySelector(`[data-lk${k}="${val}"]`)?.focus()})}
+  drawLook();d.showModal();navLater()}
+applyLook();darkQ.addEventListener("change",applyLook);
+/* Gesto Atrás del teléfono (botón de Android, deslizar desde el borde en iPhone): cada nivel abierto es una entrada del historial (pushState, sin cambiar la URL).
+   Niveles: Ajustes más los que cuente la página (navDepth); Atrás cierra uno (navPop). Cerrar varios a la vez retrocede el historial y HSKIP ignora ese popstate */
+let HD=0,HSKIP=0,HT=0;
+const lkOpen=()=>!!(document.getElementById("lk")||{}).open;
+function navSync(){HT=0;if(HSKIP)return;const d=(lkOpen()?1:0)+(typeof navDepth==="function"?navDepth():0);
+  if(d>HD)for(;HD<d;HD++)history.pushState({mc:HD+1},"");
+  else if(d<HD){HSKIP=1;history.go(d-HD);HD=d;setTimeout(()=>{if(HSKIP){HSKIP=0;navLater()}},1500)}}
+function navLater(){if(!HT)HT=setTimeout(navSync,0)}
+addEventListener("popstate",()=>{if(HSKIP){HSKIP=0;navLater();return}if(!HD)return;HD--;
+  if(lkOpen())document.getElementById("lk").close();else if(typeof navPop==="function")navPop();navLater()});
+if(history.state&&history.state.mc){HSKIP=1;history.go(-history.state.mc)} // recarga con niveles abiertos: vuelve a la entrada base
+addEventListener("storage",e=>{if(e.key===LOOK_KEY){const v=readLook();if(v){look=v;applyLook();if(typeof onLook==="function")onLook()}}});
+</script>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script>
+/* ===================== PANTALLA DE MESA (solo lectura) =====================
+   Lee combat/live (round, turnId, order, ticker…) y combat/chronicle. Inicio de sesión como en la app (Google o correo); las reglas dejan leer combat/live
+   y combat/chronicle a cualquier cuenta con documento en players (y al DM). Los enemigos llegan sin PV ni CA, y sin nombre salvo que el DM lo muestre */
+const FIREBASE={apiKey:"AIzaSyBjywHbBPsTBVvWtOXbKhjQDf4kmbEc-MU",authDomain:"one-piece-dnd.firebaseapp.com",projectId:"one-piece-dnd",storageBucket:"one-piece-dnd.firebasestorage.app",messagingSenderId:"629290049992",appId:"1:629290049992:web:6fe9f692bb47c8878460fd"};
+const FB="https://www.gstatic.com/firebasejs/10.12.2/firebase-";
+const CHAR_KEYS=["udon","codel","kalgo","sungsopp","ryuga"];
+const CONDS_EN={Agarrado:"Grappled",Apresado:"Restrained",Asustado:"Frightened",Aturdido:"Stunned",Cegado:"Blinded",Derribado:"Prone",Ensordecido:"Deafened",Envenenado:"Poisoned",Hechizado:"Charmed",Incapacitado:"Incapacitated",Invisible:"Invisible",Paralizado:"Paralyzed",Petrificado:"Petrified",Inconsciente:"Unconscious",Concentrado:"Concentrating"};
+const BANDS={ok:{es:"Ileso",en:"Unhurt"},hurt:{es:"Herido",en:"Hurt"},bad:{es:"Malherido",en:"Badly hurt"},near:{es:"A punto de caer",en:"About to fall"},ko:{es:"Derrotado",en:"Defeated"}};
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),tl=o=>o[look.lang]||o.es;
+const isInt=(x,a,b)=>Number.isInteger(x)&&x>=a&&x<=b;
+let fb=null,user=null,LIVE=null,CRON=null,ERR="",lastTid=null,LOGIN={err:"",busy:false};
+/* Lo que llega de la nube se limpia antes de pintarlo (lo escribe el DM, pero se muestra como HTML) */
+function cleanLive(v){if(!v||typeof v!=="object")return null;const O=Array.isArray(v.order)?v.order.slice(0,40).filter(o=>o&&typeof o==="object"):[];
+  return{active:v.active===true,round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,turnAt:isInt(v.turnAt,0,1e14)?v.turnAt:0,clock:isInt(v.clock,0,600)?v.clock:0,
+    order:O.map(o=>({kind:["pc","pet","ally","foe"].includes(o.kind)?o.kind:"ally",char:CHAR_KEYS.includes(o.char)?o.char:null,name:String(o.name||"").slice(0,40),n:isInt(o.n,1,99)?o.n:0,band:BANDS[o.band]?o.band:"",
+      conds:Array.isArray(o.conds)?o.conds.filter(x=>typeof x==="string"&&CONDS_EN[x]).slice(0,8):[],cur:o.cur===true,hp:isInt(o.hp,0,9999)?o.hp:null,max:isInt(o.max,1,9999)?o.max:null})),
+    ticker:Array.isArray(v.ticker)?v.ticker.filter(x=>typeof x==="string").slice(-5).map(x=>x.slice(0,240)):[]}}
+const nameOf=o=>o.name||tx(`Enemigo ${o.n||""}`,`Enemy ${o.n||""}`).trim();
+const pic=o=>o.char&&o.kind==="pc"?`<span class="av">${esc(nameOf(o)[0]||"?")}<img src="imagenes/${o.char}-mini.jpg" alt="" width="96" height="96" onerror="this.remove()"></span>`:`<span class="av ${o.kind==="foe"?"foe":""}">${esc(nameOf(o)[0]||"?")}</span>`;
+function rowHtml(o){const p=o.hp!=null&&o.max?Math.max(0,Math.min(100,o.hp/o.max*100)):null;
+  return`<li class="row ${o.cur?"cur":""} ${o.band==="ko"||o.hp===0?"ko":""}" ${o.cur?'aria-current="true"':""}>${pic(o)}<span class="nm">${esc(nameOf(o))}</span>
+    <span class="side">${p!=null?`<span class="hp"><span>${o.hp} / ${o.max}</span><span class="bar"><i class="${p<=25?"low":p<=50?"mid":""}" style="width:${p}%"></i></span></span>`:o.band?`<span class="band ${o.band}">${tl(BANDS[o.band])}</span>`:""}</span>
+    ${o.conds.length?`<span class="conds">${o.conds.map(x=>`<b>${esc(tx(x,CONDS_EN[x]))}</b>`).join("")}</span>`:""}</li>`}
+/* Reloj de turno (si el DM lo activó): segundos desde turnAt; en rojo al pasar el límite */
+const clockTxt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+function clockHtml(L){if(!L.turnAt)return"";const s=Math.max(0,Math.floor((Date.now()-L.turnAt)/1000));return`<span class="clock ${L.clock&&s>=L.clock?"over":""}" id="clk" aria-label="${tx("Tiempo del turno","Turn time")}">${clockTxt(s)}</span>`}
+function render(){document.title=tx("Mesa","Table");const a=$("app");
+  if(!fb){a.innerHTML=`<div class="empty">${ERR||tx("Cargando…","Loading…")}</div>`;return}
+  if(!user){a.innerHTML=gateHtml();return}
+  const L=LIVE,head=`<div class="top"><h1>${tx("Mesa de Combate","Combat Table")}</h1>
+    <button class="btn" data-do="full">${tx("Pantalla completa","Fullscreen")}</button><button class="btn" data-do="look" aria-label="${tx("Ajustes","Settings")}">${ICON}</button><button class="btn" data-do="out">${tx("Cerrar sesión","Sign out")}</button></div>`;
+  if(ERR){a.innerHTML=head+`<div class="empty warn">${ERR}</div>`;return}
+  if(!L||!L.active){a.innerHTML=head+(CRON?`<article class="cron"><h2>${esc(CRON.title)}</h2>${esc(CRON.text)}</article>`:`<div class="empty">${tx("Esperando el próximo combate…","Waiting for the next combat…")}</div>`);return}
+  const i=L.order.findIndex(o=>o.cur),cu=L.order[i],nx=i>=0?L.order.slice(i+1).concat(L.order.slice(0,i)).find(o=>o.band!=="ko"&&o.hp!==0):null;
+  a.innerHTML=head+`<div class="top"><span class="rnd">${tx("Ronda","Round")} ${L.round}</span><span class="now"><small>${tx("Turno de","Turn of")}</small>${cu?esc(nameOf(cu)):"—"}</span>${nx?`<span class="now"><small>${tx("Después","Next")}</small>${esc(nameOf(nx))}</span>`:""}${clockHtml(L)}</div>
+    <div class="grid"><ol class="ord" aria-label="${tx("Orden de iniciativa","Initiative order")}">${L.order.map(rowHtml).join("")}</ol>
+    <div class="side-col"><section class="card tick" aria-label="${tx("Lo último","Latest")}"><h2>${tx("Lo último","Latest")}</h2>${L.ticker.length?L.ticker.map(x=>`<p>${esc(x)}</p>`).join(""):`<p class="note">${tx("Todavía no pasa nada.","Nothing has happened yet.")}</p>`}</section></div></div>`}
+function bigTurn(o){const d=document.createElement("div");d.className="big";d.setAttribute("role","status");d.innerHTML=`<b>${o.kind==="foe"&&!o.name?tx("¡Turno de los enemigos!","Enemies' turn!"):tx(`¡Turno de ${esc(nameOf(o))}!`,`${esc(nameOf(o))}'s turn!`)}</b>`;document.body.append(d);setTimeout(()=>d.remove(),2500)}
+function onLive(v){const L=cleanLive(v),was=LIVE;LIVE=L;if(L&&L.active&&was&&was.active&&L.turnId!==lastTid){const c=L.order.find(o=>o.cur);if(c)bigTurn(c)}lastTid=L&&L.turnId;render()}
+const gateHtml=()=>`<div class="gate"><h1>${tx("Mesa de Combate","Combat Table")}</h1><p class="note">${tx("Inicia sesión con tu cuenta de la app para ver la mesa.","Sign in with your app account to see the table.")}</p>
+  <button class="btn primary" data-do="google">${tx("Iniciar sesión con Google","Sign in with Google")}</button>
+  <form id="mf" class="gate" style="margin:0"><input id="me" type="email" autocomplete="email" placeholder="${tx("Correo","Email")}" aria-label="${tx("Correo","Email")}" required><input id="mp" type="password" autocomplete="current-password" placeholder="${tx("Contraseña","Password")}" aria-label="${tx("Contraseña","Password")}" required>
+  <button class="btn" ${LOGIN.busy?"disabled":""}>${tx("Iniciar sesión con correo","Sign in with email")}</button></form>${LOGIN.err?`<p class="warn">${LOGIN.err}</p>`:""}</div>`;
+const authErr=()=>tx("No se pudo iniciar sesión. Revisa tu correo y contraseña.","Couldn't sign in. Check your email and password.");
+let unsubs=[];
+async function cloudInit(){try{const [A,U,F]=await Promise.all(["app","auth","firestore"].map(m=>import(FB+m+".js")));const app=A.initializeApp(FIREBASE);let db;
+    try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}catch(e){db=F.getFirestore(app)}
+    fb={U,F,db,auth:U.getAuth(app)}}catch(e){ERR=tx("Sin conexión: la pantalla de mesa necesita internet.","Offline: the table screen needs the internet.");render();return}
+  render();
+  fb.U.onAuthStateChanged(fb.auth,u=>{unsubs.forEach(f=>f());unsubs=[];user=u;ERR="";LIVE=null;CRON=null;
+    if(u){const {F,db}=fb,deny=e=>{ERR=tx("Esta cuenta no tiene acceso a la mesa. Pídele al DM que te asigne un personaje.","This account can't see the table. Ask the DM to assign you a character.");console.warn(e);render()};
+      unsubs.push(F.onSnapshot(F.doc(db,"combat","live"),d=>onLive(d.exists()?d.data():null),deny));
+      unsubs.push(F.onSnapshot(F.doc(db,"combat","chronicle"),d=>{const v=d.exists()&&d.data();CRON=v&&typeof v.text==="string"?{title:String(v.title||"").slice(0,120),text:v.text.slice(0,30000)}:null;render()},()=>{}))}
+    render()})}
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const a=b.dataset.do;
+  if(a==="look")openLook();
+  if(a==="full"){const r=document.documentElement;(document.fullscreenElement?document.exitFullscreen():(r.requestFullscreen||r.webkitRequestFullscreen||(()=>Promise.resolve())).call(r))?.catch?.(()=>{})}
+  if(a==="out"&&fb)fb.U.signOut(fb.auth);
+  if(a==="google"&&fb){LOGIN.err="";fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>{if(!/popup-closed|cancelled-popup/.test(e.code||"")){LOGIN.err=authErr();render()}})}});
+document.addEventListener("submit",e=>{if(e.target.id!=="mf")return;e.preventDefault();if(!fb)return;LOGIN.busy=true;LOGIN.err="";render();
+  fb.U.signInWithEmailAndPassword(fb.auth,$("me")?.value.trim()||"",$("mp")?.value||"").catch(()=>{LOGIN.err=authErr()}).finally(()=>{LOGIN.busy=false;render()})},true);
+function onLook(){render()}
+/* El reloj avanza solo (sin redibujar todo) */
+setInterval(()=>{const k=$("clk");if(!k||!LIVE||!LIVE.turnAt)return;const s=Math.max(0,Math.floor((Date.now()-LIVE.turnAt)/1000));k.textContent=clockTxt(s);k.classList.toggle("over",!!LIVE.clock&&s>=LIVE.clock)},1000);
+console.assert(cleanLive({active:true,order:[{kind:"foe",name:"",n:1,band:"hurt",hp:"9",conds:["<x>","Cegado"]}]}).order[0].hp===null&&cleanLive({order:[{kind:"foe",conds:["Cegado","<x>"]}]}).order[0].conds.join()==="Cegado","mesa: limpieza");
+render();cloudInit();
+</script>
+</body>
+</html>

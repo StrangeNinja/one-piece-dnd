@@ -221,6 +221,8 @@ code{font-size:12px;word-break:break-all;user-select:all}
 /* Turnos del combate: barra arriba, aviso grande, aviso suave e insignia */
 .cbar{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:6px 12px;border-radius:10px;background:var(--chip);font-size:13px;color:var(--muted)}
 .cbar b{color:var(--ink)} .cbar span:not(.nx){color:var(--ink);font-weight:700} .cbar .nx{margin-left:auto}
+.cbar .ordr{display:flex;gap:4px;width:100%;overflow-x:auto;scrollbar-width:none;padding-bottom:2px} .cbar .ordr span{flex:none;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface);color:var(--muted)!important}
+.cbar .ordr span.now{background:var(--ink);color:var(--bg)!important} .cbar .ordr span.mine{box-shadow:inset 0 0 0 2px var(--accent)} .cbar .ordr span.ko{text-decoration:line-through;opacity:.6} .cbar .ordme{font-size:12px}
 .cbar.me{background:var(--accent);color:var(--accent-ink)} .cbar.me b,.cbar.me span{color:var(--accent-ink)!important}
 .yt{position:fixed;left:0;right:0;top:0;z-index:58;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;
   padding:calc(22px + env(safe-area-inset-top,0px)) 20px 20px;background:var(--accent);color:var(--accent-ink);box-shadow:0 10px 30px var(--shadow);animation:ytin .35s ease-out}
@@ -340,7 +342,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:16";
+const APP_VERSION="2026-11-22 21:21";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -2781,8 +2783,15 @@ function startTurn(c){const ask=!S.turnEnded&&S.frenzy,hint=S.turn.attacked||S.t
 let CB=null;
 const CB_KINDS=["pc","pet","ally","foe"],CB_CHARS=["udon","codel","kalgo","sungsopp","ryuga"];
 const cbWho=x=>x&&typeof x==="object"&&CB_KINDS.includes(x.kind)?{kind:x.kind,char:CB_CHARS.includes(x.char)?x.char:null,name:x.kind==="foe"?"":String(x.name||"").slice(0,40)}:null;
-const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next),cid:typeof v.cid==="string"?v.cid.replace(/[^\w-]/g,"").slice(0,24):""}:null;
+const cleanCB=v=>v&&typeof v==="object"&&v.active===true&&cbWho(v.cur)?{round:isInt(v.round,1,9999)?v.round:1,turnId:isInt(v.turnId,0,1e9)?v.turnId:0,cur:cbWho(v.cur),next:cbWho(v.next),cid:typeof v.cid==="string"?v.cid.replace(/[^\w-]/g,"").slice(0,24):"",order:ordClean(v.order)}:null;
+/* Orden de iniciativa (combat/live.order): enemigos sin nombre salvo que el DM lo muestre (n = número de enemigo), sin PV ni CA */
+function ordClean(v){return Array.isArray(v)?v.slice(0,40).filter(o=>o&&typeof o==="object"&&["pc","pet","ally","foe"].includes(o.kind)).map(o=>({kind:o.kind,char:CB_CHARS.includes(o.char)?o.char:null,name:String(o.name||"").replace(/[<>&"]/g,"").slice(0,40),n:isInt(o.n,1,99)?o.n:0,
+  band:["ok","hurt","bad","near","ko"].includes(o.band)?o.band:"",conds:Array.isArray(o.conds)?o.conds.filter(x=>CONDS.includes(x)).slice(0,8):[],cur:o.cur===true,...(isInt(o.hp,0,9999)&&isInt(o.max,1,9999)?{hp:o.hp,max:o.max}:{})})):[]}
+const ordName=o=>o.name?esc(o.name):tx(`Enemigo ${o.n||""}`,`Enemy ${o.n||""}`).trim();
+function ordStrip(){const O=CB&&CB.order;if(!O||!O.length)return"";const i=O.findIndex(o=>o.cur),me=O.findIndex(o=>o.kind==="pc"&&o.char===cur),R=i>0?[...O.slice(i),...O.slice(0,i)]:O;
+  return`<div class="ordr" role="list" aria-label="${tx("Orden de iniciativa","Initiative order")}">${R.map(o=>`<span role="listitem" class="${o.cur?"now":""}${o.kind==="pc"&&o.char===cur?" mine":""}${o.band==="ko"?" ko":""}">${ordName(o)}</span>`).join("")}</div>${me>=0?`<small class="ordme">${tx(`Tu lugar: ${me+1}.º de ${O.length}`,`Your spot: ${me+1} of ${O.length}`)}</small>`:""}`}
 console.assert(cleanCB({active:true,round:2,turnId:5,cur:{kind:"foe",name:"Kaido"},next:{kind:"pc",char:"udon",name:"Udon"}}).cur.name===""&&cleanCB({active:false})===null,"combate");
+console.assert(JSON.stringify(ordClean([{kind:"foe",n:2,band:"x",conds:["Cegado","<i>"],hp:"5"},{kind:"zz"}]))==='[{"kind":"foe","char":null,"name":"","n":2,"band":"","conds":["Cegado"],"cur":false}]',"orden de iniciativa");
 /* Turno de quién, visto desde este teléfono: mine (es mi personaje), name (escapado) */
 const cbMine=x=>!!x&&!admin&&view==="char"&&x.char===cur;
 const cbName=x=>x.kind==="foe"?tx("los enemigos","the enemies"):cbMine(x)&&x.kind==="pc"?tx("tú","you"):esc(x.name);
@@ -2833,7 +2842,7 @@ function cbToast(text){let d=$("yn");if(!d){d=document.createElement("div");d.id
 function cbBar(){const fb=FALL.map(f=>`<i class="fb ${f.st}">${esc(f.name)} · ${{down:tx("a 0 PV","at 0 HP"),stable:tx("estable","stable"),dead:tx("sin vida","dead")}[f.st]}</i>`).join("");
   if(!CB)return fb?`<div class="cbar" role="status">${fb}</div>`:"";const t=CB.cur,n=CB.next;
   const tt=t.kind==="foe"?tx("Turno de los enemigos","Enemies' turn"):cbMine(t)&&t.kind==="pc"?tx("Tu turno","Your turn"):tx(`Turno de ${esc(t.name)}`,`${esc(t.name)}'s turn`);
-  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}${fb}</div>`}
+  return`<div class="cbar${cbMine(t)?" me":""}" role="status"><b>${tx("Ronda","Round")} ${CB.round}</b><span>${tt}</span>${n?`<span class="nx">${tx("Después","Next")}: ${cbName(n)}</span>`:""}${fb}${ordStrip()}</div>`}
 const cbBadge=()=>CB&&cbMine(CB.cur)?`<span class="econ yt-b"><i></i>${CB.cur.kind==="pet"?tx(`Turno de ${esc(CB.cur.name)}`,`${esc(CB.cur.name)}'s turn`):tx("Tu turno","Your turn")}</span>`:"";
 
 /* ===================== EVENTOS ===================== */

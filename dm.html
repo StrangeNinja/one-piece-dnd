@@ -189,7 +189,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:16";
+const APP_VERSION="2026-11-22 21:21";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -345,7 +345,22 @@ function liveOf(){const L=sorted(),i=L.findIndex(c=>c.id===S.cur),cu=L[i];let nx
   const pub=c=>{if(!c)return null;if(c.type==="foe")return{kind:"foe",char:null,name:""};const l=linkOf(c);return{kind:l?l.kind:"ally",char:l?l.char:null,name:c.name}};
   /* Caídos y avisos: solo jugadores y mascotas (nombre, tipo y estado; nada privado) */
   const fallen=Object.entries(S.fall||{}).map(([k,st])=>{const c=S.list.find(x=>{const l=linkOf(x);return l&&fallKey(l)===k});return c&&{...linkOf(c),name:c.name,st}}).filter(Boolean);
-  return{active:!!S.active&&!!cu,cid:S.active&&S.cid||"",round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,at:Date.now()}}
+  /* Orden de iniciativa para la pantalla de mesa y los teléfonos: enemigos sin PV ni CA (franja de estado si S.showBand) y sin nombre salvo que el DM lo muestre (c.show; si no, n = número de enemigo) */
+  let fi=0;const order=L.map(c=>{const l=linkOf(c),kind=c.type==="foe"?"foe":l?l.kind:"ally",o={id:String(c.id).slice(0,24),kind,char:l?l.char:null,name:c.name,band:"",conds:(c.conds||[]).filter(x=>CONDS.includes(x)),cur:c.id===S.cur};
+    if(kind==="foe"){fi++;if(!c.show){o.name="";o.n=fi}if(S.showBand!==false)o.band=bandOf(c)}
+    else if(kind==="ally")o.band=bandOf(c);
+    else{const lv=liveView(c),v=lv||c;if(lv)o.conds=lv.conds.filter(x=>CONDS.includes(x));if(Number.isFinite(v.hp)&&v.max>0){o.hp=Math.max(0,v.hp);o.max=v.max}o.band=bandOf(v)}return o});
+  return{active:!!S.active&&!!cu,cid:S.active&&S.cid||"",round:S.round,turnId:S.turnId||0,cur:pub(cu),next:pub(nx),fallen,alerts:S.alerts||[],adv:S.adv||null,order,ticker:S.active&&cu?tickerOf():[],at:Date.now()}}
+/* Franja de estado: >75 % Ileso, >50 % Herido, >25 % Malherido, >0 A punto de caer, 0 Derrotado */
+const bandOf=c=>!(c.max>0)||!Number.isFinite(c.hp)?"":c.hp<=0?"ko":c.hp/c.max>.75?"ok":c.hp/c.max>.5?"hurt":c.hp/c.max>.25?"bad":"near";
+/* Últimas 5 frases de la crónica del combate en curso; los nombres y apodos de los enemigos ocultos se cambian por "Enemigo N" */
+function tickerOf(){if(!S.cid)return[];let L;try{L=buildCron(S.cid).text.split("\n")}catch(e){return[]}
+  const ep=L.lastIndexOf(tx("Epílogo","Epilogue")),body=(ep>0?L.slice(0,ep):L).filter(x=>x&&x!==tx("Prólogo","Prologue")&&!/^(Ronda|Round) \d+ · /.test(x));
+  const pro=body.length?body.slice(1):[];let s=pro.slice(-3).join(" ").split(/(?<=[.!?…])\s+/).filter(Boolean).slice(-5);
+  const rep=[];let fi=0;for(const c of sorted())if(c.type==="foe"){fi++;if(c.show)continue;const al=tx(`Enemigo ${fi}`,`Enemy ${fi}`),b=sheetOf(c),nm=b&&b.name;
+    const names=[c.name,c.name.replace(/\s\d+$/,""),...(nm?[nm.es,nm.en,typeof nm==="string"?nm:""]:[]).filter(Boolean).flatMap(x=>String(x).split(",").map(y=>y.trim()))];
+    for(const n of names)if(n&&n.length>2)rep.push([n,al])}
+  rep.sort((a,b)=>b[0].length-a[0].length);return s.map(x=>{for(const [n,al] of rep)x=x.split(n).join(al);return x.replace(/((?:Enemigo|Enemy) \d+), \1,?/g,"$1").slice(0,240)})}
 function syncOut(){if(typeof sorted!=="function")return;
   if(!fb||!isDM||firstDm)return;clearTimeout(syncT);syncT=setTimeout(()=>{const {F,db}=fb;
     F.setDoc(F.doc(db,"combat","dm"),{S:JSON.parse(JSON.stringify(S)),at:S.at||Date.now()}).catch(e=>console.warn("No se pudo guardar el combate",e));
@@ -411,6 +426,7 @@ function render(){navLater();
   put($("best"),bestHtml());put($("enc"),encHtml());
   put($("list"),sceneHtml()+(L.length?L.map(card).join(""):`<div class="empty">${tx("No hay criaturas en combate. Agrégalas abajo.","No creatures in combat. Add them below.")}</div>`));
  $("tools").innerHTML=[["end",tx("Terminar combate","End combat")],["heal",tx("Restaurar PV de todos","Restore everyone's HP")],["foes",tx("Quitar enemigos","Remove enemies")],["crew",tx("Agregar tripulación","Add crew")],["reset",tx("Vaciar combate (también jugadores)","Clear combat (players too)")]].map(([k,t])=>`<button class="btn ${armed===k?"arm":""}" data-do="${k}">${armed===k?tx("Toca para confirmar","Tap to confirm"):t}</button>`).join("")
+   +`<button class="btn" data-do="bandtog" aria-pressed="${S.showBand!==false}">${tx("Mostrar estado de los enemigos","Show enemy status")}: ${S.showBand!==false?tx("sí","yes"):tx("no","no")}</button><a class="btn" href="mesa.html" target="_blank" rel="noopener">${tx("Pantalla de mesa","Table screen")}</a>`
    +`<button class="btn primary" data-do="aoe">${tx("Daño en área","Area damage")}</button>`+(!S.active&&(S.clog||[]).length?`<button class="btn" data-do="cronshow">${tx("Crónica del último combate","Chronicle of the last combat")}</button>`:"")
    +`<div class="advt"><b>${tx("Avanzar tiempo","Advance time")}</b>${[1,10,60].map(m=>`<button class="btn" data-do="adv" data-m="${m}">+${m===60?"1 h":m+" min"}</button>`).join("")}</div>`;
 }
@@ -459,6 +475,7 @@ function card(c0){
      <button class="btn d" data-dmg="${c.id}">${tx("Daño","Damage")}</button><button class="btn h" data-heal="${c.id}">${tx("Curar","Heal")}</button><button class="btn tb" data-temp="${c.id}">Temp.</button></div>`}
    ${isOpen?`<div class="more">
      ${own?"":`<div class="chips">${CONDS.map(x=>`<button data-cond="${c.id}" data-c="${x}" aria-pressed="${c.conds.includes(x)}">${condT(x)}</button>`).join("")}</div>`}
+     ${c.type==="foe"?`<label class="ck"><input type="checkbox" data-show="${c.id}" ${c0.show?"checked":""}>${tx("Mostrar nombre en la mesa","Show name on the table")}</label>`:""}
      ${own?"":fxForm(c0)}
      ${bestCard(c0)}${linkOf(c0)?linkForms(c0):""}
      <div class="edit">
@@ -1121,7 +1138,7 @@ function panInput(e){const el=e.target;if(!PANEL||!el.closest||!el.closest("#pan
   if(PANEL.k==="atk"&&el.dataset.ak){const it=PANEL.q[+el.dataset.i],f=el.dataset.ak;if(!it)return;it[f]=el.type==="checkbox"?el.checked:el.value;if(f==="tot"){it.nat=null;it.roll=""}if(f==="cx"||f==="tid")it.par=0;drawPan();return}
   if(PANEL.k==="aoe"){const f=el.dataset.ao;if(f)PANEL[f]=el.type==="checkbox"?el.checked:el.value;else if(el.dataset.aosel)PANEL.sel[el.dataset.aosel]=el.checked;else return;drawPan()}}
 document.addEventListener("input",e=>{if(e.target.type!=="checkbox"&&e.target.tagName!=="SELECT")panInput(e)});
-document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.encpet!=null){encPet=e.target.checked;render();return}if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
+document.addEventListener("change",e=>{const sh=e.target.dataset&&e.target.dataset.show;if(sh){const c=S.list.find(x=>x.id===sh);if(c){c.show=e.target.checked;save();render()}return}if(e.target.dataset&&e.target.dataset.encpet!=null){encPet=e.target.checked;render();return}if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});
 document.addEventListener("toggle",e=>{const o=e.target.dataset&&e.target.dataset.edo;if(o!=null){if(e.target.open)EDO.add(+o);else EDO.delete(+o)}},true);
 /* Partes de la tarjeta: "enviado" hasta que cambian los PV en vivo, aviso de moral y salvación de concentración pendiente */
 function sentTag(c,lv){const s=SENT[c.id];if(!s)return"";const l=linkOf(c),a=l&&(LIVE.state[l.char]||{}).hitAck;if(a&&s.at&&(+a.at||0)>s.at){delete SENT[c.id];return""}if(lv&&s.hp!=null&&lv.hp!==s.hp){delete SENT[c.id];return""}return`<div class="conds"><span class="tag live">${tx("Golpe enviado","Hit sent")}</span></div>`}
@@ -1160,6 +1177,7 @@ document.addEventListener("click",e=>{
   if(act==="aoe"){aoeOpen();return}
   if(act==="cronshow"){cronOpen();return}
   if(act==="scenex"){S.scene=null;save();render();return}
+  if(act==="bandtog"){S.showBand=S.showBand===false;save();render();return}
   if(act==="login"){fb.U.signInWithPopup(fb.auth,new fb.U.GoogleAuthProvider()).catch(e=>alert(tx("No se pudo entrar: ","Couldn't sign in: ")+(e.code||e)));return}
   if(act==="logout"){fb.U.signOut(fb.auth);return}
   if(act==="next"||act==="prev"){const L=sorted();if(!L.length)return;let i=L.findIndex(c=>c.id===S.cur);
@@ -1202,7 +1220,11 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
 /* Lo publicado nunca lleva nombre, PV ni CA de enemigos */
 {const t={...S};S={round:2,cur:"e",list:[{id:"e",name:"Kaido",type:"foe",init:20,ac:22,hp:500,max:500,temp:0,conds:[]},{id:"u",name:"Udon",char:"udon",type:"pc",init:10,ac:15,hp:66,max:66,temp:0,conds:[]}],active:true,turnId:3};
   S.cid="ctest";S.clog=[{k:"dmg",target:"Kaido",n:5}];
-  const p=JSON.stringify(liveOf());console.assert(!/Kaido|"hp"|"ac"|"max"|clog/.test(p)&&/"char":"udon"/.test(p)&&/"cid":"ctest"/.test(p),"dm-live: "+p);
+  S.clog=[{t:1,r:2,tid:3,k:"turn",a:"Kaido"},{t:2,r:2,tid:3,k:"use",a:"Kaido",m:"Garrote"},{t:3,r:2,tid:3,k:"dmg",a:"Kaido",target:"Udon",n:5}];
+  const lv=liveOf(),p=JSON.stringify(lv),fo=lv.order.find(o=>o.kind==="foe");
+  console.assert(!/Kaido|"ac"|500|clog/.test(p)&&/"char":"udon"/.test(p)&&/"cid":"ctest"/.test(p)&&fo&&!("hp" in fo)&&!("max" in fo)&&fo.n===1&&fo.band==="ok"&&lv.ticker.length>0&&lv.order.find(o=>o.char==="udon").hp===66,"dm-live: "+p);
+  S.showBand=false;console.assert(liveOf().order.find(o=>o.kind==="foe").band==="","dm-live: sin franja");S.showBand=true;
+  S.list[0].show=true;const rv=liveOf();console.assert(rv.order.find(o=>o.kind==="foe").name==="Kaido"&&!/"ac"|500/.test(JSON.stringify(rv)),"dm-live: nombre revelado");delete S.list[0].show;
   /* Fluffy con iniciativa entra en orden y se publica como mascota de Sungsopp */
   S.list.push({id:"f",name:"Fluffy",type:"ally",owner:"Sungsopp",init:15,hp:68,max:68,temp:0,conds:[]});S.cur="f";const q=liveOf();
   console.assert(sorted().map(c=>c.id).join()==="e,f,u"&&JSON.stringify(q.cur)==='{"kind":"pet","char":"sungsopp","name":"Fluffy"}',"dm-pet: "+JSON.stringify(q));S=t}
