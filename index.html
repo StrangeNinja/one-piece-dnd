@@ -340,7 +340,7 @@ section h2 .h2t{display:inline-flex;align-items:center}
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 19:42";
+const APP_VERSION="2026-11-22 21:13";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -985,7 +985,7 @@ function fresh(c){return{lvl:CHARS_SRC[cur]?Math.min(c.level,CHARS_SRC[cur].leve
   slots:c.caster?[...c.caster.slots]:[],spells:{c:[],p:[]},conc:{id:"",lvl:0},sea:false,mw:"",aided:[],temp:0,comp:c.companion?{hp:c.companion.hp,temp:0,heads:c.companion.heads||0,tf:false,turnDmg:0}:{},frenzy:false,muscle:"",trans:false,exh:0,form:"",formOpts:[],humanHp:c.maxHp,stageAC:false,
   inv:invSeed(keyOf(c)),ilog:[],gotG:[],used:Object.fromEntries(c.actions.filter(a=>a.once).map(a=>[a.once,false])),
   fore:c.foretell?[{v:phys()?0:d(20),u:false},{v:phys()?0:d(20),u:false}]:[],
-  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],fx:[],turnEnded:false,float:0,advNext:false,clog:[],ccid:"",seaT:0}} // en modo físico el jugador anota los presagios
+  fury:[...(c.furyKnown||[])],furyDone:0,hid:[],fx:[],turnEnded:false,float:0,advNext:false,clog:[],ccid:"",seaT:0,hitAck:null}} // en modo físico el jugador anota los presagios
 /* Acepta solo campos y tipos conocidos: el estado de la nube lo escribe el teléfono de otro jugador y se pinta como HTML */
 function merge(c,s){
   const f=fresh(c);if(!s||typeof s!=="object")return f;
@@ -1007,7 +1007,7 @@ function merge(c,s){
     sea:pick(false,s.sea),frenzy:pick(false,s.frenzy),muscle:["def","atk"].includes(s.muscle)?s.muscle:"",trans:pick(false,s.trans),exh:Math.min(6,Math.max(0,pick(0,s.exh))),temp:Math.max(0,pick(0,s.temp)),used:obj(f.used,s.used),aided:Array.isArray(s.aided)?s.aided.slice(0,30).map(x=>String(x).slice(0,40)):[],mw:c.fruit&&Object.hasOwn(c.fruit.weapons,s.mw)?s.mw:"",
     fore:fo.map(x=>({v:Math.min(20,Math.max(0,Math.round(pick(10,x&&x.v)))),u:pick(false,x&&x.u)})),
     fury:Array.isArray(s.fury)?[...new Set(s.fury)].filter(id=>FURY.some(x=>x.id===id)):f.fury,furyDone:pick(0,s.furyDone),fx:fxClean(s),turnEnded:pick(false,s.turnEnded),hid:Array.isArray(s.hid)?s.hid.filter(x=>typeof x==="string").map(x=>x.slice(0,40)).slice(0,80):[],float:Math.min(3,Math.max(0,pick(0,s.float))),advNext:pick(false,s.advNext),
-    clog:clogClean(s.clog),ccid:typeof s.ccid==="string"?s.ccid.slice(0,24):"",seaT:Math.min(2,Math.max(0,pick(0,s.seaT)))};
+    clog:clogClean(s.clog),ccid:typeof s.ccid==="string"?s.ccid.slice(0,24):"",seaT:Math.min(2,Math.max(0,pick(0,s.seaT))),hitAck:ackClean(s.hitAck)};
 }
 console.assert(merge(CHARS.udon,{hp:"<i>",log:["<b>a</b><img src=x onerror=alert(1)"],conds:["Cegado","<x>"]}).log[0]==="<b>a</b>"&&merge(CHARS.udon,{hp:"<i>"}).hp===CHARS.udon.maxHp&&merge(CHARS.udon,{conds:["Cegado","<x>"]}).conds.join()==="Cegado","merge");
 function load(){S=merge(C(),store.get("mc2:"+cur));lastHit=null;const P=PROG[cur];if(P&&P.level>S.lvl&&!admin)lvApplied(buildChar(cur,progAt(P,S.lvl)),C(),P);if(P&&!admin)invGrants(P)}
@@ -1112,9 +1112,9 @@ function log(t,ev){S.log.unshift(t);S.log=S.log.slice(0,12);if(ev!==false)clogLi
 /* ===== Crónica del combate: S.clog (máx. 200, solo con combate activo en combat/live, marcado con su cid) =====
    Lo lee dm.html desde state/{personaje} para narrar el combate. Eventos: use (carta usada: m nombre, tot, dmg, ty, crit, ph dados físicos),
    dmg (daño recibido: n, ty, src, sv), heal, down, up, ds (salvación de muerte), dream (No abandonaré mis sueños), dp (punto de sueño), sea (kairoseki on/off). pet: de la mascota */
-const CLOG_K=["use","dmg","heal","down","up","ds","dream","dp","sea"];
+const CLOG_K=["use","dmg","heal","down","up","ds","dream","dp","sea","atk"]; // atk: ataque del DM contra la CA (res hit | miss | deflected | halved, tot, ac)
 function clogClean(v){return Array.isArray(v)?v.slice(-200).filter(x=>x&&typeof x==="object"&&CLOG_K.includes(x.k)).map(x=>{const o={t:+x.t||0,r:+x.r||0,tid:+x.tid||0,k:x.k,a:String(x.a||"").slice(0,40)};
-  for(const f of["m","ty","src","sv"])if(typeof x[f]==="string")o[f]=x[f].slice(0,60);for(const f of["n","tot","dmg"])if(Number.isFinite(x[f]))o[f]=x[f];
+  for(const f of["m","ty","src","sv","res"])if(typeof x[f]==="string")o[f]=x[f].slice(0,60);for(const f of["n","tot","dmg","ac"])if(Number.isFinite(x[f]))o[f]=x[f];
   for(const f of["crit","ph","pet","on"])if(typeof x[f]==="boolean")o[f]=x[f];return o}):[]}
 function clogAdd(e){if(!CB||!CB.cid||!S||!Array.isArray(S.clog))return;if(S.ccid!==CB.cid){S.ccid=CB.cid;S.clog=[]}const c=C(),pt=CB.cur.kind==="pet"&&CB.cur.char===cur;
   S.clog.push({t:Date.now(),r:CB.round,tid:CB.turnId,a:(e.pet||pt&&e.k==="use")&&c.companion?c.companion.name:c.name,...e});S.clog=S.clog.slice(-200)}
@@ -2498,7 +2498,7 @@ function onProg(k,raw){if(!CHARS_SRC[k])return;
    hit = {id, n, type, save, dc, half, src, sea, pet, crit, at}: abre el panel de Daño con todo anotado; con salvación, Superé / Fallé */
 const seenAdd=(k,id)=>{const L=store.get(k)||[];if(L.includes(id))return false;store.set(k,[...L,id].slice(-20));return true};
 const fresh10=v=>v&&typeof v==="object"&&typeof v.id==="string"&&isInt(v.at,0,1e14)&&Date.now()-v.at<6e5;
-function dmHit(h){if(!fresh10(h)||!seenAdd("mc:hitseen",h.id))return;const c=C(),pet=h.pet===true&&!!c.companion,n=isInt(h.n,0,9999)?h.n:0,ty=DMG.includes(h.type)?h.type:"",
+function dmHit(h){if(h&&h.kind==="attack")return dmAtk(h);if(!fresh10(h)||!seenAdd("mc:hitseen",h.id))return;const c=C(),pet=h.pet===true&&!!c.companion,n=isInt(h.n,0,9999)?h.n:0,ty=DMG.includes(h.type)?h.type:"",
     ab=ABS.includes(h.save)&&isInt(h.dc,1,40)?h.save:"",src=String(h.src||"").replace(/[<>&"]/g,"").slice(0,40),sv=ab?`${SVT_(ab)} ${tx("CD","DC")} ${h.dc}`:"";
   buzz([200,80,200]);NAVSRC=false;
   cbBanner(pet?tx(`¡${src||"Un golpe"} alcanza a ${esc(c.companion.name)}!`,`${src||"A hit"} hits ${esc(c.companion.name)}!`):h.crit===true?tx(`¡Golpe crítico${src?" de "+src:""}!`,`Critical hit${src?" from "+src:""}!`):tx(`¡Te alcanza ${src||"un golpe"}!`,`${src||"A hit"} hits you!`),
@@ -2512,6 +2512,54 @@ const evasionOf=c=>/^Evasi/.test(c.passive||""); // shortcut: lo detecta por el 
 function hitEff(c,x,r,who){const ev=who!=="comp"&&x.ab==="DES"&&x.half&&evasionOf(c);return r==="ok"?(x.half&&!ev?Math.floor(x.n/2):0):ev?Math.floor(x.n/2):x.n}
 console.assert(hitEff({passive:"Evasión: …"},{n:25,ab:"DES",half:true},"ok","me")===0&&hitEff({passive:"Evasión: …"},{n:25,ab:"DES",half:true},"ko","me")===12
   &&hitEff({},{n:25,ab:"DES",half:true},"ok","me")===12&&hitEff({},{n:25,ab:"CON",half:false},"ok","me")===0&&hitEff({},{n:25,ab:"CON",half:false},"ko","me")===25,"golpe del DM");
+/* ===== Ataques del DM contra tu CA (progress.hit con kind "attack"): {id, kind, total, nat, crit, n, type, extra:[{n,type}], src, by, magic, pet, at, more:[…]}
+   El teléfono compara con la CA de ahora (acOf: forma, kairoseki, Escenario de batalla, escudo) más un bono temporal que anota el jugador (Escudo de fe, cobertura, una reacción).
+   20 natural siempre impacta y 1 natural siempre falla. more: los demás ataques del mismo envío (multiataque), en orden.
+   El resultado vuelve en S.hitAck = {id, res: hit | miss | deflected | halved | void, dmg, ac, pet, at} (void: "El DM se equivocó") */
+const atkRes=(tot,nat,ac)=>nat===20?"hit":nat===1?"miss":tot>=ac?"hit":"miss";
+console.assert(atkRes(5,20,30)==="hit"&&atkRes(40,1,10)==="miss"&&atkRes(18,null,18)==="hit"&&atkRes(19,12,18+2)==="miss"&&atkRes(19,12,18)==="hit","ataque contra la CA");
+function ackClean(v){return v&&typeof v==="object"&&typeof v.id==="string"&&["hit","miss","deflected","halved","void"].includes(v.res)?{id:v.id.slice(0,24),res:v.res,dmg:isInt(v.dmg,0,9999)?v.dmg:0,ac:isInt(v.ac,0,60)?v.ac:0,pet:v.pet===true,at:isInt(v.at,0,1e14)?v.at:0}:null} // función: merge() la usa antes de llegar aquí
+const atkClean=h=>{const nat=isInt(h.nat,1,20)?h.nat:null,cl=s=>String(s||"").replace(/[<>&"]/g,"").slice(0,40);
+  return{id:h.id.slice(0,24),total:isInt(h.total,-10,60)?h.total:0,nat,crit:h.crit===true||nat===20,n:isInt(h.n,0,9999)?h.n:0,ty:DMG.includes(h.type)?h.type:"",
+    extra:(Array.isArray(h.extra)?h.extra:[]).slice(0,3).map(x=>({n:isInt(x&&x.n,0,9999)?x.n:0,ty:DMG.includes(x&&x.type)?x.type:""})).filter(x=>x.n>0),src:cl(h.src),by:cl(h.by),magic:h.magic===true,pet:h.pet===true,bon:0}};
+let ATKQ=[],ATKP=null,ATKW=null;
+function dmAtk(h){if(!fresh10(h))return;const c=C(),L=[h,...(Array.isArray(h.more)?h.more.slice(0,7):[])].filter(x=>x&&typeof x==="object"&&typeof x.id==="string"&&seenAdd("mc:hitseen",x.id)).map(atkClean);
+  if(!L.length)return;L.forEach(x=>{if(x.pet&&!c.companion)x.pet=false});ATKQ.push(...L);if(!(T&&T.atk&&trayOn()))atkNext(false);else if(!ATKW)atkNext(true)}
+/* El siguiente de la cola se abre cuando se cierra la bandeja (así no tapa las reacciones del golpe anterior) */
+function atkNext(wait){clearInterval(ATKW);ATKW=null;if(!ATKQ.length)return;
+  if(wait&&trayOn()){ATKW=setInterval(()=>{if(!trayOn())atkNext(false)},600);return}
+  const x=ATKQ.shift(),c=C(),who=x.by||x.src||tx("Un enemigo","An enemy");buzz([200,80,200]);NAVSRC=false;
+  cbBanner(x.pet?tx(`${esc(who)} ataca a ${esc(c.companion.name)}`,`${esc(who)} attacks ${esc(c.companion.name)}`):tx(`${esc(who)} te ataca`,`${esc(who)} attacks you`),
+    tx(`${x.total} para golpear`,`${x.total} to hit`)+(x.nat===20?tx(" · ¡20 natural!"," · natural 20!"):x.nat===1?tx(" · 1 natural"," · natural 1"):""));
+  atkShow(c,x)}
+const atkAc=(c,x)=>(x.pet?c.companion.ac:acOf(c))+x.bon;
+function atkShow(c,x){const pet=x.pet&&c.companion,ac0=pet?c.companion.ac:acOf(c),ac=ac0+x.bon,r=atkRes(x.total,x.nat,ac),nm=pet?esc(pet.name):"";
+  const dm=[{n:x.n,ty:x.ty},...x.extra].filter(d=>d.n>0).map(d=>`${d.n} ${d.ty?dmgT(d.ty):tx("de daño","damage")}`).join(" + ")||tx("sin daño","no damage");
+  const ctr=!pet&&S.sr.contra>0&&S.turn.sr>0,left=ATKQ.length;
+  const res=r==="hit"?`<p class="note"><b>${x.crit?tx("¡Crítico! ","Critical! "):""}${pet?tx(`¡Le acierta a ${nm}! ${x.total} contra su CA ${ac}`,`It hits ${nm}! ${x.total} against its AC ${ac}`):tx(`¡Te acierta! ${x.total} contra tu CA ${ac}`,`It hits you! ${x.total} against your AC ${ac}`)}</b>${x.nat===20?tx(" (un 20 natural siempre acierta)"," (a natural 20 always hits)"):""}</p>
+      <p class="note">${tx("Daño","Damage")}: <b>${dm}</b> · ${x.magic?tx("mágico o con Haki","magical or with Haki"):tx("no mágico","nonmagical")}</p>
+      <div class="trayact"><button class="btn primary big" data-do="atkgo">${tx("Recibir el daño","Take the damage")}</button></div>`
+    :`<p class="note"><b>${pet?tx(`¡Falla! La CA ${ac} de ${nm} lo detiene`,`It misses! ${nm}'s AC ${ac} stops it`):tx(`¡Falla! Tu CA ${ac} lo detiene`,`It misses! Your AC ${ac} stops it`)}</b>${x.nat===1?tx(" (un 1 natural siempre falla)"," (a natural 1 always misses)"):""}</p>
+      <div class="trayact">${ctr?`<button class="btn primary" data-do="atkctr">${SPECIALS.find(s=>s.id==="contra").name} · ${tx(`te quedan ${S.sr.contra}`,`${S.sr.contra} left`)}</button>`:""}<button class="btn ${ctr?"":"primary"} big" data-do="atkok">${tx("Listo","Done")}</button></div>`;
+  const t={title:tx(`Ataque${x.src?": "+esc(x.src):""}`,`Attack${x.src?": "+esc(x.src):""}`),sheet:true,atk:x,
+    boxes:[{l:tx("Su ataque","Their attack"),v:x.total,s:x.nat?`d20 ${x.nat}`:""},{l:pet?tx(`CA de ${nm}`,`${nm}'s AC`):tx("Tu CA ahora","Your AC now"),v:ac,s:x.bon?`${ac0} ${sgnS(x.bon)}`:"",cls:r==="hit"?"":"crit"}],
+    html:`${res}<div class="trayact"><span class="note">${tx("Bono temporal a la CA (Escudo de fe, cobertura, una reacción)","Temporary AC bonus (Shield of Faith, cover, a reaction)")}: <b>${sgnS(x.bon)}</b></span>
+      <button class="btn" data-do="atkbon" data-v="-1" aria-label="${tx("Bajar el bono de CA","Lower the AC bonus")}">−1</button><button class="btn" data-do="atkbon" data-v="1" aria-label="${tx("Subir el bono de CA","Raise the AC bonus")}">+1</button></div>
+      <div class="trayact"><button class="btn" data-do="atkvoid">${tx("El DM se equivocó","The DM made a mistake")}</button></div>${left?`<p class="note">${tx(`Después vienen ${left} ataques más`,`${left} more attacks come after this one`)}</p>`:""}`,
+    tip:r==="hit"?tx("Al recibir el daño se aplican tus resistencias y luego eliges tus reacciones (Esquiva asombrosa, Bloquear golpe, Paso relámpago…) antes de confirmar.","Taking the damage applies your resistances; then you pick your reactions (Uncanny Dodge, Parry Blow, Flash Step…) before confirming."):""};
+  if(T&&T.atk&&T.atk.id===x.id&&trayOn()){T=t;drawTray()}else show(t)}
+const ackSet=(x,res,dmg,ac)=>{S.hitAck={id:x.id,res,dmg,ac,pet:!!x.pet,at:Date.now()}};
+/* Recibir el daño: los extras primero sin bandeja (quiet), el principal al final para que las reacciones lo rehagan.
+   shortcut: las reacciones (Esquiva asombrosa, Bloquear golpe) solo cambian el daño principal, no los extras de otro tipo; si molesta, juntar el golpe en un solo lastHit */
+function atkTake(c,x){const ac=atkAc(c,x),D=[...x.extra,{n:x.n,ty:x.ty}].filter((d,i,a)=>d.n>0||i===a.length-1);let xs=0;
+  clogAdd({k:"atk",res:"hit",tot:x.total,ac,...(x.src?{src:x.src}:{}),...(x.pet?{pet:true}:{}),...(x.crit?{crit:true}:{})});
+  if(x.pet){for(const d of D){xs+=dmgSteps(c,"comp",d.n,d.ty,x.magic).v;compDamage(c,d.n,d.ty,x.magic)}ackSet(x,"hit",xs,ac);ATKP=null;return}
+  D.forEach((d,i)=>{const last=i===D.length-1;if(!last)quiet=true;try{takeDamage(c,d.n,d.ty,x.magic,x.src)}finally{quiet=false}if(!last)xs+=lastHit.n});
+  ackSet(x,"hit",xs+lastHit.n,ac);ATKP={id:x.id,xs}}
+/* Después de una reacción al golpe: Esquiva asombrosa = halved, Paso relámpago o Desvío evitados = deflected; Bloquear golpe solo baja el daño */
+function atkAfter(kind,ok){if(!ATKP||!S.hitAck||S.hitAck.id!==ATKP.id||!lastHit)return;S.hitAck.dmg=ATKP.xs+lastHit.n;
+  if(kind==="halve")S.hitAck.res="halved";else if(ok){S.hitAck.res="deflected";clogAdd({k:"atk",res:"deflected",ac:S.hitAck.ac})}}
+(()=>{const k=S;S={sea:false,muscle:""};try{console.assert(dmgSteps(CHARS.codel,"me",12,"cortante",false).v===0&&dmgSteps(CHARS.codel,"me",12,"cortante",true).v===12,"mochi contra cortante no mágico")}finally{S=k}})();
 /* ===== Crónica del último combate (combat/chronicle, la escribe dm.html con "Compartir con los jugadores") ===== */
 let CRON=null,cronOpen=false;
 function onCron(v){const ok=v&&typeof v==="object"&&typeof v.text==="string"&&isInt(v.at,0,1e14);CRON=ok?{title:String(v.title||"").slice(0,120),text:v.text.slice(0,30000),at:v.at}:null;
@@ -2946,7 +2994,7 @@ document.addEventListener("click",e=>{
   if(act==="rconf"&&T&&T.resp){const R=T.resp,k=R.sel,{a,i,sr}=respOf(c,k),v=R.rv[k]||{},pre=lastHit&&lastHit.pre;if(respNeed(c,a,v))return;
     trayDone();
     if(!RDO.includes(a.kind)){if(pre)preU=pre;sr?doSpecial(sr):doAct(i);return}
-    const warn=respRun(c,k,v);if(warn)log(warn);const left=tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):"");
+    const warn=respRun(c,k,v);if(warn)log(warn);atkAfter(a.kind,RVS.includes(a.kind)&&v.ok);const left=tx(`Te quedan ${S.hp} / ${mhp(c)} PV`,`You have ${S.hp} / ${mhp(c)} HP left`)+(S.temp?tx(` y ${S.temp} temporales`,` and ${S.temp} temporary`):"");
     if(a.kind==="deflect"&&v.ok){const w=wOf(c,a),st=wStats(w),base=w.dice+"+"+st.mod;
       if(phys())show({title:a.name,exec:true,crit:v.crit,boxes:[{l:tx("Daño a tu atacante · ","Damage to your attacker · ")+w.type,v:recipe(base),s:CRIT_()+recipe(base,true)}],tip:DEFL_()});
       else{const dm=roll(base,v.crit);let d=dm.tot,type=w.type;if(v.crit&&c.blackArmory){d+=roll("2d6").tot;type=dmgT("fuerza")}
@@ -2979,7 +3027,7 @@ document.addEventListener("click",e=>{
   if(act==="furypick"){furyPick();return}
   if(act==="furysave"&&T&&T.fury){if(T.fury.length!==furyN(c))return;const u=furyUnlock();S.fury=[...T.fury];if(u)S.furyDone=u;
     log(tx("Técnicas de furia: ","Fury features: ")+furyNames(S.fury));trayDone();save();render();return}
-  if(act==="nohit"){rehit(0,T&&T.title);save();render();return}
+  if(act==="nohit"){rehit(0,T&&T.title);atkAfter("",true);save();render();return}
   if(act==="pulse"){S.turn.pulse++;T.pulseUsed=true;const t=c.fruit.tech.find(x=>x.id===c.pulse.tech);useTech(t.id,t.l,{free:true,dmg:c.pulse.dmg,title:c.pulse.name+tx(" (gratis)"," (free)")});return}
   if(act==="reroll"&&phys()&&T.p){const x=c.rerolls[+(ds.i||0)],t=T,b=t.boxes[t.d20],warn=x.react?spend("reaccion"):"";S.res[x.res]--;t.rerolled=true;
     if(warn)t.warn=warn;t.nat=null;b.v=`1d20 ${sgnS(t.p.mod)}`;b.s=`${x.name}: ${tx("vuelve a tirar el d20 y anota el nuevo resultado","reroll the d20 and enter the new result")}`;b.cls="";
@@ -2993,6 +3041,12 @@ document.addEventListener("click",e=>{
   if(act==="init"){const r=d20();show({title:INIT_(),d20:0,boxes:[{l:INIT_(),v:r.v+ini(c),s:`d20 ${r.txt} ${sgn(ini(c))}`}]});log(`<b>${INIT_()}</b>: ${r.v+ini(c)}`)}
   if(act==="turn")startTurn(c);
   if(act==="hpopen"){hpOpen(ds.k,ds.who);return}
+  /* Ataque del DM contra tu CA */
+  if(act==="atkbon"&&T&&T.atk){T.atk.bon=Math.max(-5,Math.min(10,T.atk.bon+ +ds.v));atkShow(c,T.atk);return}
+  if(act==="atkgo"&&T&&T.atk){const x=T.atk;if(atkRes(x.total,x.nat,atkAc(c,x))!=="hit")return;trayDone();atkTake(c,x);save();render();atkNext(true);return}
+  if((act==="atkok"||act==="atkctr")&&T&&T.atk){const x=T.atk,ac=atkAc(c,x);clogAdd({k:"atk",res:"miss",tot:x.total,ac,...(x.src?{src:x.src}:{}),...(x.pet?{pet:true}:{})});ackSet(x,"miss",0,ac);log(tx(`${esc(x.src||"Un ataque")} falla contra tu CA ${ac}`,`${esc(x.src||"An attack")} misses against your AC ${ac}`),false);
+    if(act==="atkctr"){doSpecial("contra");save();render();atkNext(true);return}trayDone();save();render();atkNext(true);return}
+  if(act==="atkvoid"&&T&&T.atk){ackSet(T.atk,"void",0,atkAc(c,T.atk));trayDone();save();render();atkNext(true);return}
   if(act==="hpgo"){const h=T&&T.hp,n=parseInt($("hpn").value,10);if(!h||!(n>0||h.hit&&h.sv&&n===0)||h.hit&&h.hit.ab&&!h.sv)return;const src=h.k==="heal"?$("hpsrc").value.trim().slice(0,40):"",pet=h.who==="comp",hp=()=>pet?S.comp.hp:S.hp,h0=hp();
     trayDone();
     if(h.k==="dmg")(pet?compDamage:takeDamage)(c,n,h.ty,h.mag,h.hit?h.hit.src:"");else if(h.k==="heal")healHp(c,h.who,n,src);else tempHp(c,h.who,n);
