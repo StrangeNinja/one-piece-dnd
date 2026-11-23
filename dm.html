@@ -194,7 +194,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 22:24";
+const APP_VERSION="2026-11-22 23:24";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -777,7 +777,10 @@ const seaName=n=>n==="Codel"?tx("Kairoseki","Seastone"):tx("Agua o kairoseki","W
 /* Lo que se ve en vivo del jugador: reacción, reacciones especiales y concentración (state/{personaje}) */
 function liveBadges(c){const l=linkOf(c),s=l&&l.kind==="pc"&&isDM&&LIVE.state[l.char];if(!s)return"";const t=s.turn||{},sr=Number.isFinite(t.sr)?t.sr:null;
   return`<div class="conds">${Number.isFinite(t.r)?`<span class="tag ${t.r>0?"ok":""}">${t.r>0?tx("Reacción lista","Reaction ready"):tx("Reacción usada","Reaction used")}</span>`:""}${sr!=null?`<span class="tag ${sr>0?"ok":""}">${tx("Especiales","Specials")} ${sr}/2</span>`:""}
-    ${s.conc&&s.conc.id?`<span class="tag live">${tx("Concentrado en","Concentrating on")} ${esc(String(s.concN||"…").slice(0,40))}</span>`:""}${FRUITS[c.name]&&s.sea?`<span class="tag foe">${seaName(c.name)}</span>`:""}</div>`}
+    ${s.conc&&s.conc.id?`<span class="tag live">${tx("Concentrado en","Concentrating on")} ${esc(String(s.concN||"…").slice(0,40))}</span>`:""}${FRUITS[c.name]&&s.sea?`<span class="tag foe">${seaName(c.name)}</span>`:""}${euBadge(s)}</div>`}
+/* Hoja del Coloso de Ryuga: nivel y euforia en vivo (state.eu y state.wield) */
+const EU_ST=[L2("Chispa","Spark"),L2("Llama","Flame"),L2("Tormenta","Storm"),L2("Dragón","Dragon")],euIxDm=e=>e>=6?3:e>=4?2:e>=2?1:0;
+const euBadge=s=>{const e=Number.isInteger(s.eu)&&s.eu>=0&&s.eu<=6?s.eu:0;return s.wield==="coloso"||e>0?`<span class="tag live">${tx("Hoja","Blade")}: ${tl(EU_ST[euIxDm(e)])} ${e}/6</span>`:""};
 /* Formulario de la tarjeta abierta de un jugador o de Fluffy: Enviar golpe y, con fruta, el kairoseki */
 function linkForms(c){const l=linkOf(c);if(!l)return"";const s=LIVE.state[l.char]||{},lu=S.lastUse&&S.lastUse.tid===(S.turnId||0)?S.lastUse:null;
   return`<div class="fxadd"><b>${tx("Enviar golpe","Send hit")}</b><div class="fgrid"><label>${tx("Daño","Damage")}<input id="sh-n-${c.id}" type="number" inputmode="numeric" min="1" placeholder="0"></label>
@@ -797,8 +800,10 @@ console.assert(atkRes(5,20,30)==="hit"&&atkRes(40,1,10)==="miss"&&atkRes(17,null
 const hitCards=c=>{const b=sheetOf(c);return b?b.cards.filter(x=>Number.isFinite(x.hit)):[]};
 /* Reacciones que suben la CA en la hoja del objetivo: cartas de reacción cuya nota dice "+N CA" */
 const parOf=c=>{const b=sheetOf(c);if(!b)return[];return b.cards.filter(x=>x.k==="react").map(x=>{const m=/\+\s*(\d+)\s*(CA|AC)\b/.exec(tl2(x.note)||"")||/\+\s*(\d+)\s*(CA|AC)\b/.exec(x.note&&x.note.es||"");return m?{x,n:+m[1]}:null}).filter(Boolean)};
-const akItem=(cx,tid)=>({cx,tid:tid||"",tot:"",nat:null,crit:false,n:"",xn:"",mag:false,par:0,roll:""});
-function akOpen(c,cx){const L=sorted().filter(t=>t.id!==c.id),t=L.find(t=>c.type==="foe"?t.type!=="foe":t.type==="foe")||L[0];panOpen({k:"atk",title:tx("Atacar a…","Attack…"),by:c.id,q:[akItem(cx,t?t.id:"")]})}
+const akItem=(cx,tid,rng=false)=>({cx,tid:tid||"",tot:"",nat:null,crit:false,n:"",xn:"",mag:false,par:0,roll:"",rng});
+/* A distancia, rayo o proyectil (lo propone la carta: alcance "80/320 pies", ballesta, arco, rayo, láser): el teléfono ofrece entonces reacciones como Bloqueo de energía */
+const rngOf=(c,cx)=>{const x=hitCards(c).find(y=>y.id===cx);if(!x)return false;const t=[x.n,x.note].map(v=>!v?"":typeof v==="string"?v:`${v.es||""} ${v.en||""}`).join(" ");return/\d+\s*\/\s*\d+\s*(pies|ft)|rayo|láser|laser|\bray\b|ballesta|crossbow|\barco\b|\bbow\b|proyectil|projectile/i.test(t)};
+function akOpen(c,cx){const L=sorted().filter(t=>t.id!==c.id),t=L.find(t=>c.type==="foe"?t.type!=="foe":t.type==="foe")||L[0];panOpen({k:"atk",title:tx("Atacar a…","Attack…"),by:c.id,q:[akItem(cx,t?t.id:"",rngOf(c,cx))]})}
 function akView(it,c){const x=hitCards(c).find(y=>y.id===it.cx),t=S.list.find(y=>y.id===it.tid),tot=parseInt(it.tot,10),n=parseInt(it.n,10),xn=parseInt(it.xn,10);
   const l=t&&linkOf(t),ac=t&&t.ac!=null?t.ac+(it.par||0):null,res=t&&!l&&ac!=null&&Number.isFinite(tot)?atkRes(tot,it.nat,ac):"";return{x,t,l,tot,n:n>=0?n:0,xn:xn>=0?xn:0,ac,res}}
 function akHtml(){const P=PANEL,c=S.list.find(y=>y.id===P.by);if(!c)return panTop(tx("Atacar a…","Attack…"));const cards=hitCards(c),ok=P.q.every(it=>{const v=akView(it,c);return v.x&&v.t&&Number.isFinite(v.tot)&&(v.l||v.ac!=null)});
@@ -810,7 +815,8 @@ function akHtml(){const P=PANEL,c=S.list.find(y=>y.id===P.by);if(!c)return panTo
       <label>${tx("Daño","Damage")}${v.x?` (${esc(v.x.dmg||"–")})`:""}<input id="ak-n-${i}" data-ak="n" data-i="${i}" type="number" inputmode="numeric" min="0" value="${esc(it.n)}"></label>
       ${v.x&&v.x.xd?`<label>${tx("Daño extra","Extra damage")} (${esc(v.x.xd)} ${esc(tyT(v.x.xty))})<input id="ak-xn-${i}" data-ak="xn" data-i="${i}" type="number" inputmode="numeric" min="0" value="${esc(it.xn)}"></label>`:""}
       <label class="ck"><input type="checkbox" data-ak="crit" data-i="${i}" ${it.crit?"checked":""}>${tx("Crítico (dados dobles)","Critical (double dice)")}</label>
-      <label class="ck w2"><input type="checkbox" data-ak="mag" data-i="${i}" ${it.mag?"checked":""}>${tx("Mágico o con Haki","Magical or with Haki")}</label></div>
+      <label class="ck w2"><input type="checkbox" data-ak="mag" data-i="${i}" ${it.mag?"checked":""}>${tx("Mágico o con Haki","Magical or with Haki")}</label>
+      <label class="ck w2"><input type="checkbox" data-ak="rng" data-i="${i}" ${it.rng?"checked":""}>${tx("A distancia, rayo o proyectil","Ranged, ray or projectile")}</label></div>
       <div class="row"><button class="btn" data-akr="${i}">${tx("Tirar","Roll")}${v.x?` (d20 ${sgn(v.x.hit)})`:""}</button>${P.q.length>1?`<button class="btn" data-akx="${i}">${tx("Quitar","Remove")}</button>`:""}</div>
       ${it.roll?`<span class="note">${it.roll}</span>`:""}
       ${pars.map(p=>`<button class="btn" data-akp="${i}" data-n="${p.n}" aria-pressed="${it.par===p.n}">${esc(tl2(p.x.n))}: +${p.n} ${tx("CA","AC")}</button>`).join("")}
@@ -822,7 +828,7 @@ function akHtml(){const P=PANEL,c=S.list.find(y=>y.id===P.by);if(!c)return panTo
     <button class="btn primary big" data-pan="akgo" ${ok?"":"disabled"}>${P.q.length>1?tx(`Enviar los ${P.q.length} en orden`,`Send all ${P.q.length} in order`):tx("Enviar","Send")}</button>`}
 /* El ataque que llega al teléfono: atacante oculto = by vacío y byN (el número de la mesa; el teléfono escribe "Enemigo N" en su idioma) */
 function atkOf(c,v,it,nm){const hid=hiddenFoe(c);return{id:nid(),kind:"attack",total:v.tot,nat:it.nat||null,crit:!!it.crit,n:v.n,type:v.x.ty||"",extra:v.xn>0?[{n:v.xn,type:v.x.xty||""}]:[],
-  src:hideTxt(nm,false).slice(0,40),by:hid?"":c.name,byN:hid?foeNums()[c.id].n:0,magic:!!it.mag,pet:v.l.kind==="pet",at:Date.now()}}
+  src:hideTxt(nm,false).slice(0,40),by:hid?"":c.name,byN:hid?foeNums()[c.id].n:0,ranged:!!it.rng,magic:!!it.mag,pet:v.l.kind==="pet",at:Date.now()}}
 /* Gasta usos, recarga o acciones legendarias de una carta (lo mismo que Usar) */
 function bSpend(c,x,nm){c.u=c.u||{};c.rch=c.rch||{};
   if(x.k==="leg"){const k=x.cost||1;if((c.la??0)<k){dmToast("d",tx(`A ${esc(c.name)} no le quedan acciones legendarias para ${esc(nm)}`,`${esc(c.name)} doesn't have legendary actions left for ${esc(nm)}`));return false}c.la-=k}
@@ -965,6 +971,12 @@ const NARR={es:{
   rechKo:["{m} todavía no está lista para {a}.","{a} no logra recuperar {m}.","{m} sigue agotada para {a}.","{a} jadea: {m} tendrá que esperar.","{m} no se recarga para {a}.","{a} busca {m}, pero aún no.","Por ahora, {a} no puede repetir {m}.","{m} queda fuera del alcance de {a}."],
   flee:["{t} huye del combate.","{t} da media vuelta y escapa.","{t} desaparece entre la confusión.","Con miedo, {t} se retira a toda prisa.","{t} abandona la pelea.","{t} escapa como puede.","{t} se escabulle lejos de la batalla.","{t} no quiere más y huye."],
   surr:["{t} arroja sus armas y se rinde.","{t} levanta las manos: se rinde.","{t} se arrodilla y pide clemencia.","{t} acepta la derrota.","{t} se entrega.","Sin fuerzas, {t} se rinde.","{t} suelta el arma: se acabó la pelea.","{t} reconoce que ha perdido."],
+  euUp:["La hoja de {a} se enciende en {x}.","El filo de energía de {a} crece hasta {x}.","{a} ruge y su hoja responde: {x}.","La euforia de {a} se vuelve luz: la hoja llega a {x}.","Chispas por todas partes: la hoja de {a} ya es {x}.","El combate alimenta a {a}, y su hoja sube a {x}.","La Hoja del Coloso de {a} late más fuerte: {x}.","{a} se entrega a la pelea y la hoja estalla en {x}."],
+  euDragon:["¡La hoja de {a} toma forma de dragón!","¡Un dragón de luz se enrosca en la hoja de {a}!","La euforia de {a} llega al máximo: ¡la hoja es un dragón!","¡{a} alza un dragón de energía que ilumina todo el campo!","El rugido de {a} despierta al dragón de su hoja.","¡Dragón! La hoja de {a} arde como nunca."],
+  tajo:["{a} barre todo lo que tiene delante con un Tajo en arco.","Un arco de luz sale de la hoja de {a} y corta a todos a su alcance.","{a} gira sobre sí mismo y su Tajo en arco no deja a nadie en pie sin marca.","La hoja de {a} traza un semicírculo radiante.","Con un solo movimiento, {a} parte el aire en arco.","{a} desata un Tajo en arco que deja un rastro de chispas."],
+  bloq:["{a} interpone la hoja y frena el golpe con un Bloqueo de energía.","La Hoja del Coloso de {a} se traga el disparo.","{a} pone la hoja delante y el impacto se deshace en chispas.","Un muro de luz: {a} bloquea con su hoja.","{a} lee el disparo y lo frena con la hoja.","La energía choca contra la hoja de {a} y pierde su fuerza."],
+  redir:["¡{a} devuelve la energía a su origen!","{a} gira la hoja y el disparo vuelve con más furia.","El rayo rebota en la hoja de {a} y sale disparado contra otro enemigo.","{a} convierte el ataque enemigo en su propia arma.","¡Devuelto! La hoja de {a} redirige la energía.","{a} no solo detiene el disparo: lo manda de vuelta."],
+  colosal:["¡La hoja de {a} crece hasta el tamaño de un coloso y parte el campo en dos!","{a} descarga la Hoja colosal: una línea de luz arrasa todo a su paso.","La hoja de {a} recupera el tamaño que tenía en el robot y cae como un rayo.","¡Hoja colosal! El suelo se abre bajo el corte de {a}.","{a} levanta una hoja gigante y la deja caer con todo.","Una columna de luz sale de las manos de {a}: la Hoja colosal no perdona."],
   miss:["{m} de {a} se estrella contra la guardia de {t}.","{t} ve venir {m} de {a} y lo esquiva por un pelo.","{a} lanza {m}, pero {t} no se deja tocar.","{m} de {a} corta el aire donde estaba {t}.","La defensa de {t} detiene {m} de {a}.","{a} falla: {t} desvía {m} sin pestañear.","{t} se agacha a tiempo y {m} de {a} pasa de largo.","Ni {m} logra atravesar la defensa de {t}: {a} falla."],
   dodge:["{t} desvía {m} de {a} en el último instante.","{t} se aparta como un rayo y {m} de {a} no lo alcanza.","Con un giro imposible, {t} evita {m} de {a}.","{t} lee el golpe de {a} y lo anula.","{m} de {a} encuentra solo el vacío: {t} ya no estaba ahí.","{t} frena en seco {m} de {a}.","{a} cree que acierta, pero {t} desvía {m}.","{t} convierte {m} de {a} en un golpe al aire."],
   react:["{a} reacciona al instante con {m}.","{a} responde con {m}.","Rápido como el viento, {a} usa {m}.","{a} se defiende con {m}.","{a} lo ve venir y usa {m}.","{a} contesta con {m}.","{m}: la respuesta de {a} no se hace esperar.","{a} se adelanta con {m}."],
@@ -1010,6 +1022,12 @@ en:{
   rechKo:["{m} isn't ready yet for {a}.","{a} fails to recover {m}.","{m} is still spent for {a}.","{a} pants: {m} will have to wait.","{m} doesn't recharge for {a}.","{a} reaches for {m}, but not yet.","For now, {a} can't repeat {m}.","{m} stays out of {a}'s reach."],
   flee:["{t} flees the fight.","{t} turns tail and escapes.","{t} vanishes in the confusion.","Frightened, {t} retreats in a hurry.","{t} abandons the fight.","{t} escapes however they can.","{t} slips away from the battle.","{t} has had enough and runs."],
   surr:["{t} throws down their weapons and surrenders.","{t} raises their hands: they surrender.","{t} kneels and begs for mercy.","{t} accepts defeat.","{t} gives up.","Out of strength, {t} surrenders.","{t} drops their weapon: it's over for them.","{t} admits they've lost."],
+  euUp:["{a}'s blade ignites into {x}.","{a}'s energy edge grows to {x}.","{a} roars and the blade answers: {x}.","{a}'s euphoria turns to light: the blade reaches {x}.","Sparks everywhere: {a}'s blade is now {x}.","The fight feeds {a}, and the blade rises to {x}.","{a}'s Colossus Blade beats stronger: {x}.","{a} gives in to the fight and the blade bursts into {x}."],
+  euDragon:["{a}'s blade takes the shape of a dragon!","A dragon of light coils around {a}'s blade!","{a}'s euphoria peaks: the blade is a dragon!","{a} raises an energy dragon that lights up the whole field!","{a}'s roar wakes the dragon in the blade.","Dragon! {a}'s blade burns like never before."],
+  tajo:["{a} sweeps everything in front with an Arc Slash.","An arc of light leaves {a}'s blade and cuts everyone in reach.","{a} spins and the Arc Slash leaves its mark on everyone nearby.","{a}'s blade traces a radiant half circle.","In a single motion, {a} splits the air in an arc.","{a} unleashes an Arc Slash that leaves a trail of sparks."],
+  bloq:["{a} puts the blade in the way and stops the blow with an Energy Block.","{a}'s Colossus Blade swallows the shot.","{a} sets the blade in front and the impact breaks into sparks.","A wall of light: {a} blocks with the blade.","{a} reads the shot and stops it with the blade.","The energy crashes into {a}'s blade and loses its strength."],
+  redir:["{a} sends the energy back where it came from!","{a} turns the blade and the shot comes back angrier.","The ray bounces off {a}'s blade and flies at another enemy.","{a} turns the enemy's attack into a weapon.","Sent back! {a}'s blade redirects the energy.","{a} doesn't just stop the shot: sends it back."],
+  colosal:["{a}'s blade grows to colossal size and splits the field in two!","{a} unleashes the Colossal Blade: a line of light razes everything in its path.","{a}'s blade regains the size it had on the robot and falls like lightning.","Colossal Blade! The ground opens under {a}'s cut.","{a} raises a giant blade and brings it down with everything.","A column of light leaves {a}'s hands: the Colossal Blade shows no mercy."],
   miss:["{a}'s {m} crashes against {t}'s guard.","{t} sees {a}'s {m} coming and dodges by a hair.","{a} unleashes {m}, but {t} won't be touched.","{a}'s {m} slices the air where {t} stood.","{t}'s defense stops {a}'s {m}.","{a} misses: {t} turns {m} aside without blinking.","{t} ducks just in time and {a}'s {m} sails past.","Not even {m} breaks through {t}'s defense: {a} misses."],
   dodge:["{t} deflects {a}'s {m} at the last instant.","{t} darts aside and {a}'s {m} never lands.","With an impossible twist, {t} avoids {a}'s {m}.","{t} reads {a}'s blow and cancels it.","{a}'s {m} finds only empty air: {t} is gone.","{t} stops {a}'s {m} cold.","{a} thinks it lands, but {t} deflects {m}.","{t} turns {a}'s {m} into a swing at nothing."],
   react:["{a} reacts instantly with {m}.","{a} responds with {m}.","Swift as the wind, {a} uses {m}.","{a} defends with {m}.","{a} sees it coming and uses {m}.","{a} answers with {m}.","{m}: {a}'s response comes at once.","{a} gets ahead with {m}."],
@@ -1062,7 +1080,8 @@ function buildCron(cid){const E=cronEvents(cid),P=NARR[look.lang]||NARR.es,F=FLV
   const add=(o,k,n)=>{if(k&&n>0)o[k]=(o[k]||0)+n};
   const line=e=>{const ta=TA[e.tid]||{},A=e.o==="dm"?e.a:e.a;
     switch(e.k){
-      case"use":{if(e.o==="dm"&&!e.m)return"";const s=fill(Number.isFinite(e.tot)?pk("usehit"):pk("use"),{a:A,m:mvOf(e),n:e.tot});return s+(e.crit?" "+pk("crit"):"")}
+      case"use":{if(e.o==="dm"&&!e.m)return"";const mm=mvOf(e),hk=/^(Tajo en arco|Arc Slash)/.test(mm)?"tajo":/^(Bloqueo de energía|Energy Block)/.test(mm)?(e.src==="redir"?"redir":"bloq"):/^(Hoja colosal|Colossal Blade)/.test(mm)?"colosal":"";
+        if(hk)return fill(pk(hk),{a:A,n:e.dmg});const s=fill(Number.isFinite(e.tot)?pk("usehit"):pk("use"),{a:A,m:mvOf(e),n:e.tot});return s+(e.crit?" "+pk("crit"):"")}
       case"leg":return e.m?fill(pk("leg"),{a:A,m:mvOf(e)})+(e.crit?" "+pk("crit"):""):"";
       case"react":return fill(pk("react"),{a:A,m:mvOf(e)});
       case"lres":return fill(pk("lres"),{a:A});
@@ -1073,6 +1092,7 @@ function buildCron(cid){const E=cronEvents(cid),P=NARR[look.lang]||NARR.es,F=FLV
         if(sv)return fill(pk(sv==="ok"?"aoeOk":"aoeKo"),{t,d,m:mv||tx("el golpe","the blow")});
         if(by&&by!==t)return fill(mv?pk("dmgm"):pk("dmg"),{a:by,t,m:mv,d})+(e.crit?" "+pk("crit"):"");return fill(pk("recv"),{t,d})}
       case"hit":{if(pcDmg.has(e.tid+"|"+e.target))return"";add(endu,e.target,e.n);add(dealt,A,e.n);return fill(e.src?pk("dmgm"):pk("dmg"),{a:A,t:e.target,m:e.src,d:dTxt(e.n,e.ty)})}
+      case"eu":{if(!e.on)return"";const st=EU_ST[["chispa","llama","tormenta","dragon"].indexOf(e.m)];return st?fill(pk(e.m==="dragon"?"euDragon":"euUp"),{a:e.a,x:tl(st)}):""}
       case"atk":{if(e.res!=="miss"&&e.res!=="deflected")return"";const pc=e.o!=="dm",t=pc?e.a:e.target,by=(pc?ta.a:e.a)||tx("el enemigo","the enemy");return fill(pk(e.res==="miss"?"miss":"dodge"),{a:by,t,m:e.src||mvOf(e)||tx("su ataque","the attack"),n:e.ac})}
       case"heal":return e.n>0?fill(pk("heal"),{t:e.o==="dm"?e.target:e.a,n:e.n}):"";
       case"temp":return fill(pk("temp"),{t:e.target,n:e.n});
@@ -1140,7 +1160,7 @@ function bestClick(d,find){
       bOpen=ED.id;saveBest();panClose();render();return true}
     if(a==="aoego"){aoeGo();return true}
     if(a==="akgo"){akGo();return true}
-    if(a==="akadd"){const q=PANEL.q,l=q[q.length-1];q.push(akItem(l.cx,l.tid));drawPan();return true}
+    if(a==="akadd"){const q=PANEL.q,l=q[q.length-1];q.push(akItem(l.cx,l.tid,l.rng));drawPan();return true}
     if(a==="rwgo"){rwGo();return true}
     if(a==="rwitem"){PANEL.rw.items.push({ch:rwCrew(PANEL.cid)[0],n:"",q:"1"});drawPan();return true}
     if(a==="crcopy"){copyTxt($("cr-title").value+"\n\n"+$("cr-txt").value);return true}
@@ -1195,7 +1215,7 @@ function panInput(e){const el=e.target;if(!PANEL||!el.closest||!el.closest("#pan
     if(ds.rw){R[ds.rw]=v;if(ds.rw==="eq")drawPan();return}if(ds.rwm){R.per[ds.rwm]=v;return}if(ds.rwi){const it=R.items[+ds.rwi];if(it)it[ds.f]=v;return}
     if(ds.rwp){const p=R.pr[ds.rwp]=R.pr[ds.rwp]||{};p[ds.f]=v;if(ds.f==="on")drawPan();return}return}
   if(PANEL.k==="enc"&&el.dataset.ee){EE[el.dataset.ee]=setL(EE[el.dataset.ee],el.value.slice(0,400));return}
-  if(PANEL.k==="atk"&&el.dataset.ak){const it=PANEL.q[+el.dataset.i],f=el.dataset.ak;if(!it)return;it[f]=el.type==="checkbox"?el.checked:el.value;if(f==="tot"){it.nat=null;it.roll=""}if(f==="cx"||f==="tid")it.par=0;drawPan();return}
+  if(PANEL.k==="atk"&&el.dataset.ak){const it=PANEL.q[+el.dataset.i],f=el.dataset.ak;if(!it)return;it[f]=el.type==="checkbox"?el.checked:el.value;if(f==="tot"){it.nat=null;it.roll=""}if(f==="cx"||f==="tid")it.par=0;if(f==="cx")it.rng=rngOf(S.list.find(y=>y.id===PANEL.by),it.cx);drawPan();return}
   if(PANEL.k==="aoe"){const f=el.dataset.ao;if(f)PANEL[f]=el.type==="checkbox"?el.checked:el.value;else if(el.dataset.aosel)PANEL.sel[el.dataset.aosel]=el.checked;else return;drawPan()}}
 document.addEventListener("input",e=>{if(e.target.type!=="checkbox"&&e.target.tagName!=="SELECT")panInput(e)});
 document.addEventListener("change",e=>{const sh=e.target.dataset&&e.target.dataset.show;if(sh){const c=S.list.find(x=>x.id===sh);if(c){c.show=e.target.checked;foeNums();save();render()}return}if(e.target.dataset&&e.target.dataset.encpet!=null){encPet=e.target.checked;render();return}if(e.target.type==="checkbox"||e.target.tagName==="SELECT")panInput(e)});

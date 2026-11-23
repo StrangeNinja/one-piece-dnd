@@ -172,6 +172,11 @@ Campos principales (la app ignora o corrige cualquier campo desconocido o de tip
 | `ccid` | string | `cid` del combate al que pertenece `clog`. |
 | `concN` | string | Nombre de lo que concentra (solo para mostrarlo en `dm.html`; la app no lo lee). |
 | `hitAck` | objeto o `null` | Respuesta al último ataque del DM (ver 4.12): `{id, res, dmg, ac, pet, at}`. `res`: `"hit"`, `"miss"`, `"deflected"`, `"halved"` o `"void"` (el jugador tocó "El DM se equivocó"). |
+| `eu` | número 0–6 | Euforia de la Hoja del Coloso (solo Ryuga): 0–1 Chispa, 2–3 Llama, 4–5 Tormenta, 6 Dragón. |
+| `wield` | `"kanabo"` o `"coloso"` | Arma a dos manos que empuña Ryuga. |
+| `lit` | boolean | La hoja está encendida (el kairoseki o el agua la apagan). |
+| `bladeOff` | número 0–2 | Finales de turno que faltan para que la hoja vuelva tras Hoja colosal. |
+| `colInv` | boolean | La hoja ya se agregó al inventario (migración, una vez). |
 | `frenzy`, `trans`, `muscle`, `form`, `formOpts`, `humanHp`, `float`, `stageAC`, `advNext`, `hard`, `mw`, `swapHands` | varios | Estados propios de rasgos: frenesí, Sulong, Músculos de Haki (`"def"`/`"atk"`/`""`), forma Zoan, Paso de nube, Endurecimiento, arma de mochi, armas cambiadas de mano (`swapHands`), etc. |
 | `fury` | string[] | Técnicas de furia conocidas (Bruiser). `furyDone`: último desbloqueo del DM ya usado. |
 | `comp` | `{hp, temp, heads, tf, turnDmg}` | Mascota (Fluffy, en `state/sungsopp`). Vacío `{}` si no hay mascota. |
@@ -238,7 +243,7 @@ Nivel, prestigio, Haki comprado, entregas del DM y el flujo de subida de nivel. 
 | `buy` | `{id, st, at, note?}` o `null` | **Jugador** (crea y cancela) y DM (responde) | Solicitud de compra en la tienda. `st`: `"pend"`, `"ok"` o `"no"`. |
 | `grants` | objeto[] | DM | Entregas de dinero u objetos, la más nueva primero, hasta 30: `{id, at, m, n, q, note}` (ver 4.8). |
 | `furyOpen` | número (fecha) | DM | El DM permitió cambiar las técnicas de furia. |
-| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. Con `kind: "attack"`, un ataque contra su CA (ver 4.12): `{id, kind, total, nat, crit, n, type, extra, src, by, byN, magic, pet, at, more}`. |
+| `hit` | objeto | DM (`dm.html`) | Golpe para el jugador (ver 4.10): `{id, n, type, save, dc, half, src, sea, pet, crit, at}`. Con `kind: "attack"`, un ataque contra su CA (ver 4.12): `{id, kind, total, nat, crit, n, type, extra, src, by, byN, ranged, magic, pet, at, more}` (`ranged`: a distancia, rayo o proyectil). |
 | `sea` | objeto | DM (`dm.html`) | Kairoseki desde el panel (ver 4.10): `{on, id, temp, at}`. |
 
 Ejemplo:
