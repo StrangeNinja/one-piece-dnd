@@ -166,6 +166,8 @@ section h2{font-family:var(--f-display);font-size:19px;margin:0 0 8px}
 .bcd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 .bcd b{font-size:15px}
 .cnt{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:15;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;background:var(--ink);color:var(--bg);box-shadow:0 4px 16px var(--shadow);padding:12px 18px;font-size:15px}
+body{padding-bottom:90px}
 .encb{position:relative;height:14px;border-radius:7px;background:var(--chip);overflow:hidden;margin:6px 0}.encb i{position:absolute;inset:0 auto 0 0;border-radius:7px}.encb s{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.5}
 .scene{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--gold);border-radius:12px;background:var(--surface)}.scene p{margin:4px 0 0}
 .cnt b{flex:1;min-width:0}
@@ -189,7 +191,7 @@ textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px so
 <script>
 /* Apariencia (paleta y modo): mismo código y misma clave de localStorage en index.html y dm.html */
 /* Versión publicada: la escribe sola el hook pre-commit de git (.git/hooks/pre-commit) con la fecha y hora del commit */
-const APP_VERSION="2026-11-22 21:21";
+const APP_VERSION="2026-11-22 21:22";
 /* lang: "es" (predeterminado) o "en". tx(es,en) da el texto de la interfaz en el idioma activo */
 const PALS={grand:{es:"Grand Line",en:"Grand Line"},bandera:{es:"Bandera pirata",en:"Pirate Flag"},paja:{es:"Sombrero de paja",en:"Straw Hat"}},MODES={auto:{es:"Automático",en:"Auto"},day:{es:"Día",en:"Day"},night:{es:"Noche",en:"Night"}},
   DICE={fis:{es:"Físicos",en:"Physical"},dig:{es:"Digitales",en:"Digital"}},LANGS={es:{es:"Español",en:"Español"},en:{es:"English",en:"English"}},LOOK_KEY="mc:look";
@@ -724,7 +726,7 @@ function aoeGo(){const P=PANEL,n=parseInt(P.n,10),dc=parseInt(P.dc,10)||0,out=[]
 
 /* ----- Golpes y kairoseki para los jugadores: progress/{personaje}.hit y .sea (merge: no toca nivel, prestigio, propuestas…) ----- */
 let SENT={};
-function progMerge(ch,data){if(!fb||!isDM)return false;fb.F.setDoc(fb.F.doc(fb.db,"progress",ch),data,{merge:true}).catch(e=>{console.warn("No se pudo enviar",e);dmToast("d",tx("No se pudo enviar al jugador","Couldn't send to the player"))});return true}
+function progMerge(ch,data){if(!fb||!isDM)return false;USENT.push(ch);fb.F.setDoc(fb.F.doc(fb.db,"progress",ch),data,{merge:true}).catch(e=>{console.warn("No se pudo enviar",e);dmToast("d",tx("No se pudo enviar al jugador","Couldn't send to the player"))});return true}
 function sendHit(c,l,h){const lv=liveView(c),id=nid(),ok=progMerge(l.char,{hit:{id,n:h.n,type:h.type||"",save:h.save||"",dc:h.dc||0,half:!!h.half,src:String(h.src||"").slice(0,40),sea:!!h.sea,pet:l.kind==="pet",crit:!!h.crit,at:Date.now()}});
   if(ok){SENT[c.id]={hp:lv?lv.hp:null};clog({k:"hit",target:c.name,n:h.n,ty:h.type||"",src:h.src||"",...(h.save?{save:h.save,dc:h.dc}:{}),...(h.crit?{crit:true}:{}),...(h.save?{aoe:true}:{})})}return ok}
 const seaName=n=>n==="Codel"?tx("Kairoseki","Seastone"):tx("Agua o kairoseki","Water or seastone");
@@ -1217,6 +1219,30 @@ $("addf").addEventListener("submit",e=>{e.preventDefault();
   ["f-name","f-init","f-mod","f-ac","f-max"].forEach(i=>$(i).value="");$("f-qty").value=1;
   save();render();
 });
+/* ===== Deshacer del DM: copia de S antes de cada toque o envío de formulario que la cambia (las últimas 30).
+   El nombre de lo que se deshace sale de los eventos nuevos de la crónica (o de cuántas criaturas cambiaron).
+   Lo que ya se envió a un teléfono (golpes, ataques, kairoseki: progMerge) no se puede deshacer: se avisa ===== */
+let UNDO=[],UPRE=null,USENT=[];
+const ustr=()=>JSON.stringify({...S,at:0});
+function undoLabel(pre){const n=pre.cid===S.cid?(pre.clog||[]).length:0,E=(S.clog||[]).slice(n);
+  for(const e of E){const t=esc(e.target||""),L={dmg:()=>tx(`${e.n} de daño a ${t}`,`${e.n} damage to ${t}`),heal:()=>tx(`curación a ${t}`,`healing on ${t}`),temp:()=>tx(`PV temporales a ${t}`,`temporary HP on ${t}`),
+      cond:()=>tx(`${condT(e.cond)} en ${t}`,`${condT(e.cond)} on ${t}`),fx:()=>tx(`efecto en ${t}`,`effect on ${t}`),use:()=>esc(e.m||""),leg:()=>esc(e.m||""),hit:()=>tx(`golpe a ${t}`,`hit on ${t}`),atks:()=>tx(`ataque a ${t}`,`attack on ${t}`),
+      flee:()=>tx(`${t} sale del combate`,`${t} leaves combat`),conc:()=>tx(`concentración de ${t}`,`${t}'s concentration`),end:()=>tx("fin del combate","end of combat"),start:()=>tx("inicio del combate","start of combat"),turn:()=>tx("cambio de turno","turn change"),sea:()=>tx(`kairoseki de ${t}`,`${t}'s seastone`)}[e.k];
+    if(L&&(e.k!=="turn"||E.length===1||!E.some(x=>x.k!=="turn"&&x.k!=="start")))return L()}
+  const a=pre.list.length,b=S.list.length;return b>a?tx("agregar criaturas","adding creatures"):b<a?tx("quitar criaturas","removing creatures"):pre.cur!==S.cur?tx("cambio de turno","turn change"):tx("el último cambio","the last change")}
+function undoDraw(){let b=$("undo");if(!b){b=document.createElement("button");b.id="undo";b.className="btn undo";b.dataset.undo="1";document.body.append(b)}
+  const u=UNDO[UNDO.length-1];b.hidden=!u;if(u)b.innerHTML=tx(`Deshacer: ${u.label}`,`Undo: ${u.label}`)}
+function undoNote(){if(UPRE==null)return;const pre=UPRE,sent=USENT;UPRE=null;USENT=[];if(ustr()===pre)return;
+  const p=JSON.parse(pre);UNDO.push({s:pre,label:undoLabel(p),sent:[...new Set(sent)]});if(UNDO.length>30)UNDO.shift();undoDraw()}
+function undoDo(){const u=UNDO.pop();if(!u)return;const was=S,p=JSON.parse(u.s);
+  /* Si vuelve a un turno anterior, el turno restaurado lleva un turnId nuevo: así los teléfonos lo vuelven a avisar */
+  p.turnId=Math.max(p.turnId||0,was.turnId||0)+(p.cur!==was.cur?1:0);S=p;SENT={};save();render();undoDraw();
+  const ph=u.sent.map(ch=>ch[0].toUpperCase()+ch.slice(1));
+  dmToast("t",tx(`Deshecho: ${u.label}`,`Undone: ${u.label}`)+(ph.length?"<br>"+tx(`El golpe ya llegó al teléfono de ${esc(listJ(ph))}: pídele que toque Deshacer en su app`,`The hit already reached ${esc(listJ(ph))}'s phone: ask them to tap Undo in their app`):""))}
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(b&&!b.dataset.undo&&!b.closest("#lk"))UPRE=ustr()},true);
+document.addEventListener("submit",()=>{UPRE=ustr()},true);
+document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest("#lk"))return;if(e.target.dataset&&(e.target.dataset.initfor||e.target.dataset.show))UPRE=ustr()},true);
+for(const ev of["click","submit","change"])document.addEventListener(ev,e=>{if(e.target.closest&&e.target.closest("[data-undo]")){if(ev==="click")undoDo();return}undoNote()});
 /* Lo publicado nunca lleva nombre, PV ni CA de enemigos */
 {const t={...S};S={round:2,cur:"e",list:[{id:"e",name:"Kaido",type:"foe",init:20,ac:22,hp:500,max:500,temp:0,conds:[]},{id:"u",name:"Udon",char:"udon",type:"pc",init:10,ac:15,hp:66,max:66,temp:0,conds:[]}],active:true,turnId:3};
   S.cid="ctest";S.clog=[{k:"dmg",target:"Kaido",n:5}];
